@@ -2,11 +2,16 @@
 """Django's command-line utility for administrative tasks."""
 import os
 import sys
-
+from pathlib import Path
 
 def main():
     """Run administrative tasks."""
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'ltronix.settings')
+
+    # Ensure the logs directory exists
+    logs_dir = Path(__file__).resolve().parent / "logs"
+    logs_dir.mkdir(exist_ok=True)
+
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:

@@ -23,7 +23,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = "django-insecure-3$jetm_q!t@e)4+^n1zs*3f8bvm!v!i=86d1a9xnv@%7!$6gz@"
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False  # Set to True for development; change to False in production
+DEBUG = True  # Set to True for development; change to False in production
 
 ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'ltronix-shop.local']  # Add ltronix-shop.local
 
