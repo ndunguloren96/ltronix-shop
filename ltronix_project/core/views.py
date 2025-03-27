@@ -3,7 +3,7 @@ from django.contrib.auth import login
 from django.contrib.auth.forms import UserChangeForm
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from .forms import CustomUserCreationForm
+from .forms import CustomUserCreationForm, CustomUserChangeForm  # Import CustomUserChangeForm
 
 @login_required
 def profile(request):
@@ -23,11 +23,11 @@ def register(request):
 @login_required
 def profile_update(request):
     if request.method == "POST":
-        form = UserChangeForm(request.POST, instance=request.user)
+        form = CustomUserChangeForm(request.POST, instance=request.user)  # Use CustomUserChangeForm
         if form.is_valid():
             form.save()
             messages.success(request, "Profile updated successfully.")
             return redirect("profile")
     else:
-        form = UserChangeForm(instance=request.user)
+        form = CustomUserChangeForm(instance=request.user)  # Use CustomUserChangeForm
     return render(request, "core/profile_update.html", {"form": form})
