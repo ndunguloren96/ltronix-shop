@@ -1,0 +1,12 @@
+<h1>User Profile</h1>
+<p>Username: {{ user.username }}</p>
+<p>Email: {{ user.email }}</p>
+<p>Address: {{ user.customuser.address }}</p>
+<p>Phone: {{ user.customuser.phone_number }}</p>
+<a href="{% url 'logout' %}">Logout</a>
+
+<h2>User Profile</h2>
+<form method="POST">
+  {% csrf_token %} {{ form.as_p }}
+  <button type="submit">Update Profile</button>
+</form>
