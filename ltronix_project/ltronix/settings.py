@@ -25,7 +25,7 @@ SECRET_KEY = "django-insecure-3$jetm_q!t@e)4+^n1zs*3f8bvm!v!i=86d1a9xnv@%7!$6gz@
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False  # Set to True for development; change to False in production
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost']  # Simplify for development
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'ltronix-shop.local']  # Add ltronix-shop.local
 
 
 # Application definition
@@ -136,10 +136,56 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
-STATIC_URL = "static/"
+STATIC_URL = "/static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]  # Ensure this directory exists
+STATIC_ROOT = BASE_DIR / "staticfiles"  # Directory for collected static files
+
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# Logging configuration
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "{levelname} {asctime} {module} {message}",
+            "style": "{",
+        },
+        "simple": {
+            "format": "{levelname} {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "file_debug": {
+            "level": "DEBUG",
+            "class": "logging.FileHandler",
+            "filename": BASE_DIR / "logs/django-debug.log",
+            "formatter": "verbose",
+        },
+        "file_error": {
+            "level": "ERROR",
+            "class": "logging.FileHandler",
+            "filename": BASE_DIR / "logs/django-error.log",
+            "formatter": "verbose",
+        },
+        "console": {
+            "level": "DEBUG",
+            "class": "logging.StreamHandler",
+            "formatter": "simple",
+        },
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["file_debug", "file_error", "console"],
+            "level": "DEBUG",
+            "propagate": True,
+        },
+    },
+}
