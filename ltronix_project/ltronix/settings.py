@@ -23,9 +23,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = "django-insecure-3$jetm_q!t@e)4+^n1zs*3f8bvm!v!i=86d1a9xnv@%7!$6gz@"
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False  # Set to True for development; change to False in production
 
-ALLOWED_HOSTS = ['127.0.0.1', '192.168.1.8', '172.18.192.1', '172.18.196.39'] #Add the ip adresses 
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost']  # Simplify for development
 
 
 # Application definition
@@ -56,7 +56,7 @@ ROOT_URLCONF = "ltronix.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [BASE_DIR / "templates"],  # Ensure this path is correct
+        "DIRS": [BASE_DIR / "templates"],  # Ensure templates directory is correct
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
