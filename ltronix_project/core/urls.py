@@ -3,7 +3,13 @@ from django.contrib.auth import views as auth_views
 from . import views
 from .views import register, profile, profile_update  # Ensure profile_update is imported
 
+app_name = 'core' # Define the namespace
+
 urlpatterns = [
+    path('', views.landing_page, name='landing_page'),
+    path('register/', views.register, name='register'),
+    path('login/', views.login_view, name='login'),
+    path('home/', views.home, name='home'),
     path(
         "login/",
         auth_views.LoginView.as_view(template_name="registration/login.html"),

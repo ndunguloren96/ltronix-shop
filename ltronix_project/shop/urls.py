@@ -1,11 +1,7 @@
 from django.urls import path
-from .views import ProductListView, product_list
-from django.http import HttpResponse
+from .views import ProductListView, product_list, product_detail
 
-
-def product_detail(request, pk):
-    return HttpResponse(f"Product Detail for ID {pk}")
-
+app_name = 'shop'  # Define the namespace for the shop app
 
 urlpatterns = [
     path("", ProductListView.as_view(), name="product_list"),
