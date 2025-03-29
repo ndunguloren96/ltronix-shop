@@ -1,0 +1,23 @@
+{% extends "base.html" %} {% block title %}Home{% endblock %} {% block content
+%}
+<h2>Welcome to Ltronix Shop</h2>
+<p>Discover the best products at unbeatable prices!</p>
+<a href="{% url 'shop:index' %}" class="btn">Start Shopping</a>
+
+<h3>Featured Products</h3>
+<div class="product-list">
+  {% for product in featured_products %}
+  <div class="product-item">
+    <img
+      src="{{ product.image.url }}"
+      alt="{{ product.name }}"
+      loading="lazy" />
+    <h3>{{ product.name }}</h3>
+    <p>Price: ${{ product.price }}</p>
+    <a href="{% url 'shop:product_detail' product.id %}" class="btn"
+      >View Details</a
+    >
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,7 @@
+{% extends "base.html" %} {% block content %}
+<h1>Welcome to Ltronix Enterprise</h1>
+<p>Your one-stop shop for all your needs.</p>
+<a href="{% url 'register' %}">Register</a> |
+<a href="{% url 'login' %}">Login</a>
+<img src="{% static 'images/landing_image.jpg' %}" alt="Landing Image" />
+{% endblock %}
