@@ -1,3 +1,4 @@
+from django.http import HttpResponse
 from django.shortcuts import render
 from django.views.generic import ListView
 from .models import Product, Category
@@ -22,3 +23,6 @@ class ProductListView(ListView):
 def product_list(request):
     products = Product.objects.all()
     return render(request, "shop/product_list.html", {"products": products})
+
+def product_detail(request, pk):
+    return HttpResponse(f"Product Detail for ID {pk}")
