@@ -1,4 +1,12 @@
-{% extends "base.html" %} {% block content %}
+{% extends "base.html" %} {% block title %}Dashboard{% endblock %} {% block
+content %}
 <h1>Welcome, {{ user.username }}!</h1>
-<p>This is your home page.</p>
-{% endblock %}
+<p>This is your dashboard.</p>
+{% if recent_orders %}
+<h3>Your Recent Orders</h3>
+<ul>
+  {% for order in recent_orders %}
+  <li>Order #{{ order.id }} - {{ order.status }} - ${{ order.total }}</li>
+  {% endfor %}
+</ul>
+{% endif %} {% endblock %}
