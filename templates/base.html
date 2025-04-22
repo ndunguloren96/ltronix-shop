@@ -1,23 +1,32 @@
-{% load static %}``
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{% block title %}Ltronix Shop{% endblock %}</title>
-    <link rel="stylesheet" href="{% static 'css/styles.css' %}" />
+    <link rel="stylesheet" href="{% static 'css/style.css' %}" />
   </head>
   <body>
     <header>
       <h1>Ltronix Shop</h1>
       <nav>
         <ul>
-          <li><a href="{% url 'shop:shop' %}">Shop</a></li>
+          <li><a href="{% url 'shop:index' %}">Shop</a></li>
+          <li><a href="{% url 'shop:cart' %}">Cart</a></li>
           <li><a href="{% url 'core:profile' %}">Profile</a></li>
         </ul>
       </nav>
     </header>
-    <main>{% block content %}{% endblock %}</main>
+    <main>
+      {% if messages %}
+      <ul class="messages">
+        {% for message in messages %}
+        <li class="{{ message.tags }}">{{ message }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %} {% block content %}{% endblock %}
+    </main>
     <footer>
       <p>&copy; 2025 Ltronix Shop</p>
     </footer>
