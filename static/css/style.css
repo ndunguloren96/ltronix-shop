@@ -94,3 +94,36 @@ button:hover {
     margin: 5px 0;
     color: #666;
 }
+
+.messages {
+    list-style: none;
+    padding: 0;
+    margin: 1em 0;
+}
+.messages li {
+    padding: 10px;
+    margin-bottom: 5px;
+    border-radius: 4px;
+}
+.messages li.success {
+    background: #d4edda;
+    color: #155724;
+}
+.messages li.error {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1em;
+}
+th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: center;
+}
+th {
+    background: #f4f4f4;
+}

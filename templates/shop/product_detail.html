@@ -4,8 +4,17 @@ block content %}
 <img src="{{ product.image.url }}" alt="{{ product.name }}" loading="lazy" />
 <p>{{ product.description }}</p>
 <p>Price: ${{ product.price }}</p>
+<p>Stock: {{ product.stock }}</p>
 <form method="post" action="{% url 'shop:add_to_cart' product.id %}">
   {% csrf_token %}
+  <label for="quantity">Quantity:</label>
+  <input
+    type="number"
+    name="quantity"
+    id="quantity"
+    value="1"
+    min="1"
+    max="{{ product.stock }}" />
   <button type="submit" class="btn">Add to Cart</button>
 </form>
 <a href="{% url 'shop:index' %}" class="btn">Continue Shopping</a>
