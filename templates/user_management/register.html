@@ -1,7 +1,13 @@
-{% extends "base.html" %} {% block content %}
-<h2>Register</h2>
+{% extends "base.html" %} {% block title %}Register{% endblock %} {% block
+content %}
+<h2>Sign Up</h2>
 <form method="post">
   {% csrf_token %} {{ form.as_p }}
-  <button type="submit">Register</button>
+  <label>
+    <input type="checkbox" name="terms" required /> I agree to the
+    <a href="#">terms and conditions</a>
+  </label>
+  <button type="submit" class="btn">Register</button>
 </form>
+<p>Already have an account? <a href="{% url 'login' %}">Log in</a></p>
 {% endblock %}
