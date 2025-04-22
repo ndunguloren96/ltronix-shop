@@ -1,5 +1,12 @@
-{% extends "base.html" %} {% block title %}Shop{% endblock %} {% block content
-%}
-<h2>Welcome to the Shop</h2>
-<p>Browse our products and enjoy shopping!</p>
+{% extends "shop/base.html" %} {% block shop_content %}
+<h2>Shop Categories</h2>
+<ul class="category-list">
+  {% for category in categories %}
+  <li>
+    <a href="{% url 'shop:product_list' %}?category={{ category.slug }}"
+      >{{ category.name }}</a
+    >
+  </li>
+  {% endfor %}
+</ul>
 {% endblock %}
