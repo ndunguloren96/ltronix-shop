@@ -1,0 +1,24 @@
+{
+  "name": "ltronix-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Frontend for Ltronix Shop",
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "react-router-dom": "^6.0.0",
+    "tailwindcss": "^3.0.0",
+    "@tailwindcss/forms": "^0.5.0"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.0",
+    "postcss": "^8.4.0"
+  }
+}
