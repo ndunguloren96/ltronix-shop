@@ -8,6 +8,7 @@ from django.shortcuts import get_object_or_404
 
 User = get_user_model()
 
+
 class CheckoutView(APIView):
     def get(self, request):
         # Return cart, shipping, and payment info for review
@@ -21,6 +22,7 @@ class CheckoutView(APIView):
             "payment_status": payment.status if payment else None,
         }
         return Response(data)
+
 
 class PlaceOrderView(APIView):
     def post(self, request):
@@ -38,9 +40,13 @@ class PlaceOrderView(APIView):
             shipping_address=address,
             payment=payment,
             total=total,
-            status="processing"
+            status="processing",
         )
-        return Response({"order_id": order.id, "status": order.status}, status=status.HTTP_201_CREATED)
+        return Response(
+            {"order_id": order.id, "status": order.status},
+            status=status.HTTP_201_CREATED,
+        )
+
 
 class ConfirmPaymentView(APIView):
     def post(self, request):
