@@ -5,6 +5,7 @@ from .models import Cart, CartItem
 
 User = get_user_model()
 
+
 class CartModelTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(username="testuser", password="pass")
@@ -15,7 +16,10 @@ class CartModelTests(TestCase):
 
     def test_add_item_to_cart(self):
         item = CartItem.objects.create(
-            cart=self.cart, product=self.product, quantity=2, price_at_add=self.product.price
+            cart=self.cart,
+            product=self.product,
+            quantity=2,
+            price_at_add=self.product.price,
         )
         self.assertEqual(item.quantity, 2)
         self.assertEqual(item.cart, self.cart)

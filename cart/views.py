@@ -6,6 +6,7 @@ from .serializers import CartSerializer, CartItemSerializer
 from products.models import Product
 from django.shortcuts import get_object_or_404
 
+
 class CartViewSet(viewsets.ModelViewSet):
     queryset = Cart.objects.all()
     serializer_class = CartSerializer
@@ -24,8 +25,9 @@ class CartViewSet(viewsets.ModelViewSet):
         quantity = int(request.data.get("quantity", 1))
         product = get_object_or_404(Product, id=product_id)
         item, created = CartItem.objects.get_or_create(
-            cart=cart, product=product,
-            defaults={"quantity": quantity, "price_at_add": product.price}
+            cart=cart,
+            product=product,
+            defaults={"quantity": quantity, "price_at_add": product.price},
         )
         if not created:
             item.quantity += quantity
