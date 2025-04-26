@@ -2,6 +2,7 @@ from rest_framework import generics, permissions
 from .models import Order
 from .serializers import OrderSerializer, CreateOrderSerializer
 
+
 class OrderListCreateView(generics.ListCreateAPIView):
     queryset = Order.objects.all()
     permission_classes = [permissions.IsAuthenticated]
@@ -15,6 +16,7 @@ class OrderListCreateView(generics.ListCreateAPIView):
         # Only show orders for the current user
         return Order.objects.filter(user=self.request.user)
 
+
 class OrderDetailView(generics.RetrieveAPIView):
     queryset = Order.objects.all()
     serializer_class = OrderSerializer
@@ -24,10 +26,12 @@ class OrderDetailView(generics.RetrieveAPIView):
         # Only allow users to access their own orders
         return Order.objects.filter(user=self.request.user)
 
+
 # Admin view to update order status
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
 
 class OrderStatusUpdateView(APIView):
     permission_classes = [permissions.IsAdminUser]
