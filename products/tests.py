@@ -4,6 +4,7 @@ from .models import Product, Category, Brand
 
 User = get_user_model()
 
+
 class ProductModelTests(TestCase):
     def setUp(self):
         self.category = Category.objects.create(name="Electronics", slug="electronics")
