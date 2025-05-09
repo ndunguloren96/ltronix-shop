@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Django Ecommerce Website</title>
+  </head>
+  <body>
+    <h1>Welcome to the Django Ecommerce Store</h1>
+    <nav>
+      <ul>
+        <li><a href="{% url 'store:product_list' %}">Products</a></li>
+        <li><a href="{% url 'store:cart' %}">Cart</a></li>
+        <li><a href="{% url 'store:checkout' %}">Checkout</a></li>
+      </ul>
+    </nav>
+
+    {% block content %} {% endblock %}
+  </body>
+</html>
