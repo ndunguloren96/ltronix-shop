@@ -1,6 +1,11 @@
-{%extends 'store/main.html' %} {%load static%} {%block content%}
+{% extends 'store/main.html' %} {% load static %} {% block content %}
+<div class="row">
+  <div class="col-lg-6">
+    <div class="box-element" id="form-wrapper"></div>
+  </div>
 
-<h3>
-  Checkout
-  <h3>{%endblock content%}</h3>
-</h3>
+  <div class="col-lg-6">
+    <div class="box-element"></div>
+  </div>
+</div>
+{% endblock content %}
