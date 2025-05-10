@@ -28,20 +28,18 @@ class Product(models.Model):
     name = models.CharField(max_length=200)
     price = models.FloatField()
     digital = models.BooleanField(default=False, null=True, blank=True)
-    image = models.ImageField(null=True, blank=True)
+    image = models.ImageField(null=True, blank=True) # Images will be uploaded to MEDIA_ROOT
 
     def __str__(self):
         return self.name
 
-
-#  if no image return an empty string.
-@property  # @property is a decorator for methods in a class that gets the value in the method.
-def imageURL(self):
-    try:
-        url = self.image.url
-    except:
-        url = ""
-    return url
+    @property  # This decorator allows you to call imageURL as an attribute (e.g., product.imageURL)
+    def imageURL(self):
+        try:
+            url = self.image.url
+        except: # Catches errors if image is None or has no file
+            url = ""
+        return url
 
 
 # Order Model
