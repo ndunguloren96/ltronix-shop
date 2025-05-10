@@ -9,7 +9,16 @@ def store(request):
 
 
 def cart(request):
-    context = {}
+
+    if request.user.is_authenticated:
+        customer = request.user.customer
+        order, created = Order.objects.get_or_created(customer=customer, complete=False)
+        items = order.orderitem_set.all()
+    else:
+        # Create Empty car for now for none-logged in users
+        items =  []
+
+    context = {'items':items}
     return render(request, "store/cart.html", context)
 
 
