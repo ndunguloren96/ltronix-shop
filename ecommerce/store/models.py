@@ -34,6 +34,16 @@ class Product(models.Model):
         return self.name
 
 
+#  if no image return an empty string.
+@property  # @property is a decorator for methods in a class that gets the value in the method.
+def imageURL(self):
+    try:
+        url = self.image.url
+    except:
+        url = ""
+    return url
+
+
 # Order Model
 class Order(models.Model):
     customer = models.ForeignKey(
