@@ -1,4 +1,5 @@
 from django.shortcuts import render
+from django.http import JsonResponse
 from .models import * # Customer, Product, Order, OrderItem, ShippingAddress
 
 
@@ -71,3 +72,6 @@ def checkout(request):
     # Corrected context: It should always include items and order
     context = {"items": items, "order": order}
     return render(request, "store/checkout.html", context)
+
+def updateItem(request):
+    return JsonResponse('Item was added', safe=False)
