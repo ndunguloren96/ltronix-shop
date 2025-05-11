@@ -86,6 +86,10 @@ def processOrder(request):
 		order, created = Order.objects.get_or_create(customer=customer, complete=False)
 		total = float(data['form']['total'])
 		order.transaction_id = transaction_id
+
+        if total == order.get_cart_total:
+            order.complete = True
+        order.save()
 	else:
 		print('User is not logged in')
 
