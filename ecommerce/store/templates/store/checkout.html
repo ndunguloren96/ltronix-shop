@@ -75,6 +75,8 @@
     <br />
     <div class="box-element hidden" id="payment-info">
       <small>Paypal Options</small>
+      <button id="make-payment">Make payment</button>
+      <!--Add demo Payment button -->
     </div>
   </div>
 
@@ -104,4 +106,20 @@
     </div>
   </div>
 </div>
+<script type="text/javascript">
+  var shipping = "{{order.shipping}}";
+
+  if (shipping == "False") {
+    document.getElementById("shipping-info").innerHTML = "";
+  }
+
+  var form = document.getElementById('form')
+  form.addEventListener('sumbit', function(e){
+    .preventDefault()
+    console.log('Form sumbitted...')
+    document.getElementById('form-button').classList.add("hidden");
+    document.getElementById('payment-info').classList.remove("hidden");
+  }
+  )
+</script>
 {% endblock content %}
