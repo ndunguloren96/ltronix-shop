@@ -97,7 +97,6 @@ def checkout(request):
                 "get_cart_total": 0,
                 "get_cart_items": 0,
                 "shipping": False,
-                "id": None
             }
             cartItems = order['get_cart_items']
     else:
@@ -107,7 +106,6 @@ def checkout(request):
             "get_cart_total": 0,
             "get_cart_items": 0,
             "shipping": False,
-            "id": None
         }
         cartItems = order['get_cart_items']
 
