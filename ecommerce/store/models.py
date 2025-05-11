@@ -77,14 +77,13 @@ class Order(models.Model):
         Determines if shipping is required for the order.
         Shipping is required if any item in the order is not digital.
         """
-        shipping_required = False
+        shipping = False
         orderitems = self.orderitem_set.all()
         for item in orderitems:
             # Ensure product exists and then check its digital status
-            if item.product and not item.product.digital:
-                shipping_required = True
-                break  # No need to check further if one physical item is found
-        return shipping_required
+            if item.product.digital == False:
+                shipping = True
+        return shipping
 
 
 # OrderItem Model
