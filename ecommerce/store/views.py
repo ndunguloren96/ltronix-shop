@@ -46,6 +46,7 @@ def store(request):
 
 
 def cart(request):
+    cartItems = 0 #initialize to zero to prevent UnboundLocalError
     if request.user.is_authenticated:
         try:
             customer = request.user.customer
@@ -83,6 +84,7 @@ def cart(request):
 
 
 def checkout(request):
+    cartItems = 0 #initialize to zero to prevent UnboundLocalError in checkout page
     if request.user.is_authenticated:
         try:
             customer = request.user.customer
