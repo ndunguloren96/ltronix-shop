@@ -106,7 +106,8 @@
   </div>
 </div>
 
-<script src="https://www.paypal.com/sdk/js?client-id=test&currency=KES"></script>
+<!--If for whatever reason you want to disable a payment option eg. credit card option you can add disable-funding=credit at the end of the script-->
+<script src="https://www.paypal.com/sdk/js?client-id=test&currency=KES&disable-funding=credit"></script>
 
 <script>
   // Render the PayPal button into #paypal-button-container
@@ -118,6 +119,11 @@
   paypal
     .Buttons({
       // Set up the transaction
+
+      style: {
+        color: "blue",
+        shape: "rect",
+      },
       createOrder: function (data, actions) {
         return actions.order.create({
           purchase_units: [
