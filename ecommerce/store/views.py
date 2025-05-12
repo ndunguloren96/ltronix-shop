@@ -38,8 +38,14 @@ def cart(request):
         order = {'get_cart_total': 0, 'get_cart_items': 0, 'shipping': False}
         cartItems = order['get_cart_items']
 
-        for i in cart:
+        for i in cart: # i = product id
             cartItems += cart[i]['quantity']
+
+            product = Product.objects.get(id=i)
+            total = (product.price * cart[i]['quantity'])
+
+            order['get_cart_total'] += total
+            order['get_cart_items'] += cart[i]['quantity']
 
 
     context = {'items': items, 'order': order, 'cartItems': cartItems}
