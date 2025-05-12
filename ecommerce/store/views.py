@@ -3,6 +3,7 @@ from django.http import JsonResponse
 import json
 import datetime
 from .models import *
+from .utils import coookieCart
 
 def store(request):
     if request.user.is_authenticated:
