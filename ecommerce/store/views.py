@@ -47,6 +47,11 @@ def cart(request):
             order['get_cart_total'] += total
             order['get_cart_items'] += cart[i]['quantity']
 
+            items.append(item)
+
+            if product.digital == False:
+                order['shipping'] = True
+
 
     context = {'items': items, 'order': order, 'cartItems': cartItems}
     return render(request, 'store/cart.html', context)
