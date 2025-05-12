@@ -61,6 +61,8 @@ def cart(request):
                     order['shipping'] = True
             except:
                 pass
+        
+        return {'cartItems':cartItems, 'order':order, 'items':items}
             
 
     context = {'items': items, 'order': order, 'cartItems': cartItems}
