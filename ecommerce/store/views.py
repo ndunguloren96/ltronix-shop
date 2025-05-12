@@ -87,4 +87,11 @@ def processOrder(request):
     else:
         print('User is not logged in')
 
+        print('COOKIES:', request.COOKIES)
+        name = data['form']['name']
+        email = data['form']['email']
+
+        cookieData = cookieCart(request)
+        items = cookieData['items']
+
     return JsonResponse('Payment submitted..', safe=False)
