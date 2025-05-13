@@ -18,7 +18,14 @@ from environ import Env
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 env = Env()
-env.read_env(os.path.join(BASE_DIR, '.env'))
+env.read_env(os.path.join(BASE_DIR, '.env')) # read .evn file
+
+CONSUMER_KEY = env ('SAFARICOM_CONSUMER_KEY')
+CONSUMER_SECRET = env('SAFARICOM_CONSUMER_SECRET')
+
+print(f"Consumer Key: {CONSUMER_KEY}")
+print(f"Consumer Secret: {CONSUMER_SECRET}")
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
