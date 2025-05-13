@@ -20,6 +20,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 env = Env()
 env.read_env(os.path.join(BASE_DIR, '.env')) # read .evn file
 
+SECRET_KEY=env('SECRET_KEY')
+
 CONSUMER_KEY = env('SAFARICOM_CONSUMER_KEY')
 CONSUMER_SECRET = env('SAFARICOM_CONSUMER_SECRET')
 
