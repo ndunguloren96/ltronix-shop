@@ -91,6 +91,12 @@ WSGI_APPLICATION = "ecommerce.wsgi.application"
 DATABASES = {
     'default': env.db('DATABASE_URL', default=f"postgresql://{env('DATABASE_USER')}:{env('DATABASE_PASSWORD')}@{env('DATABASE_HOST')}:{env('DATABASE_PORT')}/{env('DATABASE_NAME')}")
 }
+print(f"DB ENGINE: {DATABASES['default']['ENGINE']}")
+print(f"DB NAME: {DATABASES['default']['NAME']}")
+print(f"DB USER: {DATABASES['default']['USER']}")
+print(f"DB PASS: {DATABASES['default']['PASSWORD']}")
+print(f"DB HOST: {DATABASES['default']['HOST']}")
+print(f"DB PORT: {DATABASES['default']['PORT']}")
 
 
 # Password validation
