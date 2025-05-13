@@ -22,11 +22,14 @@ env.read_env(os.path.join(BASE_DIR, '.env')) # read .evn file
 
 SECRET_KEY=env('SECRET_KEY')
 
-CONSUMER_KEY = env('SAFARICOM_CONSUMER_KEY')
-CONSUMER_SECRET = env('SAFARICOM_CONSUMER_SECRET')
-
-print(f"Consumer Key: {CONSUMER_KEY}")
-print(f"Consumer Secret: {CONSUMER_SECRET}")
+# Load and map
+MPESA = {
+    'CONSUMER_KEY': env('MPESA_CONSUMER_KEY'),
+    'CONSUMER_SECRET': env('MPESA_CONSUMER_SECRET'),
+    'SHORTCODE': env('MPESA_SHORTCODE'),
+    'PASSKEY': env('MPESA_PASSKEY'),
+    'ENVIRONMENT': env('MPESA_ENV'),
+}
 
 
 # Quick-start development settings - unsuitable for production
@@ -91,12 +94,6 @@ WSGI_APPLICATION = "ecommerce.wsgi.application"
 DATABASES = {
     'default': env.db('DATABASE_URL', default=f"postgresql://{env('DATABASE_USER')}:{env('DATABASE_PASSWORD')}@{env('DATABASE_HOST')}:{env('DATABASE_PORT')}/{env('DATABASE_NAME')}")
 }
-print(f"DB ENGINE: {DATABASES['default']['ENGINE']}")
-print(f"DB NAME: {DATABASES['default']['NAME']}")
-print(f"DB USER: {DATABASES['default']['USER']}")
-print(f"DB PASS: {DATABASES['default']['PASSWORD']}")
-print(f"DB HOST: {DATABASES['default']['HOST']}")
-print(f"DB PORT: {DATABASES['default']['PORT']}")
 
 
 # Password validation
