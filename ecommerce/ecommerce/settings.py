@@ -20,7 +20,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 env = Env()
 env.read_env(os.path.join(BASE_DIR, '.env')) # read .evn file
 
-CONSUMER_KEY = env ('SAFARICOM_CONSUMER_KEY')
+CONSUMER_KEY = env('SAFARICOM_CONSUMER_KEY')
 CONSUMER_SECRET = env('SAFARICOM_CONSUMER_SECRET')
 
 print(f"Consumer Key: {CONSUMER_KEY}")
@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "store.apps.StoreConfig",
+    "payment"
 ]
 
 MIDDLEWARE = [
