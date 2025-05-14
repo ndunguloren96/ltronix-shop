@@ -21,6 +21,7 @@ env = Env()
 env.read_env(os.path.join(BASE_DIR, '.env')) # read .evn file
 
 SECRET_KEY=env('SECRET_KEY')
+MPESA_CALLBACK_URL = 'https://8632-102-0-13-70.ngrok-free.app/mpesa/stk_push_callback/'
 
 # Load and map
 MPESA = {
@@ -45,7 +46,7 @@ ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=[])
 
 
 # Application definition
-
+# be careful with spelling and comma
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -54,7 +55,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "store.apps.StoreConfig",
-    "payment"
+    "payment",
 ]
 
 MIDDLEWARE = [
