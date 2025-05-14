@@ -24,12 +24,13 @@ SECRET_KEY=env('SECRET_KEY')
 MPESA_CALLBACK_URL = 'https://4b5b-102-0-13-70.ngrok-free.app/mpesa/stk_push_callback/'
 
 # Load and map
+MPESA_ENVIRONMENT = 'sandbox'
 MPESA = {
     'CONSUMER_KEY': env('MPESA_CONSUMER_KEY'),
     'CONSUMER_SECRET': env('MPESA_CONSUMER_SECRET'),
-    'SHORTCODE': env('MPESA_SHORTCODE'),
+    'MPESA_EXPRESS_SHORTCODE': env('MPESA_EXPRESS_SHORTCODE'),
     'PASSKEY': env('MPESA_PASSKEY'),
-    'ENVIRONMENT': env('MPESA_ENV'),
+    # 'MPESA_ENVIRONMENT': env('MPESA_ENV'),
 }
 
 
@@ -42,7 +43,7 @@ SECRET_KEY = env('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env.bool('DEBUG', default=True)
 
-ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=[])
+ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['*'])
 
 
 # Application definition
