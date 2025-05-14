@@ -1,91 +1,54 @@
 {% extends 'store/main.html' %} {% load static %} {% block content %}
 <div class="row">
   <div class="col-lg-6">
-    <div class="box-element" id="form-wrapper">
-      <form id="form">
-        <div id="user-info">
-          <div class="form-field">
-            <input
-              required
-              class="form-control"
-              type="text"
-              name="name"
-              placeholder="Name.." />
-          </div>
-          <div class="form-field">
-            <input
-              required
-              class="form-control"
-              type="email"
-              name="email"
-              placeholder="Email.." />
-          </div>
-        </div>
-
-        <div id="shipping-info">
-          <hr />
-          <p>Shipping Information:</p>
-          <hr />
-          <div class="form-field">
-            <input
-              class="form-control"
-              type="text"
-              name="address"
-              placeholder="Address.." />
-          </div>
-          <div class="form-field">
-            <input
-              class="form-control"
-              type="text"
-              name="city"
-              placeholder="City.." />
-          </div>
-          <div class="form-field">
-            <input
-              class="form-control"
-              type="text"
-              name="state"
-              placeholder="State.." />
-          </div>
-          <div class="form-field">
-            <input
-              class="form-control"
-              type="text"
-              name="zipcode"
-              placeholder="Zip code.." />
-          </div>
-          <div class="form-field">
-            <input
-              class="form-control"
-              type="text"
-              name="country"
-              placeholder="Zip code.." />
-          </div>
-        </div>
-
-        <hr />
-        <input
-          id="form-button"
-          class="btn btn-success btn-block"
-          type="submit"
-          value="Continue" />
-      </form>
-    </div>
-
-    <br />
-    <div class="box-element hidden" id="payment-info">
-      <small>Paypal Options</small>
-      <!--<button id="make-payment">Make payment</button>-->
-      <div id="paypal-button-container"></div>
-    </div>
-  </div>
-
-  <div class="col-lg-6">
     <div class="box-element">
       <a class="btn btn-outline-dark" href="{% url 'cart' %}"
         >&#x2190; Back to Cart</a
       >
       <hr />
+      <h3>M-Pesa Payment</h3>
+      <hr />
+      <form id="mpesa-form">
+        {% csrf_token %}
+        <div class="form-field">
+          <input
+            required
+            class="form-control"
+            type="text"
+            name="phone"
+            placeholder="Phone Number (e.g., 2547XXXXXXXX)" />
+        </div>
+        <div class="form-field">
+          <input
+            required
+            class="form-control"
+            type="number"
+            name="amount"
+            placeholder="Amount (KES)" />
+        </div>
+        <hr />
+        <button
+          id="mpesa-button"
+          class="btn btn-success btn-block"
+          type="submit">
+          Pay with M-Pesa
+        </button>
+      </form>
+      <div id="processing-message" class="hidden">
+        <hr />
+        <p>
+          Processing M-Pesa payment... Please wait for the prompt on your phone.
+        </p>
+      </div>
+      <div id="payment-response" class="hidden">
+        <hr />
+        <p id="response-text"></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="box-element">
       <h3>Order Summary</h3>
       <hr />
       {% for item in items %}
@@ -106,132 +69,44 @@
   </div>
 </div>
 
-<script src="https://www.paypal.com/sdk/js?client-id=test&currency=KES"></script>
-
-<script>
-  // Render the PayPal button into #paypal-button-container
-  // This is the PayPal JavaScript SDK script
-
-  /*The paypal.buttons() method consists of two attributes/methods right now. 
-  1. createOrder which triggers an actual payment (amount set to 0.01 by default),
-  2. onApprove which is the action that takes place once a payment is complete*/
-  paypal
-    .Buttons({
-      // Set up the transaction
-
-      style: {
-        color: "blue",
-        shape: "rect",
-      },
-      createOrder: function (data, actions) {
-        return actions.order.create({
-          purchase_units: [
-            {
-              amount: {
-                value: "0.01",
-              },
-            },
-          ],
-        });
-      },
-
-      // Finalize the transaction
-      onApprove: function (data, actions) {
-        return actions.order.capture().then(function (details) {
-          // Show a success message to the buyer
-          alert(
-            "Transaction completed by " + details.payer.name.given_name + "!"
-          );
-        });
-      },
-    })
-    .render("#paypal-button-container");
-</script>
-
 <script type="text/javascript">
-  var shipping = "{{order.shipping}}";
-  var total = "{{order.get_cart_total|floatformat:2}}";
+  let mpesaForm = document.getElementById("mpesa-form");
+  let mpesaButton = document.getElementById("mpesa-button");
+  let processingMessage = document.getElementById("processing-message");
+  let paymentResponse = document.getElementById("payment-response");
+  let responseText = document.getElementById("response-text");
 
-  if (shipping == "False") {
-    document.getElementById("shipping-info").innerHTML = "";
-  }
-
-  if (user != "AnonymousUser") {
-    document.getElementById("user-info").innerHTML = "";
-  }
-
-  if (shipping == "False" && user != "AnonymousUser") {
-    //Hide entire form if user is logged in and shipping is false
-    document.getElementById("form-wrapper").classList.add("hidden");
-    //Show payment if logged in user wants to buy an item that does not require shipping
-    document.getElementById("payment-info").classList.remove("hidden");
-  }
-
-  var form = document.getElementById("form");
-  form.addEventListener("submit", function (e) {
+  mpesaForm.addEventListener("submit", function (e) {
     e.preventDefault();
-    console.log("Form Submitted...");
-    document.getElementById("form-button").classList.add("hidden");
-    document.getElementById("payment-info").classList.remove("hidden");
-  });
-  /*
-  document
-    .getElementById("make-payment")
-    .addEventListener("click", function (e) {
-      submitFormData();
-    });
-  */
-  function submitFormData() {
-    console.log("Payment button clicked");
 
-    var userFormData = {
-      name: null,
-      email: null,
-      total: total,
-    };
+    mpesaButton.classList.add("hidden");
+    processingMessage.classList.remove("hidden");
 
-    var shippingInfo = {
-      address: null,
-      city: null,
-      state: null,
-      zipcode: null,
-    };
+    let phone = mpesaForm.phone.value;
+    let amount = mpesaForm.amount.value;
+    let url = "/payments/stk-push/";
 
-    if (shipping != "False") {
-      shippingInfo.address = form.address.value;
-      shippingInfo.city = form.city.value;
-      shippingInfo.state = form.state.value;
-      shippingInfo.zipcode = form.zipcode.value;
-    }
-
-    if (user == "AnonymousUser") {
-      userFormData.name = form.name.value;
-      userFormData.email = form.email.value;
-    }
-
-    console.log("Shipping Info:", shippingInfo);
-    console.log("User Info:", userFormData);
-
-    var url = "/process_order/";
     fetch(url, {
       method: "POST",
       headers: {
-        "Content-Type": "applicaiton/json",
-        "X-CSRFToken": csrftoken,
+        "Content-Type": "application/x-www-form-urlencoded",
+        "X-CSRFToken": "{{ csrf_token }}", // Ensure you have the CSRF token in your template
       },
-      body: JSON.stringify({ form: userFormData, shipping: shippingInfo }),
+      body: `phone=${phone}&amount=${amount}`,
     })
       .then((response) => response.json())
       .then((data) => {
-        console.log("Success:", data);
-        alert("Transaction completed");
-        window.location.href = "{% url 'store' %}";
+        processingMessage.classList.add("hidden");
+        paymentResponse.classList.remove("hidden");
+        responseText.textContent = JSON.stringify(data); // Display the raw response for now
+        // You might want to handle different response codes and messages here
+      })
+      .catch((error) => {
+        console.error("Error:", error);
+        processingMessage.classList.add("hidden");
+        paymentResponse.classList.remove("hidden");
+        responseText.textContent = "Error initiating M-Pesa payment.";
       });
-
-    cart = {};
-    document.cookie = "cart=" + JSON.stringify(cart) + ";domain=path=/";
-
-    window.location.href = "{%url 'store'}";
-  }
+  });
 </script>
 {% endblock content %}

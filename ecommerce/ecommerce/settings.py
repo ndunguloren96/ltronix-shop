@@ -20,11 +20,18 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 env = Env()
 env.read_env(os.path.join(BASE_DIR, '.env')) # read .evn file
 
-CONSUMER_KEY = env ('SAFARICOM_CONSUMER_KEY')
-CONSUMER_SECRET = env('SAFARICOM_CONSUMER_SECRET')
+SECRET_KEY=env('SECRET_KEY')
+MPESA_CALLBACK_URL = 'https://4b5b-102-0-13-70.ngrok-free.app/mpesa/stk_push_callback/'
 
-print(f"Consumer Key: {CONSUMER_KEY}")
-print(f"Consumer Secret: {CONSUMER_SECRET}")
+# Load and map
+MPESA_ENVIRONMENT = 'sandbox'
+MPESA = {
+    'CONSUMER_KEY': env('MPESA_CONSUMER_KEY'),
+    'CONSUMER_SECRET': env('MPESA_CONSUMER_SECRET'),
+    'MPESA_EXPRESS_SHORTCODE': env('MPESA_EXPRESS_SHORTCODE'),
+    'PASSKEY': env('MPESA_PASSKEY'),
+    # 'MPESA_ENVIRONMENT': env('MPESA_ENV'),
+}
 
 
 # Quick-start development settings - unsuitable for production
@@ -36,11 +43,11 @@ SECRET_KEY = env('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env.bool('DEBUG', default=True)
 
-ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=[])
+ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['*'])
 
 
 # Application definition
-
+# be careful with spelling and comma
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -49,6 +56,8 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "store.apps.StoreConfig",
+    "payment",
+    "django_daraja",
 ]
 
 MIDDLEWARE = [
