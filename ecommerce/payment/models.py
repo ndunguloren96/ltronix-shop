@@ -5,6 +5,7 @@ from django.db import models
 
 # This model will be used to track the lifecycle of each M-Pesa payment.
 class Transaction(models.Model):
+    # id = models.AutoField(primary_key=True, verbose_name='ID') 
     phone = models.CharField(max_length=12)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     merchant_request_id = models.CharField(max_length=50, blank=True)

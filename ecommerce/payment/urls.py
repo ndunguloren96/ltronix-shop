@@ -5,6 +5,6 @@ from .views import STKPushView
 
 urlpatterns = [
     # Define your payment app's URLs here
-    path('payments/', include('payments.urls')),
+    # path('payment/', include('payment.urls')),
     path('stk-push/', STKPushView.as_view(), name='stk_push'),
 ]

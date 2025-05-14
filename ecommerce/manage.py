@@ -2,6 +2,14 @@
 """Django's command-line utility for administrative tasks."""
 import os
 import sys
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent
+VENV_PATH = BASE_DIR.parent / '.venv'
+SITE_PACKAGES_PATH = VENV_PATH / 'lib' / f'python{sys.version_info.major}.{sys.version_info.minor}' / 'site-packages'
+
+if str(SITE_PACKAGES_PATH) not in sys.path:
+    sys.path.insert(0, str(SITE_PACKAGES_PATH))
 
 
 def main():
