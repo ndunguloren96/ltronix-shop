@@ -1,0 +1,24 @@
+<!--Show friendly failure message-->
+<!--Return to checkout page link-->
+{% extends 'store/base.html' %} {% load static %} {% block content %}
+<div class="container mt-5">
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      <div class="card text-center">
+        <div class="card-header bg-danger text-white">
+          <h1 class="card-title">Payment Failed</h1>
+        </div>
+        <div class="card-body">
+          <p class="lead">
+            We're sorry, but your payment could not be processed.
+          </p>
+          <p><strong>Error:</strong> {{ error }}</p>
+          <a href="{% url 'checkout' %}" class="btn btn-secondary mt-3"
+            >Try Again</a
+          >
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
