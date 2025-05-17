@@ -79,3 +79,94 @@
   clear cart, guest checkout logic, create guest checkout function, and cleanup processOrder view
 
 ---
+
+## Milestone 2 : M-Pesa Payment Integration
+
+### Technology
+
+- Django
+- django-daraja: [A python django library for interacting with the Safaricom MPESA Daraja API.](https://github.com/martinmogusu/django-daraja)
+- Python-dotenv
+- Django environment
+- HTML
+
+### PART 1: Environment Preparation
+
+- Goal: Ensure all development tools and configurations are ready
+
+### Steps:
+
+1. Install PostgreSQL & set up in settings.py
+2. Create .env for secrets (API keys, DB creds)
+3. Install django-environ or similar for env config
+4. Set up virtual environment & requirements.txt
+5. Register & activate your Safaricom Developer Account
+6. Obtain Consumer Key/Secret for sandbox app
+
+### PART 2: M-Pesa STK Push Integration
+
+- Goal: Enable user to initiate a payment
+
+### Steps:
+
+1. Create Django app: payments
+2. Install & configure django-mpesa or write custom integration
+3. Create a view to handle STK Push requests
+4. Send API request to Safaricom with required payload
+5. Use mock product price (static amount) to trigger request
+6. Handle API response → success/failure
+
+### PART 3: Callback Handling (Confirmation & Validation URLs)
+
+- Goal: Receive real-time payment confirmation from Safaricom
+
+### Steps:
+
+1. Expose your server using _Ngrok_ (for dev callback testing)
+2. Register Validation & Confirmation URLs to Safaricom sandbox
+3. Create Django views to handle callbacks
+4. Parse response payload & store transaction in DB
+5. Mark transaction as complete
+
+### PART 4: Admin & Transaction Logging
+
+- Goal: Record and review payment history
+
+### Steps:
+
+1. Create Transaction model (user, phone, amount, status, timestamp)
+2. Update on callback success/failure
+3. Display transactions in Django Admin
+4. Add unit test for payment workflow logic
+
+### PART 5: Basic Frontend Trigger
+
+- Goal: Allow basic test payment from UI
+
+### Steps:
+
+1. Simple form to enter phone number & trigger payment view
+2. Show response message to user
+3. Add JavaScript validation if needed
+
+### PART 6: Final Testing & Documentation
+
+- Goal: Ensure system is working end-to-end
+
+### Steps:
+
+1. Full test cycle: trigger → confirm → validate
+2. Simulate edge cases (timeout, wrong number, etc.)
+3. Write clear README or dev notes for future reference
+4. Clean codebase and commit to Git
+
+---
+
+### Deliverables:
+
+- Server-side M-Pesa payment workflow working end-to-end
+- Transaction data logged in database
+- Admin panel shows payment records
+- Code is organized, documented, and in version control
+
+---
