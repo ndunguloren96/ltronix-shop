@@ -1,0 +1,13 @@
+<form method="POST" action="{% url 'payment:stk-push' %}">
+  {% csrf_token %}
+  <label>Phone Number:</label>
+  <input type="text" name="phone" required /><br />
+
+  <label>Amount:</label>
+  <input type="number" name="amount" required /><br />
+
+  <label>Order ID:</label>
+  <input type="text" name="order_id" required /><br />
+
+  <button type="submit">Pay with M-Pesa</button>
+</form>

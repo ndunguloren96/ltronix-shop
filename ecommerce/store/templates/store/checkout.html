@@ -10,21 +10,24 @@
       <hr />
       <form id="mpesa-form">
         {% csrf_token %}
+        <input
+          type="hidden"
+          name="order_id"
+          id="order_id"
+          value="{{ order.id }}" />
+        <input
+          type="hidden"
+          name="amount"
+          id="amount"
+          value="{{ order.get_cart_total|floatformat:2 }}" />
         <div class="form-field">
           <input
             required
             class="form-control"
             type="text"
             name="phone"
+            id="phone"
             placeholder="Phone Number (e.g., 2547XXXXXXXX)" />
-        </div>
-        <div class="form-field">
-          <input
-            required
-            class="form-control"
-            type="number"
-            name="amount"
-            placeholder="Amount (KES)" />
         </div>
         <hr />
         <button
@@ -34,16 +37,7 @@
           Pay with M-Pesa
         </button>
       </form>
-      <div id="processing-message" class="hidden">
-        <hr />
-        <p>
-          Processing M-Pesa payment... Please wait for the prompt on your phone.
-        </p>
-      </div>
-      <div id="payment-response" class="hidden">
-        <hr />
-        <p id="response-text"></p>
-      </div>
+      <div id="payment-message" style="margin-top: 15px"></div>
     </div>
   </div>
 
@@ -69,44 +63,47 @@
   </div>
 </div>
 
-<script type="text/javascript">
-  let mpesaForm = document.getElementById("mpesa-form");
-  let mpesaButton = document.getElementById("mpesa-button");
-  let processingMessage = document.getElementById("processing-message");
-  let paymentResponse = document.getElementById("payment-response");
-  let responseText = document.getElementById("response-text");
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const form = document.getElementById("mpesa-form");
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      const phone = document.getElementById("phone").value;
+      const order_id = document.getElementById("order_id").value;
+      const amount = document.getElementById("amount").value;
+      const csrfToken = document.querySelector(
+        "[name=csrfmiddlewaretoken]"
+      ).value;
+      const messageDiv = document.getElementById("payment-message");
+      messageDiv.innerHTML = "Processing payment...";
 
-  mpesaForm.addEventListener("submit", function (e) {
-    e.preventDefault();
-
-    mpesaButton.classList.add("hidden");
-    processingMessage.classList.remove("hidden");
-
-    let phone = mpesaForm.phone.value;
-    let amount = mpesaForm.amount.value;
-    let url = "/payments/stk-push/";
-
-    fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-        "X-CSRFToken": "{{ csrf_token }}", // Ensure you have the CSRF token in your template
-      },
-      body: `phone=${phone}&amount=${amount}`,
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        processingMessage.classList.add("hidden");
-        paymentResponse.classList.remove("hidden");
-        responseText.textContent = JSON.stringify(data); // Display the raw response for now
-        // You might want to handle different response codes and messages here
+      fetch("/payments/stk-push/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "X-CSRFToken": csrfToken,
+        },
+        body: `phone=${encodeURIComponent(phone)}&order_id=${encodeURIComponent(
+          order_id
+        )}`,
       })
-      .catch((error) => {
-        console.error("Error:", error);
-        processingMessage.classList.add("hidden");
-        paymentResponse.classList.remove("hidden");
-        responseText.textContent = "Error initiating M-Pesa payment.";
-      });
+        .then((response) => response.text())
+        .then((data) => {
+          // Try to parse as JSON, fallback to HTML
+          try {
+            const json = JSON.parse(data);
+            if (json.error) {
+              messageDiv.innerHTML = `<div class="alert alert-danger">${json.error}</div>`;
+            }
+          } catch {
+            // Assume HTML (success/failure template)
+            messageDiv.innerHTML = data;
+          }
+        })
+        .catch((err) => {
+          messageDiv.innerHTML = `<div class="alert alert-danger">An error occurred. Please try again.</div>`;
+        });
+    });
   });
 </script>
 {% endblock content %}
