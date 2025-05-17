@@ -2,6 +2,7 @@ from django.shortcuts import render
 from django.http import JsonResponse, HttpResponse
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_GET
 from django.conf import settings
 from django_daraja.mpesa.core import MpesaClient
 from .models import Transaction
@@ -91,3 +92,13 @@ def mpesa_stk_push_callback(request): # Handles M-PESA callback to update transa
         return HttpResponse('Internal server error', status=500)
 
     return HttpResponse('OK')
+
+# this view will check the status of a transaction
+@require_GET
+def payment_status(request):
+    transaction_id = request.GET.get('transaction_id')
+    try:
+        tx = Transaction.objects.get(id=transaction_id)
+        return JsonResponse({'status': tx.status})
+    except Transaction.DoesNotExist:
+        return JsonResponse({'status': 'NOT_FOUND'}, status=404)
