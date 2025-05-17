@@ -10,21 +10,19 @@
       <hr />
       <form id="mpesa-form">
         {% csrf_token %}
+        <input
+          type="hidden"
+          name="order_id"
+          id="order_id"
+          value="{{ order.id }}" />
         <div class="form-field">
           <input
             required
             class="form-control"
             type="text"
             name="phone"
+            id="phone"
             placeholder="Phone Number (e.g., 2547XXXXXXXX)" />
-        </div>
-        <div class="form-field">
-          <input
-            required
-            class="form-control"
-            type="number"
-            name="amount"
-            placeholder="Amount (KES)" />
         </div>
         <hr />
         <button
@@ -34,15 +32,12 @@
           Pay with M-Pesa
         </button>
       </form>
-      <div id="processing-message" class="hidden">
-        <hr />
-        <p>
-          Processing M-Pesa payment... Please wait for the prompt on your phone.
-        </p>
-      </div>
-      <div id="payment-response" class="hidden">
-        <hr />
-        <p id="response-text"></p>
+      <div id="payment-message" style="margin-top: 15px"></div>
+      <div
+        id="payment-response"
+        class="hidden"
+        style="margin-top: 15px; color: red">
+        <strong id="response-text"></strong>
       </div>
     </div>
   </div>
@@ -70,43 +65,87 @@
 </div>
 
 <script type="text/javascript">
-  let mpesaForm = document.getElementById("mpesa-form");
-  let mpesaButton = document.getElementById("mpesa-button");
-  let processingMessage = document.getElementById("processing-message");
-  let paymentResponse = document.getElementById("payment-response");
-  let responseText = document.getElementById("response-text");
+  document.addEventListener("DOMContentLoaded", function () {
+    const form = document.getElementById("mpesa-form");
+    const messageDiv = document.getElementById("payment-message");
+    const paymentResponseDiv = document.getElementById("payment-response");
+    const responseText = document.getElementById("response-text");
 
-  mpesaForm.addEventListener("submit", function (e) {
-    e.preventDefault();
+    let transactionId = null; // To store the transaction ID
+    let pollInterval = null;
+    const timeoutMs = 2 * 60 * 1000; // 2 minutes
 
-    mpesaButton.classList.add("hidden");
-    processingMessage.classList.remove("hidden");
+    function pollPaymentStatus() {
+      if (!transactionId) return;
 
-    let phone = mpesaForm.phone.value;
-    let amount = mpesaForm.amount.value;
-    let url = "/payments/stk-push/";
+      fetch(`/payments/status/?transaction_id=${transactionId}`)
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.status === "COMPLETED") {
+            clearInterval(pollInterval);
+            window.location.href = "/payment-success/"; // Or show success message
+          } else if (data.status === "FAILED" || data.status === "TIMEOUT") {
+            clearInterval(pollInterval);
+            responseText.textContent =
+              "Payment timed out or failed. Please try again.";
+            paymentResponseDiv.classList.remove("hidden");
+          }
+        })
+        .catch((error) => {
+          console.error("Error polling payment status:", error);
+          // Optionally handle network errors during polling
+        });
+    }
 
-    fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-        "X-CSRFToken": "{{ csrf_token }}", // Ensure you have the CSRF token in your template
-      },
-      body: `phone=${phone}&amount=${amount}`,
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        processingMessage.classList.add("hidden");
-        paymentResponse.classList.remove("hidden");
-        responseText.textContent = JSON.stringify(data); // Display the raw response for now
-        // You might want to handle different response codes and messages here
+    function startPolling() {
+      pollInterval = setInterval(pollPaymentStatus, 5000); // Poll every 5 seconds
+      setTimeout(() => {
+        clearInterval(pollInterval);
+        if (paymentResponseDiv.classList.contains("hidden")) {
+          responseText.textContent = "Payment timed out. Please try again.";
+          paymentResponseDiv.classList.remove("hidden");
+        }
+      }, timeoutMs);
+    }
+
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      const phone = document.getElementById("phone").value;
+      const order_id = document.getElementById("order_id").value;
+
+      const csrfToken = document.querySelector(
+        "[name=csrfmiddlewaretoken]"
+      ).value;
+      messageDiv.innerHTML = "Processing payment...";
+      paymentResponseDiv.classList.add("hidden"); // Ensure previous messages are hidden
+
+      fetch("/payments/stk-push/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "X-CSRFToken": csrfToken,
+        },
+        body: `phone=${encodeURIComponent(phone)}&order_id=${encodeURIComponent(
+          order_id
+        )}`,
       })
-      .catch((error) => {
-        console.error("Error:", error);
-        processingMessage.classList.add("hidden");
-        paymentResponse.classList.remove("hidden");
-        responseText.textContent = "Error initiating M-Pesa payment.";
-      });
+        .then((response) => response.json()) // Expect JSON response
+        .then((data) => {
+          if (data.error) {
+            messageDiv.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+          } else if (data.transaction_id) {
+            // Payment initiation was successful, start polling
+            transactionId = data.transaction_id;
+            startPolling();
+            messageDiv.innerHTML = "Awaiting M-Pesa confirmation...";
+          } else {
+            messageDiv.innerHTML = `<div class="alert alert-danger">An unexpected error occurred. Please check your phone and try again.</div>`;
+          }
+        })
+        .catch((err) => {
+          messageDiv.innerHTML = `<div class="alert alert-danger">An error occurred. Please try again.</div>`;
+        });
+    });
   });
 </script>
 {% endblock content %}

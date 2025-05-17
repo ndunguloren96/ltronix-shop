@@ -21,7 +21,7 @@ env = Env()
 env.read_env(os.path.join(BASE_DIR, '.env')) # read .evn file
 
 SECRET_KEY=env('SECRET_KEY')
-MPESA_CALLBACK_URL = 'https://4b5b-102-0-13-70.ngrok-free.app/mpesa/stk_push_callback/'
+MPESA_CALLBACK_URL = 'https://9502-102-0-13-70.ngrok-free.app/mpesa/stk_push_callback/'
 
 # Load and map
 MPESA_ENVIRONMENT = 'sandbox'
@@ -75,7 +75,11 @@ ROOT_URLCONF = "ecommerce.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        'DIRS': [
+            #  Add the path to your project's base template directory if needed
+            #  os.path.join(BASE_DIR, 'templates'),
+            os.path.join(BASE_DIR, 'store', 'templates'), 
+        ],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
