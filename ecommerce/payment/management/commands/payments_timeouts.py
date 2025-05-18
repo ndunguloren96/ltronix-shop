@@ -3,7 +3,7 @@ from django.utils import timezone
 from payment.models import Transaction
 from datetime import timedelta
 
-TIMEOUT_MINUTES = 2  # for improved security
+TIMEOUT_MINUTES = 1.6  # for improved security
 
 class Command(BaseCommand):
     help = "Mark pending transactions as FAILED if they have timed out"
