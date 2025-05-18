@@ -12,7 +12,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-class STKPushView(View): # For M-PESA STK Push processing and initiation.
+class STKPushView(View):    # For M-PESA STK Push processing and initiation.
     def post(self, request):
         phone = request.POST.get('phone')
         order_id = request.POST.get('order_id')
@@ -52,8 +52,13 @@ class STKPushView(View): # For M-PESA STK Push processing and initiation.
             tx.checkout_request_id = response_data.get('CheckoutRequestID')
             tx.save()
 
-            # Always show pending message after STK Push
-            return render(request, 'store/payment_pending.html', {'transaction': tx})
+            # Return JSON for AJAX
+            return JsonResponse({
+                'transaction_id': tx.id,
+                'status': tx.status,
+                'merchant_request_id': tx.merchant_request_id,
+                'checkout_request_id': tx.checkout_request_id,
+            })
 
         except Exception as e:
             logger.exception(f"Error during STK Push: {e}")
@@ -64,6 +69,7 @@ class STKPushView(View): # For M-PESA STK Push processing and initiation.
 @csrf_exempt
 def mpesa_stk_push_callback(request): # Handles M-PESA callback to update transaction status. Receives callback from M-PESA
     logger.info("M-Pesa STK Push Callback received!")
+    logger.info(f"Callback Raw Body: {request.body.decode('utf-8')}") # Log raw body
     try:
         callback_data = json.loads(request.body)
         logger.info(f"Callback Data: {callback_data}")
