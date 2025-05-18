@@ -42,7 +42,7 @@ This guide walks you through setting up the Ltronix Shop project, including envi
 
      ```
      DATABASE_URL=postgres://user:password@host:port/dbname
-     MPESA_CONSUMER_KEY=your_consumer_key
+     SAFARICOM_CONSUMER_KEY=your_consumer_key
      MPESA_CONSUMER_SECRET=your_consumer_secret
      MPESA_SHORTCODE=your_shortcode
      MPESA_PASSKEY=your_passkey
