@@ -1,32 +1,47 @@
-'use client'; // Important for client-side interactivity and Chakra UI usage
+'use client';
 
-import { Box, Heading, Text } from '@chakra-ui/react';
-import { MyButton } from '@/components/MyButton'; // Import your custom button
-import React from 'react';
+import { Box, SimpleGrid } from '@chakra-ui/react'; // Add SimpleGrid for layout
+import { MyCard } from '@/components/MyCard'; // Import your custom card
 
 export default function Home() {
-  return (
-    <Box
-      textAlign="center"
-      py={10}
-      px={6}
-      minH="100vh" // Ensure it takes full viewport height
-      display="flex"
-      flexDirection="column"
-      justifyContent="center"
-      alignItems="center"
-      bg="gray.50" // Light gray background
-    >
-      <Heading as="h1" size="2xl" mb={4} color="gray.700">
-        Welcome to Ltronix Shop!
-      </Heading>
-      <Text fontSize="xl" color="gray.600" mb={8}>
-        Your one-stop shop for electronics.
-      </Text>
+  // Dummy product data for demonstration
+  const products = [
+    {
+      id: 1,
+      title: 'Gaming Laptop Pro',
+      description: 'High-performance laptop for the ultimate gaming experience.',
+      imageUrl: 'https://via.placeholder.com/200x200?text=Laptop', // Placeholder image
+      price: '$1299.00',
+    },
+    {
+      id: 2,
+      title: 'Wireless Headphones',
+      description: 'Immersive sound with noise-cancelling technology.',
+      imageUrl: 'https://via.placeholder.com/200x200?text=Headphones', // Placeholder image
+      price: '$199.99',
+    },
+    {
+      id: 3,
+      title: 'Smartwatch Series 7',
+      description: 'Track your fitness and stay connected on the go.',
+      imageUrl: 'https://via.placeholder.com/200x200?text=Smartwatch', // Placeholder image
+      price: '$349.00',
+    },
+  ];
 
-      <MyButton onClick={() => alert('Button Clicked!')}>
-        Explore Products
-      </MyButton>
+  return (
+    <Box p={8}> {/* Add some padding to the main box */}
+      <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={10}>
+        {products.map((product) => (
+          <MyCard
+            key={product.id}
+            title={product.title}
+            description={product.description}
+            imageUrl={product.imageUrl}
+            price={product.price}
+          />
+        ))}
+      </SimpleGrid>
     </Box>
   );
 }
