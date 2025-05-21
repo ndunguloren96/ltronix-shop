@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "@chakra-ui/icons": "^2.2.4",
+    "axios": "^1.9.0",
+    "swr": "^2.3.3"
+  }
+}
