@@ -1,14 +1,13 @@
 // src/app/products/page.tsx
 'use client';
 
-import React from 'react'; // Import React for useState, useEffect, useRef
+import React from 'react'; // import React not react
 import {
   Box,
   Container,
   Heading,
   SimpleGrid,
   Text,
-  // Image, // Image is not directly used in this page component's main JSX, so it can be removed if desired
   Flex,
   VStack,
   Accordion,
@@ -21,15 +20,16 @@ import {
   RangeSliderTrack,
   RangeSliderFilledTrack,
   RangeSliderThumb,
-  Input, // ADD THIS FOR THE SEARCH INPUT
-  InputGroup, // ADD THIS FOR INPUT STYLING
-  InputLeftElement, // ADD THIS FOR SEARCH ICON
+  Input,
+  InputGroup,
+  InputLeftElement,
+  Button, // ADD THIS: Import Button for the "Load More"
 } from '@chakra-ui/react';
 import { ProductCard } from '@/components/ProductCard';
-import { SearchIcon } from '@chakra-ui/icons'; // ADD THIS FOR THE SEARCH ICON
-import Fuse from 'fuse.js'; // ADD THIS IMPORT FOR FUSE.JS
+import { SearchIcon } from '@chakra-ui/icons';
+import Fuse from 'fuse.js';
 
-// Updated Placeholder data for products with actual brands (NO CHANGE HERE)
+// Placeholder data for products
 const mockProducts = [
   { id: '1', name: 'iPhone 15 Pro Max', price: 'Ksh180,000.00', category: 'Cellphones & Tablets', brand: 'iPhone', imageUrl: 'https://via.placeholder.com/250/200?text=iPhone+15' },
   { id: '2', name: 'Samsung Galaxy S24 Ultra', price: 'Ksh150,000.00', category: 'Cellphones & Tablets', brand: 'Samsung', imageUrl: 'https://via.placeholder.com/250/200?text=Galaxy+S24' },
@@ -45,89 +45,76 @@ const mockProducts = [
   { id: '12', name: 'Hisense Refrigerator', price: 'Ksh45,000.00', category: 'Smart Home Appliances', brand: 'Hisense', imageUrl: 'https://via.placeholder.com/250/200?text=Hisense+Fridge' },
 ];
 
-// Helper function to extract and format numeric prices (NO CHANGE HERE)
 const getNumericPrice = (priceString: string): number => {
   return parseFloat(priceString.replace('Ksh', '').replace(/,/g, ''));
 };
 
-// Fuse.js options for fuzzy searching (customize as needed)
 const fuseOptions = {
-  keys: [
-    'name', // Search by product name
-    'category', // Search by category name
-    'brand', // Search by brand name
-  ],
-  threshold: 0.3, // Fuzziness (0.0 = perfect match, 1.0 = any match)
-  includeScore: true, // Useful for debugging or sorting by relevance
+  keys: ['name', 'category', 'brand'],
+  threshold: 0.3,
+  includeScore: true,
 };
 
+const PRODUCTS_PER_PAGE = 8; // Define how many products to show initially / load per click
+
 export default function ProductsPage() {
-  // Filter states (NO CHANGE HERE)
+  // Filter states
   const [selectedCategories, setSelectedCategories] = React.useState<string[]>([]);
   const [priceRange, setPriceRange] = React.useState<number[]>([0, 180000]);
   const [selectedBrands, setSelectedBrands] = React.useState<string[]>([]);
 
-  // ADD THESE NEW STATES FOR SEARCH
+  // Search states
   const [searchTerm, setSearchTerm] = React.useState<string>('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = React.useState<string>('');
 
-  // useRef to hold the timeout ID for debounce
+  // ADD THIS NEW STATE FOR PAGINATION
+  const [visibleProductsCount, setVisibleProductsCount] = React.useState(PRODUCTS_PER_PAGE);
+
   const debounceTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
-  // useEffect to debounce the search term
   React.useEffect(() => {
-    // Clear the previous timeout if it exists
     if (debounceTimeoutRef.current) {
       clearTimeout(debounceTimeoutRef.current);
     }
-
-    // Set a new timeout to update the debounced search term after 300ms
     debounceTimeoutRef.current = setTimeout(() => {
       setDebouncedSearchTerm(searchTerm);
-    }, 300); // 300ms debounce time
-
-    // Cleanup function to clear the timeout if the component unmounts or searchTerm changes before timeout
+    }, 300);
     return () => {
       if (debounceTimeoutRef.current) {
         clearTimeout(debounceTimeoutRef.current);
       }
     };
-  }, [searchTerm]); // Re-run effect whenever searchTerm changes
+  }, [searchTerm]);
 
+  // Reset visible products count whenever filters or search terms change
+  React.useEffect(() => {
+    setVisibleProductsCount(PRODUCTS_PER_PAGE);
+  }, [debouncedSearchTerm, selectedCategories, priceRange, selectedBrands]); // Add new dependencies here
 
-  // Initialize Fuse.js instance with mock products
   const fuse = React.useMemo(() => new Fuse(mockProducts, fuseOptions), [mockProducts]);
 
-  // Get unique categories and brands, and max/min price (NO CHANGE HERE)
   const allCategories = Array.from(new Set(mockProducts.map(p => p.category)));
   const allBrands = Array.from(new Set(mockProducts.map(p => p.brand)));
   const maxPrice = Math.max(...mockProducts.map(p => getNumericPrice(p.price)));
   const minPrice = Math.min(...mockProducts.map(p => getNumericPrice(p.price)));
 
-  // Combined Filtering and Search Logic
   const filteredAndSearchedProducts = React.useMemo(() => {
     let productsToFilter = mockProducts;
 
-    // Apply Search first if debouncedSearchTerm is present
     if (debouncedSearchTerm) {
-      // Fuse.js search returns an array of objects with a 'item' property
       const searchResults = fuse.search(debouncedSearchTerm);
       productsToFilter = searchResults.map(result => result.item);
     }
 
-    // Then apply category, price, and brand filters to the search results (or all products)
     return productsToFilter.filter(product => {
       const productPrice = getNumericPrice(product.price);
-
       const categoryMatch = selectedCategories.length === 0 || selectedCategories.includes(product.category);
       const priceMatch = productPrice >= priceRange[0] && productPrice <= priceRange[1];
       const brandMatch = selectedBrands.length === 0 || selectedBrands.includes(product.brand);
-
       return categoryMatch && priceMatch && brandMatch;
     });
-  }, [debouncedSearchTerm, selectedCategories, priceRange, selectedBrands, fuse]); // Dependencies for useMemo
+  }, [debouncedSearchTerm, selectedCategories, priceRange, selectedBrands, fuse]);
 
-  // Handlers for filter changes (NO CHANGE HERE)
   const handleCategoryChange = (category: string) => {
     setSelectedCategories(prev =>
       prev.includes(category)
@@ -144,13 +131,24 @@ export default function ProductsPage() {
     );
   };
 
+  // Handler for "Load More" button
+  const handleLoadMore = () => {
+    setVisibleProductsCount(prevCount => prevCount + PRODUCTS_PER_PAGE);
+  };
+
+  // Determine products to display based on visibleProductsCount
+  const productsToDisplay = filteredAndSearchedProducts.slice(0, visibleProductsCount);
+
+  // Check if there are more products to load
+  const hasMoreProducts = visibleProductsCount < filteredAndSearchedProducts.length;
+
+
   return (
     <Container maxW="7xl" py={8}>
       <Heading as="h1" size="xl" mb={6} textAlign="center">
         All Products
       </Heading>
 
-      {/* ADD THE SEARCH INPUT HERE */}
       <Box mb={6} width={{ base: 'full', md: '75%', lg: '50%' }} mx="auto">
         <InputGroup>
           <InputLeftElement pointerEvents="none">
@@ -169,7 +167,7 @@ export default function ProductsPage() {
       </Box>
 
       <Flex direction={{ base: 'column', md: 'row' }} gap={8}>
-        {/* Filter Sidebar (NO CHANGE HERE) */}
+        {/* Filter Sidebar*/}
         <Box
           w={{ base: 'full', md: '250px' }}
           p={4}
@@ -274,27 +272,43 @@ export default function ProductsPage() {
           </Accordion>
         </Box>
 
-        {/* Product Grid Area - NOW USING filteredAndSearchedProducts */}
+        {/* Product Grid Area - NOW USING productsToDisplay */}
         <Box flex="1">
-          {filteredAndSearchedProducts.length === 0 ? (
+          {productsToDisplay.length === 0 ? ( // Check productsToDisplay
             <Text fontSize="xl" textAlign="center" mt={10} color="gray.500">
               No products match your current filters or search.
             </Text>
           ) : (
-            <SimpleGrid
-              columns={{ base: 1, sm: 2, md: 2, lg: 3 }}
-              spacing={6}
-            >
-              {filteredAndSearchedProducts.map(product => (
-                <ProductCard
-                  key={product.id}
-                  id={product.id}
-                  name={product.name}
-                  price={product.price}
-                  imageUrl={product.imageUrl}
-                />
-              ))}
-            </SimpleGrid>
+            <> {/* Use a fragment to group SimpleGrid and Button */}
+              <SimpleGrid
+                columns={{ base: 1, sm: 2, md: 2, lg: 3 }}
+                spacing={6}
+              >
+                {productsToDisplay.map(product => ( // Iterate over productsToDisplay
+                  <ProductCard
+                    key={product.id}
+                    id={product.id}
+                    name={product.name}
+                    price={product.price}
+                    imageUrl={product.imageUrl}
+                  />
+                ))}
+              </SimpleGrid>
+
+              {/* Load More Button (ONLY SHOW IF there are more products) */}
+              {hasMoreProducts && (
+                <Flex justifyContent="center" mt={8}>
+                  <Button
+                    onClick={handleLoadMore}
+                    colorScheme="brand"
+                    size="lg"
+                    px={10}
+                  >
+                    Load More
+                  </Button>
+                </Flex>
+              )}
+            </>
           )}
         </Box>
       </Flex>
