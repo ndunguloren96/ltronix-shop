@@ -1,32 +1,31 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
+// src/app/layout.tsx
+import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
+import './globals.css';
 import { Providers } from './providers';
+import { Header } from '@/components/Header';
+import { Footer } from '@/components/Footer'; // Import your Footer component
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: "Ltronix Shop App",
-  description: "E-commerce website powered by Next.js and Chakra UI",
+  title: 'Ltronix Shop',
+  description: 'Your one-stop shop for electronics.',
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        <Providers>{children}</Providers>
+      <body className={inter.className}>
+        <Providers>
+          <Header />
+          {children}
+          <Footer /> {/* Add the Footer component here */}
+        </Providers>
       </body>
     </html>
   );
