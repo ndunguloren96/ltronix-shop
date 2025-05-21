@@ -86,7 +86,7 @@ export const Header = () => {
           <Button variant="link" colorScheme="brand">LOGIN REGISTER</Button>
           <HStack spacing={1}>
             <ShoppingCart />
-            <Text fontSize="md">R0.00</Text>
+            <Text fontSize="md">Ksh0.00</Text>
           </HStack>
           <Button variant="ghost" colorScheme="gray">Contact Us</Button>
         </HStack>
