@@ -117,8 +117,8 @@ export const Footer = () => {
             <HStack spacing={2}>
                 {/* Placeholder images for payment methods */}
                 <Image src="https://via.placeholder.com/40x25?text=VISA" alt="Visa" />
+                <Image src="https://via.placeholder.com/40x25?text=M-PESA" alt="M-PESA" />
                 <Image src="https://via.placeholder.com/40x25?text=MC" alt="Mastercard" />
-                <Image src="https://via.placeholder.com/40x25?text=PayPal" alt="PayPal" />
             </HStack>
           </Stack>
         </SimpleGrid>
