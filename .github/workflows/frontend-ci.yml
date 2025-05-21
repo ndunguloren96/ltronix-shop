@@ -1,0 +1,40 @@
+name: Frontend CI
+
+on:
+  push:
+    branches:
+      - feature/frontend-revamp
+      - main # Also run on main/master for final checks
+  pull_request:
+    branches:
+      - main
+      - feature/frontend-revamp
+
+jobs:
+  build-and-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20" # Use Node.js version 20 or higher
+
+      - name: Install dependencies
+        # Assuming your Next.js project is in 'frontend/my-app'
+        run: |
+          cd frontend/my-app
+          npm ci # 'npm ci' is preferred in CI for clean installs
+
+      - name: Run ESLint
+        run: |
+          cd frontend/my-app
+          npm run lint
+
+      # You can add a 'build' step later if needed for CI
+      # - name: Build project
+      #   run: |
+      #     cd frontend/my-app
+      #     npm run build

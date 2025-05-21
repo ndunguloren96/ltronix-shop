@@ -170,3 +170,116 @@
 - Code is organized, documented, and in version control
 
 ---
+
+---
+
+## Milestone 3: feature/frontend-revamp
+
+## Summary
+
+Start with PART −1/0 learning tracks (JS/TS fundamentals, React/Next.js core) to build confidence. Then scaffold new branch, establish a design system with Chakra UI, and stub state management, API contracts, accessibility, error/loading states, responsive nav, and CI. After the main frontend features (listing, search, filters, account, support pages), we’ll add an Additional PART for final polish—performance tuning, accessibility checks, and documentation.
+
+### PART −1: JavaScript & TypeScript Fundamentals
+
+- Goal: Solidify modern JavaScript and TypeScript foundations to write robust, typed React code.
+
+1. ES6+ Syntax: let/const, arrow functions, destructuring
+2. TypeScript Basics: interfaces, types, generics
+3. Tooling: npm scripts, tsconfig.json setup
+
+### PART 0: React & Next.js Core Concepts
+
+- Goal: Master React hooks, Next.js routing/data‑fetching, and styling setup for a seamless SSR/SSG experience.
+
+1. Hooks: useState, useEffect, useContext
+2. Routing & Data Fetching: getStaticProps, getServerSideProps
+3. Styling System: Chakra UI setup (design system)
+
+### PART 1: Project Setup & Core Infrastructure
+
+- Goal: Establish the Next.js/TypeScript codebase, branch, dependencies, and basic CI pipeline.
+
+1. Branch: `feature/frontend-revamp`
+2. Init Next.js w/ TS: `npx create-next-app@latest --ts`
+3. Install: `@chakra-ui/react`, `@emotion/react`, `axios`/`swr`
+4. Configure CI Stub: basic GitHub Actions lint/test workflow
+
+### PART 2: Design System & State Management
+
+- Goal: Create a consistent UI component library (Chakra UI) and global state store (Zustand) for cart/auth.
+
+1. Chakra UI Theme: Define colors, fonts, spacing
+2. Reusable Components: Button, Card, Input, Modal
+3. State Store: Setup Zustand (simple) for cart/auth stubs
+
+### PART 3: Global Layout & Responsive Nav
+
+- Goal: Build the app shell—header, footer, responsive navbar—so all pages share a unified frame.
+
+1. \_app.tsx/\_document.tsx: wrap with ChakraProvider
+2. Header/NavBar: Logo, Search stub, Cart icon, Profile menu; mobile hamburger
+3. Footer: About, Privacy, FAQ, Contact links
+
+### PART 4: Product Listing & Details
+
+- Goal: Deliver core product views (grid listing + detail page) with placeholder data and UI components.
+
+1. Listing Page (`/products`): grid of ProductCard with image carousel stub
+2. Detail Page (`/products/[id]`): image gallery, specs, Add to Cart button stub
+
+### PART 5: Filtering & Search
+
+- Goal: Implement client‑side product filtering and search interactions to enhance discoverability.
+
+1. Filters UI: Category, Price Range, Brand (controlled components)
+2. Search Input: Fuse.js stub with debounce (300 ms)
+3. Pagination Stub: “Load More” button
+
+### PART 6: Authentication & Account
+
+- Goal: Stub login/signup flows and a protected user dashboard for profile, payment/security settings, and recent views.
+
+1. Auth Pages: `/auth/login`, `/auth/signup` with NextAuth.js stub
+2. Protected Route: Middleware redirect for `/account`
+3. Account Dashboard: Profile details, Payment Settings stub, Security Settings
+
+### PART 7: Support & Static Pages
+
+- Goal: Provide essential informational pages (Contact, FAQ, About, Privacy) with basic UI and SEO stubs.
+
+1. Contact (`/support/contact`): form stub, validation, error/loading states
+2. FAQ (`/support/faq`): accordion component
+3. Legal: `/about`, `/privacy` with SEO meta
+
+### PART 8: API Stubs & Error/Loading States
+
+- Goal: Scaffold /api endpoints with realistic success/error responses and global loading/error components.
+
+1. API Folder: `/pages/api/products`, `/api/auth`, `/api/orders` returning JSON/errors
+2. Error & Loading Components: `<LoadingSpinner/>`, `<ErrorAlert/>`
+
+### PART 9: Accessibility & Performance
+
+- Goal: Ensure WCAG‑compliant UI and meet Core Web Vitals targets (LCP, FID, CLS) through audits and image optimizations.
+
+1. Accessibility Checks: integrate `@axe-core/react`, run Lighthouse audits
+2. Performance: Next/Image with priority LCP, dynamic imports
+3. Core Web Vitals: validate LCP<2.5s, FID<100 ms, CLS<0.1
+
+### PART 10: Testing & Documentation
+
+- Validate critical UI with unit/E2E tests and update documentation (architecture.md, dev-notes.md, API contract).
+
+1. Component Tests: Jest + React Testing Library for critical UI
+2. E2E Smoke Tests: Cypress/Playwright for listing→detail→search flow
+3. Docs Update: Append `architecture.md`, `dev-notes.md` with this Milestone
+4. API Contract: Basic OpenAPI markdown stub
+
+### Additional PART: Final Harden & Handoff
+
+- CI/CD Integration: finalize GitHub Actions for preview deploys on PR
+- Monorepo Prep: add Turborepo config for future backend merge
+- Design Review: ensure Component Library consistency
+- Accessibility Sweep: WebAIM WCAG2.2 checklist
+
+---
