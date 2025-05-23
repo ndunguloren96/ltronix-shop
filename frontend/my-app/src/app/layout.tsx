@@ -3,9 +3,14 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { Providers } from './providers';
-import { Header } from '@/components/Header'; // Your Header component
-import { Footer } from '@/components/Footer'; // Your Footer component
-import AxeReporter from '@/components/AxeReporter'; // Import the AxeReporter component
+// --- THE FIX IS HERE: Change { Header } to Header ---
+import Header from '@/components/Header'; // <-- Changed to default import
+// --- END FIX ---
+import { Footer } from '@/components/Footer';
+
+// NEW IMPORT FOR THE WRAPPER COMPONENT (from previous fix)
+import AccessibilityReporterWrapper from '@/components/AccessibilityReporterWrapper';
+
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -13,7 +18,7 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata: Metadata = {
   title: {
     default: 'Ltronix Shop - Your #1 Electronics Destination',
-    template: '%s - Ltronix Shop', // This will append " - Ltronix Shop" to page-specific titles
+    template: '%s - Ltronix Shop',
   },
   description: 'Shop the latest electronics, gadgets, and tech accessories at Ltronix Shop. Fast delivery, secure payments, and excellent customer service in Kenya.',
   keywords: [
@@ -22,14 +27,14 @@ export const metadata: Metadata = {
   ],
   openGraph: {
     title: 'Ltronix Shop - Your #1 Electronics Destination',
-    description: 'Shop the latest electronics, gadgets, and tech accessories at Ltronix Shop. Fast delivery, secure payments, and excellent customer service in Kenya.',
-    url: 'https://ltronix.co.ke', // IMPORTANT: Replace with your actual domain when deploying
+    description: 'Shop the latest electronics, gadgets and tech accessories at Ltronix Shop. Fast delivery, secure payments, and excellent customer service in Kenya.',
+    url: 'https://ltronix.co.ke',
     siteName: 'Ltronix Shop',
-    locale: 'en_KE', // Specific to Kenya
+    locale: 'en_KE',
     type: 'website',
     images: [
       {
-        url: 'https://ltronix.co.ke/og-image-default.jpg', // IMPORTANT: Provide a path to an actual default OG image
+        url: 'https://ltronix.co.ke/og-image-default.jpg',
         width: 1200,
         height: 630,
         alt: 'Ltronix Shop - Electronics and Gadgets',
@@ -39,19 +44,10 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Ltronix Shop',
-    description: 'Shop the latest electronics, gadgets, and tech accessories with Ltronix Shop in Kenya.',
-    images: ['https://ltronix.co.ke/twitter-image-default.jpg'], // IMPORTANT: Provide a path to an actual default Twitter image
-    creator: '@ltronix_shop', // Optional: Your Twitter handle
+    description: 'Shop the latest electronics, gadgets and tech accessories with Ltronix Shop in Kenya.',
+    images: ['https://ltronix.co.ke/twitter-image-default.jpg'],
+    creator: '@ltronix_shop',
   },
-  // You can also add more meta tags like:
-  // viewport: 'width=device-width, initial-scale=1',
-  // themeColor: '#yourBrandColor', // Example: '#3182CE' if using brand.500
-  // icons: {
-  //   icon: '/favicon.ico',
-  //   shortcut: '/favicon-16x16.png',
-  //   apple: '/apple-touch-icon.png',
-  // },
-  // manifest: '/site.webmanifest',
 };
 
 export default function RootLayout({
@@ -63,13 +59,8 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <Providers>
-          <Header />
-          {/* Conditionally wrap children with AxeReporter only in development */}
-          {process.env.NODE_ENV === 'development' ? (
-            <AxeReporter>{children}</AxeReporter>
-          ) : (
-            children
-          )}
+          <Header /> {/* This line remains the same */}
+          <AccessibilityReporterWrapper>{children}</AccessibilityReporterWrapper>
           <Footer />
         </Providers>
       </body>

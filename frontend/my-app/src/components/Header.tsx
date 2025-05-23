@@ -1,152 +1,372 @@
 // src/components/Header.tsx
-
-// This component uses client-side hooks (like useDisclosure) and interactive elements,
-// so it must be marked as a client component in Next.js App Router.
 'use client';
 
+import React, { useState } from 'react';
 import {
   Box,
   Flex,
   Text,
+  IconButton,
+  Button,
+  Stack,
+  Collapse,
+  Icon,
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+  useColorModeValue,
+  useBreakpointValue,
+  useDisclosure,
   Input,
   InputGroup,
-  InputLeftElement,
-  Button,
-  IconButton,
-  useDisclosure,
-  HStack,
-  Badge,
-  Image,
-  // Components for the mobile slide-out navigation drawer
-  Drawer,
-  DrawerBody,
-  DrawerOverlay,
-  DrawerContent,
-  DrawerCloseButton,
-  VStack,
-  Link as ChakraLink // Alias Chakra UI's Link to prevent conflicts with Next.js's Link
+  InputRightElement,
 } from '@chakra-ui/react';
+import {
+  HamburgerIcon,
+  CloseIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
+  SearchIcon,
+} from '@chakra-ui/icons';
+import { useRouter } from 'next/navigation';
 
-// Icons used in the header for search and mobile menu.
-import { SearchIcon, HamburgerIcon } from '@chakra-ui/icons';
+export default function Header() { // This is the default export
+  const { isOpen, onToggle } = useDisclosure();
+  const router = useRouter();
+  const [searchQuery, setSearchQuery] = useState('');
 
-// --- ShoppingCart Component ---
-// Reusable component for displaying the cart icon with an item count badge.
-// In a real application, you might use a dedicated icon library like 'react-icons' for a better icon.
-const ShoppingCart = () => (
-  <Box position="relative">
-    <Text fontSize="xl">🛒</Text> {/* Placeholder: Emoji for a shopping cart */}
-    <Badge
-      position="absolute"
-      top="-1"
-      right="-1"
-      fontSize="0.6em"
-      colorScheme="brand"
-      borderRadius="full"
-      px="1.5"
-    >
-      0 {/* Placeholder for the actual number of items in the cart */}
-    </Badge>
-  </Box>
-);
-
-// --- Header Component ---
-// This component forms the top navigation bar of the Ltronix Shop,
-// adapting its layout for desktop and mobile devices.
-export const Header = () => {
-  // useDisclosure hook manages the open/close state for the mobile drawer.
-  const { isOpen, onOpen, onClose } = useDisclosure();
+  const handleSearch = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
 
   return (
-    <Box bg="white" px={4} py={3} borderBottom="1px" borderColor="gray.200" boxShadow="sm">
-      <Flex h={16} alignItems="center" justifyContent="space-between">
-
-        {/* Logo Section */}
-        <Box>
-          {/* Logo image sourced from the /public directory. */}
-          {/* Ensure 'ltronix_logo.png' is in your Next.js project's 'public/' folder. */}
-          <Image src="/ltronix_logo.png" alt="Ltronix Logo" height="40px" />
-        </Box>
-
-        {/* Desktop Search Bar */}
-        {/* Hidden on small screens (base) and visible on medium and larger screens (md). */}
-        <InputGroup maxW="500px" display={{ base: 'none', md: 'block' }}>
-          <InputLeftElement pointerEvents="none" children={<SearchIcon color="gray.300" />} />
-          <Input type="text" placeholder="Search for products" borderRadius="md" />
-        </InputGroup>
-
-        {/* Desktop Navigation Links */}
-        {/* These links appear only on desktop view. */}
-        <HStack spacing={4} display={{ base: 'none', md: 'flex' }}>
-          {/* Main navigation buttons, mirroring Mikro Tech's top nav. */}
-          <Button variant="ghost" colorScheme="gray">BROWSE CATEGORIES</Button>
-          <Button variant="ghost" colorScheme="gray">PRODUCTS ON SALE!</Button>
-          <Button variant="ghost" colorScheme="gray">TRACK YOUR ORDER</Button>
-          <Button variant="ghost" colorScheme="gray">AFFILIATE PROGRAM</Button>
-          <Button variant="link" colorScheme="brand">LOGIN REGISTER</Button>
-          <HStack spacing={1}>
-            <ShoppingCart />
-            <Text fontSize="md">Ksh0.00</Text>
-          </HStack>
-          <Button variant="ghost" colorScheme="gray">Contact Us</Button>
-        </HStack>
-
-        {/* Mobile Icons: Search, Cart, and Hamburger Menu */}
-        {/* These icons are visible only on mobile screens. */}
-        <Flex display={{ base: 'flex', md: 'none' }} alignItems="center">
-          <IconButton aria-label="Search" icon={<SearchIcon />} variant="ghost" mr={2} />
-          <ShoppingCart />
-          {/* Hamburger icon triggers the mobile drawer to open. */}
+    <Box>
+      <Flex
+        bg={useColorModeValue('white', 'gray.800')}
+        color={useColorModeValue('gray.600', 'white')}
+        minH={'60px'}
+        py={{ base: 2 }}
+        px={{ base: 4 }}
+        borderBottom={1}
+        borderStyle={'solid'}
+        borderColor={useColorModeValue('gray.200', 'gray.900')}
+        align={'center'}
+      >
+        <Flex
+          flex={{ base: 1, md: 'auto' }}
+          ml={{ base: -2 }}
+          display={{ base: 'flex', md: 'none' }}
+        >
           <IconButton
-            aria-label="Open Menu"
-            icon={<HamburgerIcon />}
-            variant="ghost"
-            onClick={onOpen}
+            onClick={onToggle}
+            icon={isOpen ? <CloseIcon w={3} h={3} /> : <HamburgerIcon w={5} h={5} />}
+            variant={'ghost'}
+            aria-label={'Toggle Navigation'}
           />
         </Flex>
+        <Flex flex={{ base: 1 }} justify={{ base: 'center', md: 'start' }} align="center">
+          <Text
+            textAlign={useBreakpointValue({ base: 'center', md: 'left' })}
+            fontFamily={'heading'}
+            color={useColorModeValue('gray.800', 'white')}
+            onClick={() => router.push('/')}
+            cursor="pointer"
+          >
+            Ltronix Shop
+          </Text>
+
+          <Flex display={{ base: 'none', md: 'flex' }} ml={10}>
+            <DesktopNav />
+          </Flex>
+        </Flex>
+
+        <Stack
+          flex={{ base: 1, md: 0 }}
+          justify={'flex-end'}
+          direction={'row'}
+          spacing={6}
+          alignItems="center"
+        >
+          {/* Search Input and Button - Modified width here */}
+          <Box as="form" onSubmit={handleSearch} width={{ base: '100%', md: '300px' }} mr={4}>
+            <InputGroup size="md">
+              <Input
+                pr="4.5rem"
+                type="text"
+                placeholder="Search products..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                color={useColorModeValue('gray.800', 'white')}
+                bg={useColorModeValue('gray.100', 'gray.700')}
+                borderColor={useColorModeValue('gray.300', 'gray.600')}
+                _placeholder={{ color: useColorModeValue('gray.500', 'gray.400') }}
+                width="100%" // Ensure it takes full width of its container
+              />
+              <InputRightElement width="4.5rem">
+                <Button h="1.75rem" size="sm" onClick={handleSearch}>
+                  <SearchIcon />
+                </Button>
+              </InputRightElement>
+            </InputGroup>
+          </Box>
+
+          <Button as={'a'} fontSize={'sm'} fontWeight={400} variant={'link'} href={'/auth/login'}>
+            Sign In
+          </Button>
+          <Button
+            as={'a'}
+            display={{ base: 'none', md: 'inline-flex' }}
+            fontSize={'sm'}
+            fontWeight={600}
+            color={'white'}
+            bg={'blue.400'}
+            href={'/auth/signup'}
+            _hover={{
+              bg: 'blue.300',
+            }}
+          >
+            Sign Up
+          </Button>
+        </Stack>
       </Flex>
 
-      {/* --- Mobile Navigation Drawer --- */}
-      {/* A slide-out panel for navigation on mobile devices. */}
-      <Drawer placement="right" onClose={onClose} isOpen={isOpen}>
-        <DrawerOverlay /> {/* Overlay to dim the background */}
-        <DrawerContent>
-          <DrawerCloseButton /> {/* Button to close the drawer */}
-          <DrawerBody>
-            {/* Vertical stack for all navigation links within the drawer. */}
-            <VStack as="nav" spacing={4} mt={8} align="stretch">
-              {/* Main navigation links that mirror desktop links. */}
-              <ChakraLink href="#" py={2} onClick={onClose}>BROWSE CATEGORIES</ChakraLink>
-              <ChakraLink href="#" py={2} onClick={onClose}>PRODUCTS ON SALE!</ChakraLink>
-              <ChakraLink href="#" py={2} onClick={onClose}>TRACK YOUR ORDER</ChakraLink>
-              <ChakraLink href="#" py={2} onClick={onClose}>AFFILIATE PROGRAM</ChakraLink>
-              <ChakraLink href="#" py={2} onClick={onClose}>LOGIN REGISTER</ChakraLink>
-              <ChakraLink href="#" py={2} onClick={onClose}>Contact Us</ChakraLink>
+      <Collapse in={isOpen} animateOpacity>
+        <MobileNav />
+      </Collapse>
+    </Box>
+  );
+}
 
-              {/* Category section, mirroring the Mikro Tech sidebar structure. */}
-              <Box py={2} borderTop="1px" borderColor="gray.200" mt={4}>
-                <Text fontWeight="bold" mb={2}>Categories</Text>
-                <VStack align="stretch" pl={2}>
-                  {/* Placeholder category links. Replace '#' with actual category routes. */}
-                  <ChakraLink href="#" py={1} fontSize="sm" onClick={onClose}>Cameras</ChakraLink>
-                  <ChakraLink href="#" py={1} fontSize="sm" onClick={onClose}>Cellphones & Tablets</ChakraLink>
-                  <ChakraLink href="#" py={1} fontSize="sm" onClick={onClose}>Computers & Laptops</ChakraLink>
-                  <ChakraLink href="#" py={1} fontSize="sm" onClick={onClose}>Drones & RC Toys</ChakraLink>
-                  <ChakraLink href="#" py={1} fontSize="sm" onClick={onClose}>Gaming Consoles</ChakraLink>
-                  <ChakraLink href="#" py={1} fontSize="sm" onClick={onClose}>Headphones & Speakers</ChakraLink>
-                  <ChakraLink href="#" py={1} fontSize="sm" onClick={onClose}>Printers & 3D Printers</ChakraLink>
-                  <ChakraLink href="#" py={1} fontSize="sm" onClick={onClose}>Smart Home Appliances</ChakraLink>
-                  <ChakraLink href="#" py={1} fontSize="sm" onClick={onClose}>Smart Watches</ChakraLink>
-                  <ChakraLink href="#" py={1} fontSize="sm" onClick={onClose}>Software & Games</ChakraLink>
-                  <ChakraLink href="#" py={1} fontSize="sm" onClick={onClose}>Studio Equipment</ChakraLink>
-                  <ChakraLink href="#" py={1} fontSize="sm" onClick={onClose}>Televisions & Projectors</ChakraLink>
-                  <ChakraLink href="#" py={1} fontSize="sm" onClick={onClose}>Virtual Reality</ChakraLink>
-                </VStack>
+
+const DesktopNav = () => {
+  const linkColor = useColorModeValue('gray.600', 'gray.200');
+  const linkHoverColor = useColorModeValue('gray.800', 'white');
+  const popoverContentBgColor = useColorModeValue('white', 'gray.800');
+
+  return (
+    <Stack direction={'row'} spacing={4}>
+      {NAV_ITEMS.map((navItem) => (
+        <Box key={navItem.label}>
+          <Popover trigger={'hover'} placement={'bottom-start'}>
+            <PopoverTrigger>
+              <Box
+                as="a"
+                p={2}
+                href={navItem.href ?? '#'}
+                fontSize={'sm'}
+                fontWeight={500}
+                color={linkColor}
+                _hover={{
+                  textDecoration: 'none',
+                  color: linkHoverColor,
+                }}
+              >
+                {navItem.label}
               </Box>
-            </VStack>
-          </DrawerBody>
-        </DrawerContent>
-      </Drawer>
+            </PopoverTrigger>
+
+            {navItem.children && (
+              <PopoverContent
+                border={0}
+                boxShadow={'xl'}
+                bg={popoverContentBgColor}
+                p={4}
+                rounded={'xl'}
+                minW={'sm'}
+              >
+                <Stack>
+                  {navItem.children.map((child) => (
+                    <DesktopSubNav key={child.label} {...child} />
+                  ))}
+                </Stack>
+              </PopoverContent>
+            )}
+          </Popover>
+        </Box>
+      ))}
+    </Stack>
+  );
+};
+
+const DesktopSubNav = ({ label, href, subLabel }: NavItem) => {
+  return (
+    <Box
+      as="a"
+      href={href}
+      role={'group'}
+      display={'block'}
+      p={2}
+      rounded={'md'}
+      _hover={{ bg: useColorModeValue('blue.50', 'gray.900') }}
+    >
+      <Stack direction={'row'} align={'center'}>
+        <Box>
+          <Text
+            transition={'all .3s ease'}
+            _groupHover={{ color: 'blue.400' }}
+            fontWeight={500}
+          >
+            {label}
+          </Text>
+          <Text fontSize={'sm'}>{subLabel}</Text>
+        </Box>
+        <Flex
+          transition={'all .3s ease'}
+          transform={'translateX(-10px)'}
+          opacity={0}
+          _groupHover={{ opacity: '100%', transform: 'translateX(0)' }}
+          justify={'flex-end'}
+          align={'center'}
+          flex={1}
+        >
+          <Icon color={'blue.400'} w={5} h={5} as={ChevronRightIcon} />
+        </Flex>
+      </Stack>
     </Box>
   );
 };
+
+const MobileNav = () => {
+  return (
+    <Stack bg={useColorModeValue('white', 'gray.800')} p={4} display={{ md: 'none' }}>
+      {NAV_ITEMS.map((navItem) => (
+        <MobileNavItem key={navItem.label} {...navItem} />
+      ))}
+    </Stack>
+  );
+};
+
+const MobileNavItem = ({ label, children, href }: NavItem) => {
+  const { isOpen, onToggle } = useDisclosure();
+
+  return (
+    <Stack spacing={4} onClick={children && onToggle}>
+      <Flex
+        py={2}
+        as="a"
+        href={href ?? '#'}
+        justify={'space-between'}
+        align={'center'}
+        _hover={{
+          textDecoration: 'none',
+        }}
+      >
+        <Text fontWeight={600} color={useColorModeValue('gray.600', 'gray.200')}>
+          {label}
+        </Text>
+        {children && (
+          <Icon
+            as={ChevronDownIcon}
+            transition={'all .25s ease-in-out'}
+            transform={isOpen ? 'rotate(180deg)' : ''}
+            w={6}
+            h={6}
+          />
+        )}
+      </Flex>
+
+      <Collapse in={isOpen} animateOpacity style={{ marginTop: '0!important' }}>
+        <Stack
+          mt={2}
+          pl={4}
+          borderLeft={1}
+          borderStyle={'solid'}
+          borderColor={useColorModeValue('gray.200', 'gray.700')}
+          align={'start'}
+        >
+          {children &&
+            children.map((child) => (
+              <Box as="a" key={child.label} py={2} href={child.href}>
+                {child.label}
+              </Box>
+            ))}
+        </Stack>
+      </Collapse>
+    </Stack>
+  );
+};
+
+interface NavItem {
+  label: string;
+  subLabel?: string;
+  children?: Array<NavItem>;
+  href?: string;
+}
+
+const NAV_ITEMS: Array<NavItem> = [
+  {
+    label: 'Home',
+    href: '/',
+  },
+  {
+    label: 'Products',
+    children: [
+      {
+        label: 'All Products',
+        subLabel: 'Browse our entire collection',
+        href: '/products',
+      },
+      {
+        label: 'Laptops',
+        subLabel: 'High-performance computing',
+        href: '/products?category=laptops', // Example with query param
+      },
+      {
+        label: 'Smartphones',
+        subLabel: 'Latest mobile technology',
+        href: '/products?category=smartphones',
+      },
+      {
+        label: 'Accessories',
+        subLabel: 'Enhance your devices',
+        href: '/products?category=accessories',
+      },
+    ],
+  },
+  {
+    label: 'Account',
+    children: [
+      {
+        label: 'My Profile',
+        subLabel: 'View and edit your personal details',
+        href: '/account/profile',
+      },
+      {
+        label: 'Order History',
+        subLabel: 'Track your past and current orders',
+        href: '/account/orders', // Assuming you'll add an orders page
+      },
+      {
+        label: 'Payment Methods',
+        subLabel: 'Manage your payment information',
+        href: '/account/payment',
+      },
+    ],
+  },
+  {
+    label: 'Support',
+    children: [
+      {
+        label: 'FAQ',
+        subLabel: 'Frequently Asked Questions',
+        href: '/support/faq',
+      },
+      {
+        label: 'Contact Us',
+        subLabel: 'Get in touch with our support team',
+        href: '/support/contact',
+      },
+    ],
+  },
+  {
+    label: 'About',
+    href: '/about',
+  },
+  {
+    label: 'Privacy',
+    href: '/privacy',
+  },
+];

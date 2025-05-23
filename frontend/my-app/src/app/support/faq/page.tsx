@@ -63,7 +63,7 @@ export default function FAQPage() {
             <AccordionItem key={index} mb={4} borderWidth={1} borderRadius="md">
               <h2>
                 <AccordionButton
-                  _expanded={{ bg: 'brand.500', color: 'white' }} // MikroTech brand color for expanded state
+                  _expanded={{ bg: 'brand.500', color: 'white' }} 
                   py={4}
                   px={6}
                   fontSize="md"
