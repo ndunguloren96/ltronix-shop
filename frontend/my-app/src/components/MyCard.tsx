@@ -1,50 +1,76 @@
-// src/components/MyCard.tsx
 'use client';
 
-import { Box, Heading, Text, Image, Stack, Divider, Card, CardBody, CardFooter, ButtonGroup, Button, CardProps } from '@chakra-ui/react';
+import {
+  Box,
+  Image as ChakraImage, // Rename Chakra UI's Image to avoid conflict with next/image
+  Heading,
+  Text,
+  Stack,
+  Divider,
+  ButtonGroup,
+  Button,
+} from '@chakra-ui/react';
+import Image from 'next/image'; // Import Next.js Image component
 import React from 'react';
 
-interface MyCardProps extends CardProps {
+interface MyCardProps {
   title: string;
   description: string;
-  imageUrl: string;
-  price: string;
+  imageUrl: string; // This path will now be used by next/image
+  imageAlt?: string; // Add alt text for accessibility and SEO
+  price: string; // Keep as string for display if formatted
+  children?: React.ReactNode; // For optional footer content
 }
 
-export const MyCard: React.FC<MyCardProps> = ({ title, description, imageUrl, price, ...props }) => {
+export const MyCard: React.FC<MyCardProps> = ({
+  title,
+  description,
+  imageUrl,
+  imageAlt = title, // Default alt text to title
+  price,
+  children,
+}) => {
   return (
-    <Card maxW='sm' {...props}>
-      <CardBody>
+    <Box maxW="sm" borderWidth="1px" borderRadius="lg" overflow="hidden" boxShadow="md" bg="white">
+      {/* Use next/image for optimized image display */}
+      <Box position="relative" height="200px" width="100%">
         <Image
           src={imageUrl}
-          alt={title}
-          borderRadius='lg'
-          objectFit='cover' // Ensures the image covers the area nicely
-          boxSize='200px' // Fixed size for consistency
-          mx="auto" // Center the image
-          mb={4}
+          alt={imageAlt}
+          fill // Makes the image fill the parent Box
+          style={{ objectFit: 'cover' }} // Ensures the image covers the area
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" // Responsive sizing
         />
-        <Stack mt='6' spacing='3'>
-          <Heading size='md'>{title}</Heading>
-          <Text>
-            {description}
-          </Text>
-          <Text color='brand.700' fontSize='2xl'>
+      </Box>
+
+      <Box p="6">
+        <Stack spacing="3">
+          <Heading size="md">{title}</Heading>
+          <Text>{description}</Text>
+          <Text color="brand.600" fontSize="2xl">
             {price}
           </Text>
         </Stack>
-      </CardBody>
+      </Box>
+
       <Divider />
-      <CardFooter>
-        <ButtonGroup spacing='2'>
-          <Button variant='solid' colorScheme='brand'>
-            Buy now
-          </Button>
-          <Button variant='ghost' colorScheme='brand'>
-            Add to cart
-          </Button>
-        </ButtonGroup>
-      </CardFooter>
-    </Card>
+
+      <Box p="6">
+        {children ? (
+          // If children are provided, render them as the footer
+          children
+        ) : (
+          // Otherwise, render a default button group
+          <ButtonGroup spacing="2">
+            <Button variant="solid" colorScheme="blue">
+              Buy now
+            </Button>
+            <Button variant="ghost" colorScheme="blue">
+              Add to cart
+            </Button>
+          </ButtonGroup>
+        )}
+      </Box>
+    </Box>
   );
 };

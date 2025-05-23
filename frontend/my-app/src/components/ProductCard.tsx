@@ -1,79 +1,75 @@
-// src/components/ProductCard.tsx
-'use client';
+'use client'; // This component uses client-side hooks like useCartStore
 
 import {
   Box,
-  Image,
-  Text,
-  Heading,
   Button,
-  VStack, // For vertical stacking of elements within the card
-  Link as ChakraLink // To use Chakra's Link component
+  Heading,
+  Text,
+  VStack,
+  Stack, // Added Stack for consistent spacing
+  Divider, // Added Divider
 } from '@chakra-ui/react';
-import Link from 'next/link'; // Import Next.js Link for client-side navigation
+import Image from 'next/image'; // Next.js Image component
 
-// Define the shape of product data that this component expects.
+// Import your Zustand cart store
+import { useCartStore } from '@/store/useCartStore';
+
 interface ProductCardProps {
-  id: string;
-  name: string;
-  price: string; // Keeping as string for now to include currency symbol
+  id: number;
+  title: string;
+  description: string;
   imageUrl: string;
+  imageAlt: string;
+  price: number; // Price should be a number for calculation
 }
 
-export const ProductCard = ({ id, name, price, imageUrl }: ProductCardProps) => {
-  return (
-    // Use Next.js Link for navigation to the product detail page.
-    // The `passHref` prop is needed when using ChakraLink inside Next.js Link.
-    <Link href={`/products/${id}`} passHref>
-      <ChakraLink _hover={{ textDecoration: 'none' }} > {/* Remove underline on hover for the card itself */}
-        <Box
-          borderWidth="1px"
-          borderRadius="lg"
-          overflow="hidden" // Ensures image corners are rounded with the card
-          p={4}
-          textAlign="center"
-          boxShadow="sm"
-          _hover={{ boxShadow: 'md', transform: 'translateY(-2px)' }} // Subtle hover effect
-          transition="all 0.2s ease-in-out" // Smooth transition for hover effect
-          height="100%" // Ensure cards in the grid have equal height
-          display="flex"
-          flexDirection="column"
-          justifyContent="space-between" // Pushes Add to Cart to bottom if content varies
-        >
-          <VStack spacing={3} flex="1"> {/* flex="1" ensures content takes available space */}
-            <Image
-              src={imageUrl}
-              alt={name}
-              borderRadius="md" // Slightly rounded image corners
-              objectFit="cover" // Cover the area, cropping if necessary
-              width="100%" // Full width within the card padding
-              maxH="200px" // Max height for consistency
-              mb={2}
-            />
-            <Heading as="h3" size="md" noOfLines={2} textAlign="center">
-              {name}
-            </Heading>
-            <Text fontWeight="bold" fontSize="xl" mt={2} color="brand.500">
-              {price}
-            </Text>
-          </VStack>
+export const ProductCard: React.FC<ProductCardProps> = ({
+  id,
+  title,
+  description,
+  imageUrl,
+  imageAlt,
+  price,
+}) => {
+  const addItemToCart = useCartStore((state) => state.addItem);
 
-          {/* Add to Cart Button (placeholder for now) */}
-          <Button
-            mt={4} // Margin top to separate from text
-            colorScheme="brand"
-            variant="solid"
-            width="100%"
-            onClick={(e) => {
-              e.preventDefault(); // Prevent navigating when button is clicked
-              console.log(`Added ${name} to cart!`);
-              // Implement actual add to cart logic here later
-            }}
-          >
-            Add to Cart
-          </Button>
-        </Box>
-      </ChakraLink>
-    </Link>
+  return (
+    <Box maxW="sm" borderWidth="1px" borderRadius="lg" overflow="hidden" boxShadow="md" bg="white">
+      {/* Product Image */}
+      <Box position="relative" height="200px" width="100%">
+        <Image
+          src={imageUrl}
+          alt={imageAlt}
+          fill // Makes the image fill the parent Box
+          style={{ objectFit: 'cover' }} // Ensures the image covers the area
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" // Responsive sizing
+        />
+      </Box>
+
+      {/* Product Info */}
+      <Box p={6}>
+        <Stack spacing={3}>
+          <Heading size="md" noOfLines={1}>{title}</Heading> {/* Limit title to one line */}
+          <Text fontSize="sm" color="gray.600" noOfLines={2}>{description}</Text>
+          <Text color="brand.600" fontSize="2xl" fontWeight="bold">
+            KES {price.toFixed(2)}
+          </Text>
+        </Stack>
+      </Box>
+
+      <Divider />
+
+      {/* Add to Cart Button */}
+      <Box p={6}>
+        <Button
+          variant='solid'
+          colorScheme='brand'
+          width="full"
+          onClick={() => addItemToCart({ id, name: title, price })}
+        >
+          Add to cart
+        </Button>
+      </Box>
+    </Box>
   );
 };

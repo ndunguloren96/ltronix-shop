@@ -1,145 +1,118 @@
-// src/components/Footer.tsx
-'use client'; // Footer might contain interactive elements or links
+'use client'; // This component might include interactive elements or relies on client-side features.
 
 import {
   Box,
-  Container,
-  Stack,
-  Text,
-  Link,
   Flex,
-  Spacer,
-  IconButton,
-  Heading,
-  SimpleGrid,
   HStack,
-  Image // For payment logos or certifications
+  VStack,
+  Text,
+  Link as ChakraLink, // Alias Chakra UI's Link to prevent conflicts
+  Divider,
+  Container, // Added Container for main footer content alignment
+  SimpleGrid,
+  Heading,
 } from '@chakra-ui/react';
-import { FaTwitter, FaFacebook, FaInstagram, FaLinkedin } from 'react-icons/fa'; // Example social icons (requires react-icons)
+import Image from 'next/image'; // Import Next.js Image component
+import Link from 'next/link'; // Import Next.js Link component
 
-// You might need to install react-icons if you haven't already:
-// npm install react-icons --legacy-peer-deps
+// You can add more icons if needed, e.g., for social media
+// import { FaFacebook, FaTwitter, FaInstagram } from 'react-icons/fa';
 
-export const Footer = () => {
+export function Footer() {
+  const currentYear = new Date().getFullYear();
+
   return (
-    <Box
-      bg="gray.800" // Dark background for the footer
-      color="gray.200"
-      py={10}
-      px={4}
-      mt="auto" // Pushes the footer to the bottom of the page
-    >
-      <Container maxW="6xl">
-        <SimpleGrid
-          columns={{ base: 1, sm: 2, md: 4 }} // Responsive grid columns
-          spacing={8}
-          pb={8}
-        >
-          {/* Column 1: About Us */}
-          <Stack align={{ base: 'center', md: 'flex-start' }}>
-            <Heading as="h4" size="md" mb={3} color="whiteAlpha.900">
-              About Ltronix
-            </Heading>
-            <Link href="#" _hover={{ color: 'brand.200' }}>Our Story</Link>
-            <Link href="#" _hover={{ color: 'brand.200' }}>Careers</Link>
-            <Link href="#" _hover={{ color: 'brand.200' }}>Press</Link>
-            <Link href="#" _hover={{ color: 'brand.200' }}>Investor Relations</Link>
-          </Stack>
+    <Box bg="gray.800" color="gray.200" py={{ base: 8, md: 12 }} mt={10}>
+      {/* Brands Carousel Section (New addition) */}
+      <Box w="100%" bg="gray.700" py={4} mb={8} overflowX="auto" boxShadow="inner">
+        <Text fontWeight="bold" fontSize="lg" mb={2} px={{ base: 4, md: 8 }} color="whiteAlpha.800">
+          Trusted Brands
+        </Text>
+        <HStack spacing={{ base: 6, md: 10 }} px={{ base: 4, md: 8 }} minW="max-content" justifyContent="space-between">
+          {/* Placeholder brand images for a horizontally scrollable carousel */}
+          {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+            <Box
+              key={i}
+              minW="100px" // Minimum width for each brand logo container
+              flexShrink={0} // Prevent items from shrinking
+              bg="whiteAlpha.900"
+              p={2}
+              borderRadius="md"
+              boxShadow="sm"
+            >
+              <Image
+                src={`/brands/brand-placeholder-${i}.png`} // Path to your brand images
+                alt={`Brand ${i} Logo`}
+                width={80} // Explicit width for Next.js Image
+                height={80} // Explicit height for Next.js Image
+                objectFit="contain" // Ensures image fits without cropping
+                quality={80} // Image quality
+                style={{ filter: 'grayscale(100%) opacity(70%)' }} // Example: grayscale effect
+              />
+            </Box>
+          ))}
+        </HStack>
+      </Box>
 
-          {/* Column 2: Customer Service */}
-          <Stack align={{ base: 'center', md: 'flex-start' }}>
-            <Heading as="h4" size="md" mb={3} color="whiteAlpha.900">
-              Customer Service
-            </Heading>
-            <Link href="#" _hover={{ color: 'brand.200' }}>Contact Us</Link>
-            <Link href="#" _hover={{ color: 'brand.200' }}>FAQ</Link>
-            <Link href="#" _hover={{ color: 'brand.200' }}>Shipping & Returns</Link>
-            <Link href="#" _hover={{ color: 'brand.200' }}>Order Tracking</Link>
-          </Stack>
+      {/* Main Footer Content */}
+      <Container maxW="container.xl">
+        <SimpleGrid columns={{ base: 1, sm: 2, md: 4 }} spacing={8} pb={8}>
+          <VStack align="flex-start" spacing={3}>
+            <Heading size="md" color="whiteAlpha.900">Ltronix Shop</Heading>
+            <Text fontSize="sm">
+              Your trusted source for the latest electronics, gadgets, and tech innovations.
+              Delivering quality and service across Kenya.
+            </Text>
+            {/* You can add more contact info or a mini-logo here */}
+          </VStack>
 
-          {/* Column 3: My Account */}
-          <Stack align={{ base: 'center', md: 'flex-start' }}>
-            <Heading as="h4" size="md" mb={3} color="whiteAlpha.900">
-              My Account
-            </Heading>
-            <Link href="#" _hover={{ color: 'brand.200' }}>Sign In</Link>
-            <Link href="#" _hover={{ color: 'brand.200' }}>View Cart</Link>
-            <Link href="#" _hover={{ color: 'brand.200' }}>My Wishlist</Link>
-            <Link href="#" _hover={{ color: 'brand.200' }}>Account Settings</Link>
-          </Stack>
+          <VStack align="flex-start" spacing={3}>
+            <Heading size="md" color="whiteAlpha.900">Customer Service</Heading>
+            <ChakraLink as={Link} href="/contact-us" fontSize="sm" _hover={{ color: 'brand.300' }}>Contact Us</ChakraLink>
+            <ChakraLink as={Link} href="/faqs" fontSize="sm" _hover={{ color: 'brand.300' }}>FAQs</ChakraLink>
+            <ChakraLink as={Link} href="/shipping-returns" fontSize="sm" _hover={{ color: 'brand.300' }}>Shipping & Returns</ChakraLink>
+            <ChakraLink as={Link} href="/warranty" fontSize="sm" _hover={{ color: 'brand.300' }}>Warranty Info</ChakraLink>
+          </VStack>
 
-          {/* Column 4: Social Media & Payment */}
-          <Stack align={{ base: 'center', md: 'flex-start' }}>
-            <Heading as="h4" size="md" mb={3} color="whiteAlpha.900">
-              Connect With Us
-            </Heading>
-            <HStack spacing={4}>
-              <IconButton
-                as="a"
-                href="#"
-                aria-label="Twitter"
-                icon={<FaTwitter />}
-                variant="ghost"
-                color="gray.200"
-                _hover={{ color: 'brand.200' }}
-              />
-              <IconButton
-                as="a"
-                href="#"
-                aria-label="Facebook"
-                icon={<FaFacebook />}
-                variant="ghost"
-                color="gray.200"
-                _hover={{ color: 'brand.200' }}
-              />
-              <IconButton
-                as="a"
-                href="https://www.instagram.com/loren_ndungu/"
-                aria-label="Instagram"
-                icon={<FaInstagram />}
-                variant="ghost"
-                color="gray.200"
-                _hover={{ color: 'brand.200' }}
-              />
-              <IconButton
-                as="a"
-                href="https://www.linkedin.com/in/loren-ndungu"
-                aria-label="LinkedIn"
-                icon={<FaLinkedin />}
-                variant="ghost"
-                color="gray.200"
-                _hover={{ color: 'brand.200' }}
-              />
-            </HStack>
-            <Heading as="h4" size="md" mb={3} mt={4} color="whiteAlpha.900">
-              Secure Payments
-            </Heading>
-            <HStack spacing={2}>
-                {/* Placeholder images for payment methods */}
-                <Image src="https://via.placeholder.com/40x25?text=VISA" alt="Visa" />
-                <Image src="https://via.placeholder.com/40x25?text=M-PESA" alt="M-PESA" />
-                <Image src="https://via.placeholder.com/40x25?text=MC" alt="Mastercard" />
-            </HStack>
-          </Stack>
+          <VStack align="flex-start" spacing={3}>
+            <Heading size="md" color="whiteAlpha.900">Explore</Heading>
+            <ChakraLink as={Link} href="/products" fontSize="sm" _hover={{ color: 'brand.300' }}>All Products</ChakraLink>
+            <ChakraLink as={Link} href="/products/categories" fontSize="sm" _hover={{ color: 'brand.300' }}>Categories</ChakraLink>
+            <ChakraLink as={Link} href="/products/hot-deals" fontSize="sm" _hover={{ color: 'brand.300' }}>Hot Deals</ChakraLink>
+            <ChakraLink as={Link} href="/blog" fontSize="sm" _hover={{ color: 'brand.300' }}>Blog</ChakraLink>
+          </VStack>
+
+          <VStack align="flex-start" spacing={3}>
+            <Heading size="md" color="whiteAlpha.900">My Account</Heading>
+            <ChakraLink as={Link} href="/account" fontSize="sm" _hover={{ color: 'brand.300' }}>Account Dashboard</ChakraLink>
+            <ChakraLink as={Link} href="/account/orders" fontSize="sm" _hover={{ color: 'brand.300' }}>My Orders</ChakraLink>
+            <ChakraLink as={Link} href="/account/wishlist" fontSize="sm" _hover={{ color: 'brand.300' }}>Wishlist</ChakraLink>
+            <ChakraLink as={Link} href="/cart" fontSize="sm" _hover={{ color: 'brand.300' }}>Shopping Cart</ChakraLink>
+          </VStack>
         </SimpleGrid>
 
-        {/* Copyright & Bottom Text */}
+        <Divider borderColor="gray.600" my={8} />
+
+        {/* Copyright and Social Media */}
         <Flex
           direction={{ base: 'column', md: 'row' }}
-          justify={{ base: 'center', md: 'space-between' }}
+          justify="space-between"
           align="center"
-          pt={8}
-          borderTop="1px solid"
-          borderColor="gray.700"
+          pt={4}
         >
-          <Text fontSize="sm" textAlign={{ base: 'center', md: 'left' }}>
-            &copy; {new Date().getFullYear()} Ltronix Shop. All rights reserved.
+          <Text fontSize="sm" textAlign={{ base: 'center', md: 'left' }} mb={{ base: 4, md: 0 }}>
+            &copy; {currentYear} Ltronix Shop. All rights reserved.
           </Text>
-          <Text fontSize="sm" textAlign={{ base: 'center', md: 'right' }} mt={{ base: 2, md: 0 }}>
-            Powered by CH Technologies
-          </Text>
+          <HStack spacing={4}>
+            {/* Placeholder for social media icons */}
+            {/* <IconButton aria-label="Facebook" icon={<FaFacebook />} variant="ghost" color="gray.200" _hover={{ color: 'brand.300' }} />
+            <IconButton aria-label="Twitter" icon={<FaTwitter />} variant="ghost" color="gray.200" _hover={{ color: 'brand.300' }} />
+            <IconButton aria-label="Instagram" icon={<FaInstagram />} variant="ghost" color="gray.200" _hover={{ color: 'brand.300' }} /> */}
+            <ChakraLink as={Link} href="/privacy-policy" fontSize="sm" _hover={{ color: 'brand.300' }}>Privacy Policy</ChakraLink>
+            <ChakraLink as={Link} href="/terms-of-service" fontSize="sm" _hover={{ color: 'brand.300' }}>Terms of Service</ChakraLink>
+          </HStack>
         </Flex>
       </Container>
     </Box>
   );
-};
+}
