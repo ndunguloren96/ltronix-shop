@@ -20,6 +20,7 @@ import {
   Input,
   InputGroup,
   InputRightElement,
+  Badge, // Import Badge for the item count
 } from '@chakra-ui/react';
 import {
   HamburgerIcon,
@@ -29,11 +30,18 @@ import {
   SearchIcon,
 } from '@chakra-ui/icons';
 import { useRouter } from 'next/navigation';
+import { BsCartFill } from 'react-icons/bs'; // Import cart icon
 
-export default function Header() { // This is the default export
+// Import your Zustand cart store
+import { useCartStore } from '@/store/useCartStore';
+
+export default function Header() {
   const { isOpen, onToggle } = useDisclosure();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Get total items from your cart store
+  const totalItems = useCartStore((state) => state.items.length); // Assuming 'items' is an array in your cart store
 
   const handleSearch = (event: React.FormEvent) => {
     event.preventDefault();
@@ -87,11 +95,13 @@ export default function Header() { // This is the default export
           flex={{ base: 1, md: 0 }}
           justify={'flex-end'}
           direction={'row'}
-          spacing={6}
+          // Adjusted spacing to make room for the cart
+          // You can play with this value (e.g., from 6 to 3 or 4) to find the perfect fit.
+          spacing={{ base: 2, md: 4 }}
           alignItems="center"
         >
-          {/* Search Input and Button - Modified width here */}
-          <Box as="form" onSubmit={handleSearch} width={{ base: '100%', md: '300px' }} mr={4}>
+          {/* Search Input and Button */}
+          <Box as="form" onSubmit={handleSearch} width={{ base: '100%', md: '250px' }} mr={2}> {/* Slightly reduced width and margin-right */}
             <InputGroup size="md">
               <Input
                 pr="4.5rem"
@@ -103,7 +113,7 @@ export default function Header() { // This is the default export
                 bg={useColorModeValue('gray.100', 'gray.700')}
                 borderColor={useColorModeValue('gray.300', 'gray.600')}
                 _placeholder={{ color: useColorModeValue('gray.500', 'gray.400') }}
-                width="100%" // Ensure it takes full width of its container
+                width="100%"
               />
               <InputRightElement width="4.5rem">
                 <Button h="1.75rem" size="sm" onClick={handleSearch}>
@@ -112,6 +122,34 @@ export default function Header() { // This is the default export
               </InputRightElement>
             </InputGroup>
           </Box>
+
+          {/* Cart Icon with Item Count */}
+          <Button
+            as={'a'}
+            href={'/cart'} // Link to your cart page
+            variant={'ghost'}
+            position="relative"
+            p={0} // Remove default padding for better control
+            _hover={{ bg: 'transparent' }} // Keep it subtle on hover
+            _active={{ bg: 'transparent' }} // Keep it subtle on active
+            aria-label="Shopping Cart"
+          >
+            <Icon as={BsCartFill} w={5} h={5} /> {/* Cart icon */}
+            {totalItems > 0 && (
+              <Badge
+                position="absolute"
+                top="-1"
+                right="-1"
+                fontSize="0.7em"
+                colorScheme="red"
+                borderRadius="full"
+                px="1"
+                lineHeight="1"
+              >
+                {totalItems}
+              </Badge>
+            )}
+          </Button>
 
           <Button as={'a'} fontSize={'sm'} fontWeight={400} variant={'link'} href={'/auth/login'}>
             Sign In
@@ -230,16 +268,31 @@ const DesktopSubNav = ({ label, href, subLabel }: NavItem) => {
 };
 
 const MobileNav = () => {
+  // Mobile nav also needs cart info for consistency
+  const totalItems = useCartStore((state) => state.items.length); // Get total items for mobile view
+
   return (
     <Stack bg={useColorModeValue('white', 'gray.800')} p={4} display={{ md: 'none' }}>
       {NAV_ITEMS.map((navItem) => (
         <MobileNavItem key={navItem.label} {...navItem} />
       ))}
+      {/* Add Cart link for Mobile Nav */}
+      <MobileNavItem
+        label="My Cart"
+        href="/cart"
+        icon={<Icon as={BsCartFill} />} // Add icon for mobile cart link
+        badgeCount={totalItems} // Pass totalItems for badge
+      />
     </Stack>
   );
 };
 
-const MobileNavItem = ({ label, children, href }: NavItem) => {
+interface MobileNavItemProps extends NavItem {
+    icon?: React.ReactElement; // Allow an optional icon for mobile nav items
+    badgeCount?: number; // Allow an optional badge count for mobile nav items (e.g., for cart)
+}
+
+const MobileNavItem = ({ label, children, href, icon, badgeCount }: MobileNavItemProps) => {
   const { isOpen, onToggle } = useDisclosure();
 
   return (
@@ -254,9 +307,24 @@ const MobileNavItem = ({ label, children, href }: NavItem) => {
           textDecoration: 'none',
         }}
       >
-        <Text fontWeight={600} color={useColorModeValue('gray.600', 'gray.200')}>
-          {label}
-        </Text>
+        <Flex align="center"> {/* Use Flex to align icon and text */}
+          {icon && <Box mr={2}>{icon}</Box>} {/* Render icon if provided */}
+          <Text fontWeight={600} color={useColorModeValue('gray.600', 'gray.200')}>
+            {label}
+          </Text>
+        </Flex>
+        {badgeCount !== undefined && badgeCount > 0 && ( // Display badge if count exists and is > 0
+            <Badge
+                ml="2" // Margin left for spacing from text
+                fontSize="0.8em"
+                colorScheme="red"
+                borderRadius="full"
+                px="2"
+                lineHeight="1"
+            >
+                {badgeCount}
+            </Badge>
+        )}
         {children && (
           <Icon
             as={ChevronDownIcon}
