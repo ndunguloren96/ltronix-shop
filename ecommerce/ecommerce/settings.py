@@ -55,9 +55,27 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    'django.contrib.sites',  # Required by allauth
+
+    # Django REST Framework
+    'rest_framework',
+    'rest_framework.authtoken', # For Token authentication if you enable it later
+
+    # django-allauth
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount', # For social login like Google
+    # 'allauth.socialaccount.providers.google', # We'll add this when we configure Google OAuth
+
+    # dj-rest-auth
+    'dj_rest_auth',
+    'dj_rest_auth.registration', # For /signup endpoint
+
+    # My Apps
     "store.apps.StoreConfig",
     "payment",
     "django_daraja",
+    
 ]
 
 MIDDLEWARE = [
@@ -66,6 +84,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "allauth.account.middleware.AccountMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -151,3 +170,61 @@ MEDIA_ROOT = os.path.join(
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+
+# Django-allauth and dj-rest-auth configuration
+
+
+# Django REST Framework settings (already there, but confirm if this is minimal)
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication', # For session-based authentication
+        # 'rest_framework.authentication.TokenAuthentication', # Uncomment if you plan to use Token authentication later
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticatedOrReadOnly', # Default to allow read-only for anonymous users
+    ],
+    'DEFAULT_VERSIONING_CLASS': 'rest_framework.versioning.NamespaceVersioning', # Or URLPathVersioning
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+        # 'rest_framework.renderers.BrowsableAPIRenderer', # Good for development
+    ],
+}
+
+# django-allauth settings
+SITE_ID = 1 # Essential for django-allauth
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_USERNAME_REQUIRED = False # We'll use email as username
+ACCOUNT_AUTHENTICATION_METHOD = 'email'
+ACCOUNT_EMAIL_VERIFICATION = 'mandatory' # Recommended for production
+ACCOUNT_UNIQUE_EMAIL = True
+ACCOUNT_CONFIRM_EMAIL_ON_GET = True # Allow email confirmation via GET request (simpler for basic setup)
+ACCOUNT_ALLOW_REGISTRATION = True
+
+# Redirects after login/logout/email confirmation (can be frontend URLs)
+LOGIN_REDIRECT_URL = '/' # Placeholder, will be handled by frontend
+ACCOUNT_LOGOUT_REDIRECT_URL = '/' # Placeholder, will be handled by frontend
+
+# dj-rest-auth settings
+REST_AUTH = {
+    'LOGIN_SERIALIZER': 'dj_rest_auth.serializers.LoginSerializer',
+    'TOKEN_MODEL': 'rest_framework.authtoken.models.Token', # Needed if using Token auth
+    'USE_JWT': False, # We're focusing on session-based auth as per the plan
+    'SESSION_LOGIN': True, # Enable session-based login
+    'USER_DETAILS_SERIALIZER': 'dj_rest_auth.serializers.UserDetailsSerializer', # Default for /user/ endpoint
+    'REGISTER_SERIALIZER': 'dj_rest_auth.registration.serializers.RegisterSerializer', # Default for /signup/
+    'PASSWORD_RESET_SERIALIZER': 'dj_rest_auth.serializers.PasswordResetSerializer',
+    'PASSWORD_CHANGE_SERIALIZER': 'dj_rest_auth.serializers.PasswordChangeSerializer',
+}
+
+# Email Backend for django-allauth (important for email verification)
+# For development, you can use console backend or a local SMTP server
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend' # Prints emails to console
+# For production, you'd use a service like SendGrid (covered in Part 7)
+# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# EMAIL_HOST = 'smtp.sendgrid.net'
+# EMAIL_PORT = 587
+# EMAIL_USE_TLS = True
+# EMAIL_HOST_USER = 'apikey'
+# EMAIL_HOST_PASSWORD = 'YOUR_SENDGRID_API_KEY'
+# DEFAULT_FROM_EMAIL = 'no-reply@ltronixshop.com' # Your shop's email
