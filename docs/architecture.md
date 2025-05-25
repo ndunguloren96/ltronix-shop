@@ -283,3 +283,181 @@ Start with PART −1/0 learning tracks (JS/TS fundamentals, React/Next.js core
 - Accessibility Sweep: WebAIM WCAG2.2 checklist
 
 ---
+
+## Milestone 4: Full-Stack Integration & Production Readiness
+
+**Objective:**  
+Seamlessly wire your Next.js/TypeScript frontend (`feature/frontend-revamp`) to your Django REST backend (`ecommerce`), enforce security, ensure reliability, and add card-payment support. Deliver a **fully functional e-commerce** platform ready for launch.
+
+---
+
+### PART 1: Backend Auth & Session Endpoints
+
+**Goal:** Expose secure login, logout, signup, user info via DRF + django-allauth, with API versioning.
+
+1. **Install & Configure DRF + Allauth:**
+   - Add `dj-rest-auth` and `django-allauth` to `INSTALLED_APPS`
+   - Configure `REST_AUTH` settings in `settings.py`
+2. **API Versioning:**
+   - Prefix all auth routes with `/api/v1/` via DRF router
+3. **Expose Auth API:**
+   - `POST /api/v1/auth/login/` → obtain session cookie
+   - `POST /api/v1/auth/logout/` → clear session
+   - `POST /api/v1/auth/signup/` → register + email verification
+   - `GET  /api/v1/auth/user/` → current user
+4. **Social Login (Google):**
+   - Configure Google OAuth in django-allauth
+   - `POST /api/v1/auth/google/` endpoint for frontend redirect
+5. **Test Endpoints:**
+   - Verify all flows, status codes, error messages in Postman
+
+---
+
+### PART 2: Frontend Auth & UX Integration
+
+**Goal:** Connect Next.js to DRF auth, enforce protected routes, standardize error/toast handling.
+
+1. **NextAuth.js Setup (Credentials):**
+   - Call `/api/v1/auth/login/`, store session in HTTP-only cookies
+2. **Session Hook:**
+   - Create `useSession()` wrapper around NextAuth’s `getSession`
+3. **Protected Routes Middleware:**
+   - In `middleware.ts`, redirect anonymous users from `/account` paths
+4. **Auth Pages & Social Flow:**
+   - Build `/auth/login`, `/auth/signup`, `/auth/google` pages → NextAuth endpoints
+5. **Error Boundaries & Toasts:**
+   - Wrap root layout in a React `<ErrorBoundary>`
+   - Add a global `<Toaster />` (e.g., `react-hot-toast`) in `_app.tsx`
+
+---
+
+### PART 3: CORS, CSRF, HTTPS & Environment Management
+
+**Goal:** Secure API/SSR, manage env across stages.
+
+1. **CORS:**
+   - Install `django-cors-headers`, allow only frontend domain
+2. **CSRF:**
+   - Ensure CSRF cookie, set `CSRF_TRUSTED_ORIGINS`
+3. **HTTPS Enforcement:**
+   - `SECURE_SSL_REDIRECT`, `SESSION_COOKIE_SECURE` in production settings
+4. **Rate Limiting:**
+   - DRF throttling classes for anonymous vs authenticated users
+5. **Environment Management:**
+   - Document `.env.development` vs `.env.production`
+   - Store secrets in GitHub Secrets / AWS SSM, reference in CI
+
+---
+
+### PART 4: Product Data Flow (SSR → CSR + Image Optimization)
+
+**Goal:** Serve SEO-critical pages via Next.js, hydrate cache, optimize images.
+
+1. **`getStaticProps` for `/products` & `/products/[id]`:**
+   - Fetch from `/api/v1/products/` at build time
+2. **Hydrate Cache:**
+   - Use `dehydrate()` + `<Hydrate>` in `_app.tsx`
+3. **Fallback & ISR:**
+   - Configure `revalidate` for incremental updates
+4. **Image Optimization & CDN Prep:**
+   - Use Next.js `<Image>` with `priority` for LCP images
+   - Configure `next.config.js` `images.domains`
+   - Plan S3 + CloudFront in future IaC
+
+---
+
+### PART 5: Cart & Order Management
+
+**Goal:** Real-time cart and order workflows with optimistic UI.
+
+1. **Cart Hooks:**
+   - `useCart` using `useQuery` & `useMutation` (TanStack Query)
+2. **Order API:**
+   - `POST /api/v1/orders/` → returns `orderId`
+3. **Optimistic Updates:**
+   - Call `mutate()` on add/remove; rollback on error
+4. **Order History:**
+   - `useQuery(['orders'], fetchOrders)`
+
+---
+
+### PART 6: Payment End-to-End (M-Pesa)
+
+**Goal:** Complete M-Pesa flow, update UI on callback.
+
+1. **Checkout Page Mutation:**
+   - `useMutation(initiateStkPush)` → `POST /api/v1/payments/stk-push/`
+2. **Pending UI State:**
+   - Show “Payment Pending” screen with toaster notifications
+3. **Callback Listener:**
+   - `POST /api/v1/payments/confirmation/` updates transaction & order
+4. **Status Polling (Optional):**
+   - Poll `GET /api/v1/payments/status/?checkoutId=` via `useQuery`
+
+---
+
+### PART 7: Email Notifications & Logging
+
+**Goal:** Notify users; instrument observability.
+
+1. **SendGrid Integration:**
+   - Configure `django-anymail` with SendGrid
+   - Send order & payment emails
+2. **Backend Logging:**
+   - Structured JSON logs → CloudWatch/Sentry
+3. **Frontend Monitoring:**
+   - Install Sentry JS SDK & Datadog RUM
+
+---
+
+### PART 8: Testing & QA
+
+**Goal:** Validate all critical flows before launch.
+
+1. **Backend Tests:**
+   - DRF `APITestCase` for auth, products, cart, orders, payments
+2. **Frontend Unit Tests:**
+   - Jest + React Testing Library for `AuthForm`, `ProductCard`, `ErrorBoundary`
+3. **E2E Tests:**
+   - Cypress: login → browse → cart → checkout → payment flows
+
+---
+
+### PART 9: CI/CD & Deployment
+
+**Goal:** Automate quality gates and deploy both stacks.
+
+1. **GitHub Actions – Backend:**
+   - Jobs: lint → test → build Docker image → push to registry
+2. **GitHub Actions – Frontend:**
+   - Jobs: lint → test → `npm run build` → deploy to Vercel/Render
+3. **Infrastructure as Code:**
+   - CloudFormation/Terraform for RDS, ElastiCache, S3, IAM
+4. **Monitoring & Alerts:**
+   - CloudWatch alarms, Datadog dashboards, RUM error alerts
+
+---
+
+### PART 10: Card Payments (Visa & Mastercard via Stripe)
+
+**Goal:** Add global card-payment fallback.
+
+1. **Stripe Setup:**
+   - Install `stripe` lib, configure keys in `.env.production`
+2. **Backend Endpoint:**
+   - `POST /api/v1/payments/stripe-payment-intent/` → create PaymentIntent
+3. **Frontend Integration:**
+   - Use `@stripe/react-stripe-js` + `Elements` in checkout
+4. **Client Confirmation:**
+   - `stripe.confirmCardPayment(clientSecret)`
+5. **Webhook Handling:**
+   - `POST /api/v1/webhooks/stripe/` → handle `payment_intent.succeeded`
+6. **Testing:**
+   - Simulate webhooks via Stripe CLI
+
+---
+
+**Deliverables:**
+
+- **End-to-end e-commerce** with auth, products, cart, orders, M-Pesa & card payments
+- **Security-hardened**, **tested**, **monitored**, and **fully automated** production pipeline
