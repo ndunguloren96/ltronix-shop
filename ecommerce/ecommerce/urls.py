@@ -28,6 +28,11 @@ urlpatterns = [
     path('', include('store.urls')),
     path('payment/', include('payment.urls')),
     path('mpesa/stk_push_callback/', mpesa_stk_push_callback, name='mpesa_callback_root'),
+
+    # ---API Versioning for Authentication---
+    path('api/v1/', include('ecommerce.api_urls')),
+
+    # ---End API Versioning---
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
