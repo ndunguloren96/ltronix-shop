@@ -82,8 +82,8 @@ share/python-wheels/
 MANIFEST
 
 # PyInstaller
-#  Usually these files are written by a script, but you might want to
-#  commit them for some reason.
+#  Usually these files are written by a script, but you might want to
+#  commit them for some reason.
 #*.manifest
 #*.spec
 
@@ -110,13 +110,13 @@ pytestdebug.log
 *.mo
 *.pot
 
-# Django stuff:
+# Django specific files:
 *.log
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
-media/
-staticfiles/ # If you are not versioning collected static files
+media/ # User-uploaded media files
+staticfiles/ # Collected static files (if not versioning)
 
 # Environments
 .env
@@ -127,6 +127,22 @@ ENV/
 env.bak/
 venv.bak/
 
+# Next.js / Node.js specific files:
+node_modules/
+.next/ # Next.js build output
+out/ # Next.js static export output
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+package-lock.json # For npm
+yarn.lock # For yarn
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE and Editor files:
 # Spyder project settings
 .spyderproject
 .spyderworkspace
@@ -173,4 +189,3 @@ cython_debug/
 
 # macOS
 .DS_Store
-.env
