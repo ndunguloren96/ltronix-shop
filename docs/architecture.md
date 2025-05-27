@@ -145,7 +145,7 @@
 
 ### Steps:
 
-1. Simple form to enter phone number & trigger payment view
+1. Simple form to enter phone number & trigger payment
 2. Show response message to user
 3. Add JavaScript validation if needed
 

@@ -1,46 +1,46 @@
 import json
-from .models import *
+from .models import Customer, Product, Order, OrderItem
 
 def cookieCart(request):
-            # Create empty cart for now for non-logged in user
+    try:
+        cart = json.loads(request.COOKIES['cart'])
+    except:
+        cart = {}
+    
+    items = []
+    order = {'get_cart_total': 0, 'get_cart_items': 0, 'shipping': False}
+    cartItems = order['get_cart_items']
+
+    for i in cart: # i = product id
         try:
-            cart = json.loads(request.COOKIES['cart'])
+            cartItems += cart[i]['quantity']
+
+            product = Product.objects.get(id=i)
+            total = (product.price * cart[i]['quantity'])
+
+            order['get_cart_total'] += total
+            order['get_cart_items'] += cart[i]['quantity']
+
+            item = { # This needs to be 'item' not 'items'
+                'id': product.id,
+                'product': {'id': product.id, 'name': product.name, 'price': product.price, 'imageURL': product.imageURL},
+                'quantity': cart[i]['quantity'],
+                'digital': product.digital,
+                'get_total': total,
+            }
+            items.append(item) # Append the singular 'item'
+
+            if product.digital == False:
+                order['shipping'] = True
         except:
-            cart = {}
-        print('Cart:', cart)
-
-        items = []
-        order = {'get_cart_total': 0, 'get_cart_items': 0, 'shipping': False}
-        cartItems = order['get_cart_items']
-
-        for i in cart: # i = product id
-            # We use try block to prevent items in cart that may have been removed from causing errors
-            try:
-                cartItems += cart[i]['quantity']
-
-                product = Product.objects.get(id=i)
-                total = (product.price * cart[i]['quantity'])
-
-                order['get_cart_total'] += total
-                order['get_cart_items'] += cart[i]['quantity']
-
-                items = {
-                    'id' :product.id,
-                    'product':{'id':product.id, 'name':product.name, 'price':product.price, 'imageURL':product.imageURL}, 'quantity':cart[i]['quantity'], 'digital':product.digital, 'get_total':total,
-                }
-
-                items.append(item)
-
-                if product.digital == False:
-                    order['shipping'] = True
-            except:
-                pass
+            pass
         
-        return {'cartItems':cartItems, 'order':order, 'items':items}
+    return {'cartItems': cartItems, 'order': order, 'items': items}
 
 def cartData(request):
     if request.user.is_authenticated:
-        customer = request.user.customer
+        # Get or create customer profile for authenticated users
+        customer, created = Customer.objects.get_or_create(user=request.user, email=request.user.email)
         order, created = Order.objects.get_or_create(customer=customer, complete=False)
         items = order.orderitem_set.all()
         cartItems = order.get_cart_items
@@ -50,11 +50,9 @@ def cartData(request):
         order = cookieData['order']
         items = cookieData['items']
 
-
-    return{'cartItems':cartItems, 'order':order, 'items':items}
+    return {'cartItems': cartItems, 'order': order, 'items': items}
 
 def guestOrder(request, data):
-
     name = data['form']['name']
     email = data['form']['email']
 
@@ -62,7 +60,7 @@ def guestOrder(request, data):
     items = cookieData['items']
 
     customer, created = Customer.objects.get_or_create(
-            email=email,
+                email=email,
             )
     customer.name = name
     customer.save()
