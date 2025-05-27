@@ -1,3 +1,5 @@
+# ecommerce/ecommerce/settings.py
+
 """
 Django settings for ecommerce project.
 
@@ -21,16 +23,15 @@ env = Env()
 env.read_env(os.path.join(BASE_DIR, '.env')) # read .evn file
 
 SECRET_KEY=env('SECRET_KEY')
-MPESA_CALLBACK_URL = 'https://358f-102-0-13-70.ngrok-free.app/mpesa/stk_push_callback/'
+MPESA_CALLBACK_URL = 'https://man-fond-tortoise.ngrok-free.app//mpesa/stk_push_callback/'
 
 # Load and map
-MPESA_ENVIRONMENT = 'sandbox'
 MPESA = {
     'CONSUMER_KEY': env('MPESA_CONSUMER_KEY'),
     'CONSUMER_SECRET': env('MPESA_CONSUMER_SECRET'),
     'MPESA_EXPRESS_SHORTCODE': env('MPESA_EXPRESS_SHORTCODE'),
     'PASSKEY': env('MPESA_PASSKEY'),
-    # 'MPESA_ENVIRONMENT': env('MPESA_ENV'),
+    # 'MPESA_ENVIRONMENT': env('MPESA_ENV'), # This was commented out in your provided file
 }
 
 
@@ -45,7 +46,6 @@ DEBUG = env.bool('DEBUG', default=True)
 
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['*'])
 
-
 # Application definition
 # be careful with spelling and comma
 INSTALLED_APPS = [
@@ -55,30 +55,29 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    'django.contrib.sites',  # Required by allauth
+    'django.contrib.sites',
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    'allauth.socialaccount.providers.google',
+    'dj_rest_auth',
+    'dj_rest_auth.registration',
 
     # Django REST Framework
     'rest_framework',
-    'rest_framework.authtoken', # For Token authentication if you enable it later
-
-    # django-allauth
-    'allauth',
-    'allauth.account',
-    'allauth.socialaccount', # For social login like Google
-    # 'allauth.socialaccount.providers.google', # We'll add this when we configure Google OAuth
-
-    # dj-rest-auth
-    'dj_rest_auth',
-    'dj_rest_auth.registration', # For /signup endpoint
+    'rest_framework.authtoken', # For Token authentication if you use it alongside sessions
 
     # My Apps
     "store.apps.StoreConfig",
     "payment",
     "django_daraja",
-    
+    "users", # Your custom users app
+    "corsheaders", # Ensure this is present if you use it for CORS
 ]
 
 MIDDLEWARE = [
+    # If you use CORS, uncomment and move this to the top:
+    # 'corsheaders.middleware.CorsMiddleware',
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -87,6 +86,7 @@ MIDDLEWARE = [
     "allauth.account.middleware.AccountMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "django.contrib.sites.middleware.CurrentSiteMiddleware",
 ]
 
 ROOT_URLCONF = "ecommerce.urls"
@@ -95,9 +95,9 @@ TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         'DIRS': [
-            #  Add the path to your project's base template directory if needed
-            #  os.path.join(BASE_DIR, 'templates'),
-            os.path.join(BASE_DIR, 'store', 'templates'), 
+            # Add the path to your project's base template directory if needed
+            # os.path.join(BASE_DIR, 'templates'),
+            os.path.join(BASE_DIR, 'store', 'templates'),
         ],
         "APP_DIRS": True,
         "OPTIONS": {
@@ -106,6 +106,9 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                # `allauth` context processors (needed if using allauth templates directly)
+                # 'allauth.account.context_processors.account', # This was commented out in your provided file
+                # 'allauth.socialaccount.context_processors.socialaccount', # This was commented out in your provided file
             ],
         },
     },
@@ -152,10 +155,6 @@ USE_I18N = True
 
 USE_TZ = True
 
-
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/4.2/howto/static-files/
-
 STATIC_URL = "static/"
 STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
 
@@ -163,7 +162,7 @@ MEDIA_URL = '/images/'
 
 MEDIA_ROOT = os.path.join(
     BASE_DIR, 'static/images'
-)  # Media root will set a path for all media files to be uploaded to.
+) # Media root will set a path for all media files to be uploaded to.
 
 
 # Default primary key field type
@@ -171,60 +170,107 @@ MEDIA_ROOT = os.path.join(
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+# --- Custom User Model Setting ---
+AUTH_USER_MODEL = 'users.User' # IMPORTANT: Point to your custom user model
 
-# Django-allauth and dj-rest-auth configuration
-
-
-# Django REST Framework settings (already there, but confirm if this is minimal)
+# Django REST Framework settings (Updated for allauth/dj-rest-auth)
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.SessionAuthentication', # For session-based authentication
-        # 'rest_framework.authentication.TokenAuthentication', # Uncomment if you plan to use Token authentication later
+        'rest_framework.authentication.TokenAuthentication',   # Keep for browsable API or if you need token auth elsewhere
     ],
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticatedOrReadOnly', # Default to allow read-only for anonymous users
+        'rest_framework.permissions.IsAuthenticatedOrReadOnly',
     ],
-    'DEFAULT_VERSIONING_CLASS': 'rest_framework.versioning.NamespaceVersioning', # Or URLPathVersioning
+    # Milestone 4, Part 1, Step 2: API Versioning (URLPathVersioning is typical for this format)
+    'DEFAULT_VERSIONING_CLASS': 'rest_framework.versioning.URLPathVersioning',
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
-        # 'rest_framework.renderers.BrowsableAPIRenderer', # Good for development
+        'rest_framework.renderers.BrowsableAPIRenderer', # Good for development
     ],
 }
 
-# django-allauth settings
-SITE_ID = 1 # Essential for django-allauth
-ACCOUNT_EMAIL_REQUIRED = True
-ACCOUNT_USERNAME_REQUIRED = False # We'll use email as username
-ACCOUNT_AUTHENTICATION_METHOD = 'email'
-ACCOUNT_EMAIL_VERIFICATION = 'mandatory' # Recommended for production
+SITE_ID = 1 # Essential for django.contrib.sites and django-allauth
+
+# django-allauth specific settings (IMPORTANT: These replace Djoser settings)
+AUTHENTICATION_BACKENDS = (
+    'django.contrib.auth.backends.ModelBackend',
+    'allauth.account.auth_backends.AuthenticationBackend',
+)
+
+# ACCOUNT_AUTHENTICATION_METHOD = 'email' # This was commented out in your provided file
+# ACCOUNT_EMAIL_REQUIRED = True # This was commented out in your provided file
 ACCOUNT_UNIQUE_EMAIL = True
-ACCOUNT_CONFIRM_EMAIL_ON_GET = True # Allow email confirmation via GET request (simpler for basic setup)
-ACCOUNT_ALLOW_REGISTRATION = True
-
-# Redirects after login/logout/email confirmation (can be frontend URLs)
-LOGIN_REDIRECT_URL = '/' # Placeholder, will be handled by frontend
-ACCOUNT_LOGOUT_REDIRECT_URL = '/' # Placeholder, will be handled by frontend
-
-# dj-rest-auth settings
-REST_AUTH = {
-    'LOGIN_SERIALIZER': 'dj_rest_auth.serializers.LoginSerializer',
-    'TOKEN_MODEL': 'rest_framework.authtoken.models.Token', # Needed if using Token auth
-    'USE_JWT': False, # We're focusing on session-based auth as per the plan
-    'SESSION_LOGIN': True, # Enable session-based login
-    'USER_DETAILS_SERIALIZER': 'dj_rest_auth.serializers.UserDetailsSerializer', # Default for /user/ endpoint
-    'REGISTER_SERIALIZER': 'dj_rest_auth.registration.serializers.RegisterSerializer', # Default for /signup/
-    'PASSWORD_RESET_SERIALIZER': 'dj_rest_auth.serializers.PasswordResetSerializer',
-    'PASSWORD_CHANGE_SERIALIZER': 'dj_rest_auth.serializers.PasswordChangeSerializer',
+# ACCOUNT_USERNAME_REQUIRED = False # Using email as primary identifier # This was commented out in your provided file
+ACCOUNT_EMAIL_VERIFICATION = 'mandatory' # Or 'optional' or 'none'
+ACCOUNT_CONFIRM_EMAIL_ON_GET = True # If you want immediate email confirmation on link click
+ACCOUNT_EMAIL_CONFIRMATION_EXPIRE_DAYS = 3
+# ACCOUNT_LOGIN_ATTEMPTS_LIMIT = 5 # This was commented out in your provided file
+# ACCOUNT_LOGIN_ATTEMPTS_TIMEOUT = 300 # seconds (5 minutes) # This was commented out in your provided file
+# Ensure these are set for email-only registration/login fields
+ACCOUNT_USER_MODEL_USERNAME_FIELD = None # ADDED THIS LINE
+ACCOUNT_SIGNUP_FIELDS = ['email*'] # Only require email for signup
+ACCOUNT_LOGIN_METHODS = ['email'] # Only allow login by email
+ACCOUNT_RATE_LIMITS = {
+    'login_failed': '5/1m' # Example: 5 attempts per 1 minute
 }
 
+
+# dj-rest-auth specific settings (IMPORTANT: These replace Djoser settings)
+REST_AUTH = {
+    'USE_JWT': False, # Set to True if you plan to use JWT. Milestone implies session.
+    'LOGIN_SERIALIZER': 'dj_rest_auth.serializers.LoginSerializer',
+    'USER_DETAILS_SERIALIZER': 'dj_rest_auth.serializers.UserDetailsSerializer',
+    'PASSWORD_RESET_SERIALIZER': 'dj_rest_auth.serializers.PasswordResetSerializer',
+    'TOKEN_MODEL': None, # Set to None if using sessions or JWT directly
+    'SESSION_LOGIN': True, # Enable session login for browser-based auth
+    'PASSWORD_RESET_USE_SITES': True, # For password reset email links
+    'REGISTER_SERIALIZER': 'users.serializers.CustomRegisterSerializer', # <--- CHANGE THIS LINE
+}
+
+
+# For dj-rest-auth registration using django-allauth
+# IMPORTANT: For dj-rest-auth 7.x.x, these should point to allauth's default adapters,
+# unless you have a custom adapter defined in your project.
+ACCOUNT_ADAPTER = 'allauth.account.adapter.DefaultAccountAdapter'
+SOCIALACCOUNT_ADAPTER = 'allauth.socialaccount.adapter.DefaultSocialAccountAdapter'
+
+
 # Email Backend for django-allauth (important for email verification)
-# For development, you can use console backend or a local SMTP server
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend' # Prints emails to console
-# For production, you'd use a service like SendGrid (covered in Part 7)
-# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-# EMAIL_HOST = 'smtp.sendgrid.net'
-# EMAIL_PORT = 587
-# EMAIL_USE_TLS = True
-# EMAIL_HOST_USER = 'apikey'
-# EMAIL_HOST_PASSWORD = 'YOUR_SENDGRID_API_KEY'
-# DEFAULT_FROM_EMAIL = 'no-reply@ltronixshop.com' # Your shop's email
+# For production, you'd use a real email service like SendGrid, Mailgun, etc.
+# Example for SendGrid (requires installation of django-sendgrid-v5 and proper .env variables)
+# EMAIL_BACKEND = 'sendgrid_backend.SendgridBackend'
+# SENDGRID_API_KEY = env('SENDGRID_API_KEY')
+# DEFAULT_FROM_EMAIL = 'webmaster@ltronixshop.com' # Your shop's email
+# SENDGRID_SANDBOX_MODE_IN_DEBUG = True # For testing SendGrid in debug mode
+
+# Redirect URLs after login/logout for allauth (optional, dj-rest-auth handles API responses)
+# LOGIN_REDIRECT_URL = '/' # This was commented out in your provided file
+# ACCOUNT_LOGOUT_REDIRECT_URL = '/' # This was commented out in your provided file
+
+
+# Social Account Providers for django-allauth
+SOCIALACCOUNT_PROVIDERS = {
+    'google': {
+        # For more information on these settings, refer to allauth's documentation:
+        # https://django-allauth.readthedocs.io/en/latest/providers/google.html
+        'APP': {
+            'GOOGLE_CLIENT_ID': env('GOOGLE_CLIENT_ID'),
+            'GOOGLE_CLIENT_SECRET': env('GOOGLE_CLIENT_SECRET'),
+            'key': '' # Not typically used for Google OAuth
+        },
+        'SCOPE': [
+            'profile',
+            'email',
+        ],
+        'AUTH_PARAMS': {
+            'access_type': 'offline', # To get a refresh token for long-lived access
+        },
+        'VERIFIED_EMAIL': True, # Ensure email is verified by Google
+        'EMAIL_ADDRESS_REQUIRED': True,
+    }
+}
+
+# Optional: If you want to redirect after social login to a specific URL
+# SOCIALACCOUNT_LOGIN_REDIRECT_URL = '/account/' # This was commented out in your provided file
