@@ -20,26 +20,25 @@ from environ import Env
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 env = Env()
-env.read_env(os.path.join(BASE_DIR, '.env')) # read .evn file
+env.read_env(os.path.join(BASE_DIR, '.env')) # read .env file
 
+# SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY=env('SECRET_KEY')
-MPESA_CALLBACK_URL = 'https://man-fond-tortoise.ngrok-free.app//mpesa/stk_push_callback/'
 
-# Load and map
+# Load and map M-Pesa settings
 MPESA = {
     'CONSUMER_KEY': env('MPESA_CONSUMER_KEY'),
     'CONSUMER_SECRET': env('MPESA_CONSUMER_SECRET'),
     'MPESA_EXPRESS_SHORTCODE': env('MPESA_EXPRESS_SHORTCODE'),
     'PASSKEY': env('MPESA_PASSKEY'),
-    # 'MPESA_ENVIRONMENT': env('MPESA_ENV'), # This was commented out in your provided file
+    'MPESA_ENVIRONMENT': env('MPESA_ENV', default='sandbox'), # Added default for safety
 }
+# Make sure MPESA_CALLBACK_URL matches the actual path used in urls.py
+MPESA_CALLBACK_URL = env('MPESA_CALLBACK_URL', default='https://man-fond-tortoise.ngrok-free.app/mpesa/stk_push_callback/')
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
-
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = env('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env.bool('DEBUG', default=True)
@@ -59,13 +58,18 @@ INSTALLED_APPS = [
     'allauth',
     'allauth.account',
     'allauth.socialaccount',
-    'allauth.socialaccount.providers.google',
+    'allauth.socialaccount.providers.google', # Google provider for allauth
     'dj_rest_auth',
     'dj_rest_auth.registration',
 
     # Django REST Framework
     'rest_framework',
     'rest_framework.authtoken', # For Token authentication if you use it alongside sessions
+
+    # Required for DRF Social OAuth2
+    'oauth2_provider',
+    'social_django',
+    'drf_social_oauth2',
 
     # My Apps
     "store.apps.StoreConfig",
@@ -77,13 +81,13 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     # If you use CORS, uncomment and move this to the top:
-    # 'corsheaders.middleware.CorsMiddleware',
+    'corsheaders.middleware.CorsMiddleware', # Moved to the top for CORS
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
-    "allauth.account.middleware.AccountMiddleware",
+    "allauth.account.middleware.AccountMiddleware", # Ensure this is present and correct
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django.contrib.sites.middleware.CurrentSiteMiddleware",
@@ -96,7 +100,7 @@ TEMPLATES = [
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         'DIRS': [
             # Add the path to your project's base template directory if needed
-            # os.path.join(BASE_DIR, 'templates'),
+            os.path.join(BASE_DIR, 'templates'), # Added for general templates
             os.path.join(BASE_DIR, 'store', 'templates'),
         ],
         "APP_DIRS": True,
@@ -107,8 +111,8 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 # `allauth` context processors (needed if using allauth templates directly)
-                # 'allauth.account.context_processors.account', # This was commented out in your provided file
-                # 'allauth.socialaccount.context_processors.socialaccount', # This was commented out in your provided file
+                'allauth.account.context_processors.account', #
+                'allauth.socialaccount.context_processors.socialaccount', #
             ],
         },
     },
@@ -196,24 +200,30 @@ SITE_ID = 1 # Essential for django.contrib.sites and django-allauth
 AUTHENTICATION_BACKENDS = (
     'django.contrib.auth.backends.ModelBackend',
     'allauth.account.auth_backends.AuthenticationBackend',
+    'social_core.backends.google.GoogleOAuth2',
+    'drf_social_oauth2.backends.DjangoOAuth2',
 )
 
-# ACCOUNT_AUTHENTICATION_METHOD = 'email' # This was commented out in your provided file
-# ACCOUNT_EMAIL_REQUIRED = True # This was commented out in your provided file
+ACCOUNT_AUTHENTICATION_METHOD = 'email' # set to email
+ACCOUNT_EMAIL_REQUIRED = True #
 ACCOUNT_UNIQUE_EMAIL = True
-# ACCOUNT_USERNAME_REQUIRED = False # Using email as primary identifier # This was commented out in your provided file
-ACCOUNT_EMAIL_VERIFICATION = 'mandatory' # Or 'optional' or 'none'
+ACCOUNT_USERNAME_REQUIRED = False # using email
+ACCOUNT_EMAIL_VERIFICATION = 'optional' # Or 'optional' or 'none'
 ACCOUNT_CONFIRM_EMAIL_ON_GET = True # If you want immediate email confirmation on link click
 ACCOUNT_EMAIL_CONFIRMATION_EXPIRE_DAYS = 3
-# ACCOUNT_LOGIN_ATTEMPTS_LIMIT = 5 # This was commented out in your provided file
-# ACCOUNT_LOGIN_ATTEMPTS_TIMEOUT = 300 # seconds (5 minutes) # This was commented out in your provided file
+ACCOUNT_LOGIN_ATTEMPTS_LIMIT = 5 #
+ACCOUNT_LOGIN_ATTEMPTS_TIMEOUT = 300 # seconds (5 minutes) #
 # Ensure these are set for email-only registration/login fields
-ACCOUNT_USER_MODEL_USERNAME_FIELD = None # ADDED THIS LINE
-ACCOUNT_SIGNUP_FIELDS = ['email*'] # Only require email for signup
+ACCOUNT_USER_MODEL_USERNAME_FIELD = None # IMPORTANT: ADDED THIS LINE
+ACCOUNT_SIGNUP_FIELDS = ['email'] # Removed '*' - allauth uses this to determine fields to display in forms
 ACCOUNT_LOGIN_METHODS = ['email'] # Only allow login by email
 ACCOUNT_RATE_LIMITS = {
     'login_failed': '5/1m' # Example: 5 attempts per 1 minute
 }
+# Redirect URLs after login/logout for allauth (optional, dj-rest-auth handles API responses)
+# These are used by allauth's views, not necessarily dj-rest-auth API responses
+LOGIN_REDIRECT_URL = '/' #
+ACCOUNT_LOGOUT_REDIRECT_URL = '/' #
 
 
 # dj-rest-auth specific settings (IMPORTANT: These replace Djoser settings)
@@ -226,6 +236,8 @@ REST_AUTH = {
     'SESSION_LOGIN': True, # Enable session login for browser-based auth
     'PASSWORD_RESET_USE_SITES': True, # For password reset email links
     'REGISTER_SERIALIZER': 'users.serializers.CustomRegisterSerializer', # <--- CHANGE THIS LINE
+    # SOCIALACCOUNT_ADAPTER is defined directly below in allauth settings for clarity
+    'OLD_PASSWORD_FIELD_ENABLED': True, # Good practice for password change
 }
 
 
@@ -245,10 +257,9 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend' # Prints emails
 # DEFAULT_FROM_EMAIL = 'webmaster@ltronixshop.com' # Your shop's email
 # SENDGRID_SANDBOX_MODE_IN_DEBUG = True # For testing SendGrid in debug mode
 
-# Redirect URLs after login/logout for allauth (optional, dj-rest-auth handles API responses)
-# LOGIN_REDIRECT_URL = '/' # This was commented out in your provided file
-# ACCOUNT_LOGOUT_REDIRECT_URL = '/' # This was commented out in your provided file
-
+# CORS Headers settings (if you uncommented 'corsheaders.middleware.CorsMiddleware')
+CORS_ALLOW_ALL_ORIGINS = True # Set to False and specify CORS_ALLOWED_ORIGINS in production
+CORS_ALLOW_CREDENTIALS = True # Required for session cookies to be sent cross-origin
 
 # Social Account Providers for django-allauth
 SOCIALACCOUNT_PROVIDERS = {
@@ -256,21 +267,21 @@ SOCIALACCOUNT_PROVIDERS = {
         # For more information on these settings, refer to allauth's documentation:
         # https://django-allauth.readthedocs.io/en/latest/providers/google.html
         'APP': {
-            'GOOGLE_CLIENT_ID': env('GOOGLE_CLIENT_ID'),
-            'GOOGLE_CLIENT_SECRET': env('GOOGLE_CLIENT_SECRET'),
+            'client_id': env('GOOGLE_CLIENT_ID'), # Use lowercase 'client_id'
+            'secret': env('GOOGLE_CLIENT_SECRET'), # Use lowercase 'secret'
             'key': '' # Not typically used for Google OAuth
         },
         'SCOPE': [
             'profile',
             'email',
+            'openid', # Add 'openid' scope for id_token
         ],
         'AUTH_PARAMS': {
             'access_type': 'offline', # To get a refresh token for long-lived access
+            'prompt': 'consent', # Forces consent screen every time
         },
         'VERIFIED_EMAIL': True, # Ensure email is verified by Google
         'EMAIL_ADDRESS_REQUIRED': True,
+        'FETCH_USER_INFO': True, # Ensure allauth fetches user info from Google
     }
 }
-
-# Optional: If you want to redirect after social login to a specific URL
-# SOCIALACCOUNT_LOGIN_REDIRECT_URL = '/account/' # This was commented out in your provided file

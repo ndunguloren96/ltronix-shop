@@ -7,6 +7,12 @@ from django.shortcuts import redirect
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 
+# Make sure to import SocialLoginView if you are using api_urls.py as primary.
+# However, if it's in ecommerce/ecommerce/urls.py, then it's already handled there.
+# from dj_rest_auth.registration.views import SocialLoginView
+# from allauth.socialaccount.providers.google.views import OAuth2Adapter, GoogleOAuth2Adapter
+
+
 from .serializers import CustomRegisterSerializer
 
 class CustomRegisterView(generics.CreateAPIView):
@@ -53,3 +59,8 @@ class CustomRegisterView(generics.CreateAPIView):
 #         except Exception as e:
 #             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
+
+# You generally don't need to define explicit social login views here unless
+# you're completely bypassing dj-rest-auth's SocialLoginView and allauth's adapters.
+# dj-rest-auth's SocialLoginView (which you've included in urls.py) is designed
+# to work with allauth's social adapters directly.
