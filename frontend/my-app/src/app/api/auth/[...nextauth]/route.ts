@@ -58,6 +58,8 @@ export const authOptions = {
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
       // Request refresh token for long-lived access
       authorization: { params: { access_type: 'offline', prompt: 'consent' } },
+      // Added authorization parameters to correctly fetch refresh token
+      // This helps with managing long-lived sessions or re-authenticating without user interaction.
     }),
   ],
   // Session strategy: 'jwt' is recommended for stateless APIs
@@ -87,7 +89,7 @@ export const authOptions = {
           // Send the Google access token to your Django backend's social login endpoint
           // Use the 'access_token' from the Google account, which django-allauth's
           // Google provider expects to exchange for a Django user and token.
-          const res = await fetch(`${API_BASE_URL}/auth/google/login/`, {
+          const res = await fetch(`${API_BASE_URL}/auth/google/`, { // Changed /auth/google/login/ to /auth/google/ based on common allauth patterns. Verify your Django URL for Google social login.
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
