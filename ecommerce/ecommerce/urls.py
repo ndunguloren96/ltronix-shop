@@ -23,7 +23,7 @@ from django.conf.urls.static import static
 from django.conf import settings
 from payment.views import mpesa_stk_push_callback
 from users.views import CustomRegisterView # Import your custom register view
-from dj_rest_auth.registration.views import SocialLoginView 
+from dj_rest_auth.registration.views import SocialLoginView, SocialAccountDisconnectView # Corrected import
 
 
 urlpatterns = [
@@ -39,12 +39,18 @@ urlpatterns = [
         # Custom signup view
         path('auth/signup/', CustomRegisterView.as_view(), name='rest_register'),
 
-        # Social login endpoints (Google, etc.) and their callbacks are handled by:
+        # allauth social account URLs. These handle the redirects and intermediate steps
+        # for social login providers like Google.
         # This includes /api/v1/auth/accounts/google/login/callback/
         path('auth/accounts/', include('allauth.socialaccount.urls')),
 
-        # Your dj-rest-auth social login endpoint
+        # dj-rest-auth social login endpoint for Google.
+        # This is the endpoint NextAuth.js will POST to with the access_token.
         path('auth/google/login/', SocialLoginView.as_view(), name='google_login'),
+        path('auth/google/disconnect/', SocialAccountDisconnectView.as_view(), name='socialaccount_disconnect'),
+
+        # DRF Social OAuth2 URLs
+        path('auth/', include('drf_social_oauth2.urls')),
 
         # Other general API endpoints, you'd include them here.
     ])),

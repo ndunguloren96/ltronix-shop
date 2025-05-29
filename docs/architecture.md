@@ -327,7 +327,7 @@ Seamlessly wire your Next.js/TypeScript frontend (`feature/frontend-revamp`) to 
    - Build `/auth/login`, `/auth/signup`, `/auth/google` pages → NextAuth endpoints
 5. **Error Boundaries & Toasts:**
    - Wrap root layout in a React `<ErrorBoundary>`
-   - Add a global `<Toaster />` (e.g., `react-hot-toast`) in `_app.tsx`
+   - Add a global `<Toaster />` (e.g., `react-hot-toast`) in `layout.tsx`
 
 ---
 
