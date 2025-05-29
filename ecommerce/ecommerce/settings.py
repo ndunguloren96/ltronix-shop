@@ -111,8 +111,6 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 # `allauth` context processors (needed if using allauth templates directly)
-                'allauth.account.context_processors.account', #
-                'allauth.socialaccount.context_processors.socialaccount', #
             ],
         },
     },
@@ -204,23 +202,20 @@ AUTHENTICATION_BACKENDS = (
     'drf_social_oauth2.backends.DjangoOAuth2',
 )
 
-ACCOUNT_AUTHENTICATION_METHOD = 'email' # set to email
-ACCOUNT_EMAIL_REQUIRED = True #
+ACCOUNT_LOGIN_METHODS = ['email'] # Replaces ACCOUNT_AUTHENTICATION_METHOD
 ACCOUNT_UNIQUE_EMAIL = True
-ACCOUNT_USERNAME_REQUIRED = False # using email
-ACCOUNT_EMAIL_VERIFICATION = 'optional' # Or 'optional' or 'none'
-ACCOUNT_CONFIRM_EMAIL_ON_GET = True # If you want immediate email confirmation on link click
+ACCOUNT_EMAIL_VERIFICATION = 'optional' # Or 'mandatory' or 'none'
+ACCOUNT_CONFIRM_EMAIL_ON_GET = True
 ACCOUNT_EMAIL_CONFIRMATION_EXPIRE_DAYS = 3
-ACCOUNT_LOGIN_ATTEMPTS_LIMIT = 5 #
-ACCOUNT_LOGIN_ATTEMPTS_TIMEOUT = 300 # seconds (5 minutes) #
+
 # Ensure these are set for email-only registration/login fields
-ACCOUNT_USER_MODEL_USERNAME_FIELD = None # IMPORTANT: ADDED THIS LINE
-ACCOUNT_SIGNUP_FIELDS = ['email'] # Removed '*' - allauth uses this to determine fields to display in forms
-ACCOUNT_LOGIN_METHODS = ['email'] # Only allow login by email
+ACCOUNT_USER_MODEL_USERNAME_FIELD = None 
+ACCOUNT_SIGNUP_FIELDS = ['email'] 
 ACCOUNT_RATE_LIMITS = {
-    'login_failed': '5/1m' # Example: 5 attempts per 1 minute
+    'login_failed': '5/1m' #  5 attempts per 1 minute
 }
-# Redirect URLs after login/logout for allauth (optional, dj-rest-auth handles API responses)
+
+# Redirect URLs after login/logout for allauth
 # These are used by allauth's views, not necessarily dj-rest-auth API responses
 LOGIN_REDIRECT_URL = '/' #
 ACCOUNT_LOGOUT_REDIRECT_URL = '/' #
