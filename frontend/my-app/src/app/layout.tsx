@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { Providers } from './providers'; // This correctly imports your Providers component
-import { Header } from '@/components/Header'; // <<--- CHANGE HERE: Added curly braces for named import
+import Header from '@/components/Header'; 
 import { Footer } from '@/components/Footer';
 import AccessibilityReporterWrapper from '@/components/AccessibilityReporterWrapper';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -13,8 +13,8 @@ import { Toaster } from 'react-hot-toast';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Ltronix Shop', // Example title, you can keep your original
-  description: 'Your ultimate online electronics store', // Example description
+  title: 'Ltronix Shop', 
+  description: 'Your ultimate online electronics store', 
 };
 
 export default function RootLayout({

@@ -1,30 +1,10 @@
-# ecommerce/ecommerce/urls.py
-
-"""
-URL configuration for ecommerce project.
-
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/4.2/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('home/', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
-"""
-
 from django.contrib import admin
-from django.urls import path, include
-from django.conf.urls.static import static
+from django.urls import path, include, re_path
 from django.conf import settings
+from django.conf.urls.static import static
 from payment.views import mpesa_stk_push_callback
-from users.views import CustomRegisterView # Import your custom register view
-from dj_rest_auth.registration.views import SocialLoginView, SocialAccountDisconnectView # Corrected import
-
+from users.views import CustomRegisterView
+from dj_rest_auth.views import LoginView, LogoutView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -32,29 +12,15 @@ urlpatterns = [
     path('payment/', include('payment.urls')),
     path('mpesa/stk_push_callback/', mpesa_stk_push_callback, name='mpesa_callback_root'),
 
-    # --- API Versioning for Authentication ---
+    path('api/auth/signin', LoginView.as_view(), name='rest_login'),
+
     path('api/v1/', include([
-        # dj-rest-auth URLs for login, logout, user details, password reset etc.
+        path('', include('store.api_urls')),      # /api/v1/products/, /api/v1/orders/
+        path('payments/', include('payment.api_urls')),  # /api/v1/payments/stk-push/
         path('auth/', include('dj_rest_auth.urls')),
-        # Custom signup view
         path('auth/signup/', CustomRegisterView.as_view(), name='rest_register'),
-
-        # allauth social account URLs. These handle the redirects and intermediate steps
-        # for social login providers like Google.
-        # This includes /api/v1/auth/accounts/google/login/callback/
-        path('auth/accounts/', include('allauth.socialaccount.urls')),
-
-        # dj-rest-auth social login endpoint for Google.
-        # This is the endpoint NextAuth.js will POST to with the access_token.
-        path('auth/google/login/', SocialLoginView.as_view(), name='google_login'),
-        path('auth/google/disconnect/', SocialAccountDisconnectView.as_view(), name='socialaccount_disconnect'),
-
-        # DRF Social OAuth2 URLs
-        path('auth/', include('drf_social_oauth2.urls')),
-
-        # Other general API endpoints, you'd include them here.
+        path('auth/', include('drf_social_oauth2.urls', namespace='drf_social_oauth2')),
+        path('', include('store.api_urls')),
     ])),
-    # --- End API Versioning for Authentication ---
 ]
-
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

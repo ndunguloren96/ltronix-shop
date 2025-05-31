@@ -74,7 +74,7 @@ class Migration(migrations.Migration):
                 ("name", models.CharField(max_length=200)),
                 ("price", models.FloatField()),
                 ("digital", models.BooleanField(blank=True, default=False, null=True)),
-                ("image", models.ImageField(blank=True, null=True, upload_to="")),
+                ("image", models.ImageField(blank=True, null=True, upload_to="products/")),
             ],
         ),
         migrations.CreateModel(

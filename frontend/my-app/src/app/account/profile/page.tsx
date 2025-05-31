@@ -40,9 +40,6 @@ export default function ProfileDetailsPage() {
             </Text>
           )}
           {/* Add more profile fields here (e.g., address, phone, etc.) */}
-          <Text fontSize="sm" color="gray.500" mt={4}>
-            *In a real application, you'd fetch and display actual user profile data from your backend here.*
-          </Text>
           <Button
             mt={6}
             colorScheme="brand"

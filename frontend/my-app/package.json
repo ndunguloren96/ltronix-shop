@@ -14,6 +14,7 @@
     "@chakra-ui/react": "^2.8.0",
     "@emotion/react": "^11.11.0",
     "@emotion/styled": "^11.11.0",
+    "axios": "^1.9.0",
     "framer-motion": "^10.12.16",
     "fuse.js": "^7.1.0",
     "next": "15.3.2",

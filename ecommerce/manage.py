@@ -14,7 +14,12 @@ if str(SITE_PACKAGES_PATH) not in sys.path:
 
 def main():
     """Run administrative tasks."""
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'ecommerce.settings')
+    # --- CHANGE THIS LINE ---
+    # Original: os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'ecommerce.settings')
+    # Change to explicitly load the development settings file
+    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'ecommerce.settings.development')
+    # --- END CHANGE ---
+
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:
