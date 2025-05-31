@@ -1,8 +1,14 @@
 from django.db import models
-# from django.contrib.auth.models import User # REMOVE this line or comment it out
-from django.conf import settings # <--- Add this import
+from django.conf import settings
 
 # Create your models here.
+
+class Category(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    description = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return self.name
 
 class Customer(models.Model):
     # Link to the custom user model defined in settings.AUTH_USER_MODEL
@@ -20,8 +26,11 @@ class Customer(models.Model):
 class Product(models.Model):
     name = models.CharField(max_length=200)
     price = models.FloatField()
-    digital = models.BooleanField(default=False,null=True, blank=True)
+    digital = models.BooleanField(default=False, null=True, blank=True)
     image = models.ImageField(null=True, blank=True)
+    category = models.ForeignKey(Category, null=True, blank=True, on_delete=models.SET_NULL, related_name='products')
+    stock = models.PositiveIntegerField(default=0)
+    description = models.TextField(blank=True, null=True)
 
     def __str__(self):
         return self.name

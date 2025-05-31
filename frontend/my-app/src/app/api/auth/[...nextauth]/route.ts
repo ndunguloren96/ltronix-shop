@@ -36,8 +36,14 @@ export const authOptions = {
 
           if (res.ok) {
             const user = await res.json();
+            // Assuming dj-rest-auth returns a 'key' for token-based auth
+            // or implicitly sets a session cookie if TOKEN_MODEL is None and SESSION_LOGIN is True
             if ('key' in user && typeof user.key === 'string') {
-              (user as any).accessToken = user.key;
+              (user as any).accessToken = user.key; // Store Django's token key
+            } else if (res.headers.get('set-cookie')) {
+              // If using session auth, NextAuth might need to handle the session cookie
+              // For 'jwt' strategy, we still prefer a token for consistency.
+              console.log('Django login successful (Session based). User:', user.email);
             }
             console.log('Django login successful for user (Credentials):', user.email);
             return user;
@@ -56,10 +62,7 @@ export const authOptions = {
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-      // Request refresh token for long-lived access
       authorization: { params: { access_type: 'offline', prompt: 'consent' } },
-      // Added authorization parameters to correctly fetch refresh token
-      // This helps with managing long-lived sessions or re-authenticating without user interaction.
     }),
   ],
   // Session strategy: 'jwt' is recommended for stateless APIs
@@ -74,68 +77,65 @@ export const authOptions = {
   // Callbacks to customize JWT and session data
   callbacks: {
     async jwt({ token, user, account }) {
+      // Handle Credentials provider user object (from Django login)
       if (user) {
-        // For credentials provider, user object contains accessToken, id, email from Django
         if ('accessToken' in user && typeof user.accessToken === 'string') {
           token.accessToken = user.accessToken;
         }
         if ('id' in user) token.id = user.id;
         if ('email' in user) token.email = user.email;
+        // Optionally store more user details from Django
       }
 
-      // For Google (or other OAuth) provider, handle linking social accounts to your Django backend here.
+      // Handle Google OAuth provider
       if (account?.provider === 'google' && account.access_token) {
         try {
-          // Send the Google access token to your Django backend's social login endpoint
-          // Use the 'access_token' from the Google account, which django-allauth's
-          // Google provider expects to exchange for a Django user and token.
-          const res = await fetch(`${API_BASE_URL}/auth/google/`, { // Changed /auth/google/login/ to /auth/google/ based on common allauth patterns. Verify your Django URL for Google social login.
+          // *** THIS IS THE CRITICAL CHANGE ***
+          // Send the Google access token to Django's drf-social-oauth2 convert-token endpoint
+          const res = await fetch(`${API_BASE_URL}/auth/convert-token/`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              access_token: account.access_token,
-              id_token: account.id_token, // id_token is also often useful for verification
+              grant_type: 'convert_token',
+              backend: 'google-oauth2', // This needs to match your SOCIAL_AUTH_AUTHENTICATION_BACKENDS entry
+              client_id: process.env.SOCIAL_AUTH_GOOGLE_OAUTH2_KEY, // Your Django backend's Google Client ID
+              client_secret: process.env.SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET, // Your Django backend's Google Client Secret
+              token: account.access_token, // The Google access token received by NextAuth.js
             }),
           });
 
           if (res.ok) {
-            const djangoUser = await res.json();
-            // Assuming your Django backend returns a key (token) upon successful social login
-            if (djangoUser && 'key' in djangoUser && typeof djangoUser.key === 'string') {
-              token.accessToken = djangoUser.key; // Store Django's token
-              token.id = djangoUser.user.pk; // Store Django user ID
-              token.email = djangoUser.user.email; // Store Django user email
-              console.log('Django social login successful for user (Google):', djangoUser.user.email);
+            const djangoTokenData = await res.json();
+            // Assuming drf-social-oauth2 returns an access_token (which is a Django token)
+            if (djangoTokenData && 'access_token' in djangoTokenData && typeof djangoTokenData.access_token === 'string') {
+              token.accessToken = djangoTokenData.access_token; // Store Django's access token
+              // You might get user info from Django's convert-token response too,
+              // or you can make a separate call to /auth/user/ with this new Django token.
+              // For simplicity, we'll assume we fetch user details later if needed.
+              console.log('Django token conversion successful (Google). Django Access Token:', djangoTokenData.access_token);
             } else {
-              console.warn('Django social login successful but no key found:', djangoUser);
+              console.warn('Django token conversion successful but no access_token found:', djangoTokenData);
             }
           } else {
             const errorData = await res.json();
-            console.error('Django social login failed (Status:', res.status, '):', errorData);
-            // Optionally, you might want to throw an error here to prevent login
-            // throw new Error(errorData.detail || 'Django social login failed');
+            console.error('Django token conversion failed (Status:', res.status, '):', errorData);
+            // Propagate the error to prevent login if conversion failed
+            // throw new Error(errorData.detail || 'Django social token conversion failed');
           }
         } catch (error) {
-          console.error('Error during Django API social login call:', error);
-          // throw new Error('Could not connect to Django for social login');
+          console.error('Error during Django API social token conversion:', error);
+          // throw new Error('Could not connect to Django for social token conversion');
         }
       }
       return token;
     },
     async session({ session, token }) {
       // Send properties to the client, such as an access_token from a provider.
-      if (token.accessToken) { // From Django credentials or social login
+      if (token.accessToken) { // This is the Django token (from credentials or social)
         session.accessToken = token.accessToken as string;
       }
-      // Note: We are now primarily relying on the Django backend to provide a unified token.
-      // If you still need the raw googleAccessToken on the frontend for specific Google API calls,
-      // you would store it in the token object in the jwt callback. For now, it's removed
-      // to simplify and unify auth through Django.
-      // if (token.googleAccessToken) {
-      //   session.googleAccessToken = token.googleAccessToken as string;
-      // }
 
       // Ensure session.user exists before assigning properties
       session.user = session.user || {};
@@ -145,8 +145,8 @@ export const authOptions = {
       if (token.email) {
         session.user.email = token.email as string;
       }
-      // If you're getting user name from Google and storing it in Django:
-      // if (token.name) session.user.name = token.name as string;
+      // Add other user properties you might want from the token
+      // e.g., session.user.name = token.name as string;
 
       return session;
     },

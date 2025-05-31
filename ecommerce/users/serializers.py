@@ -1,74 +1,104 @@
 # ecommerce/users/serializers.py
+
 from rest_framework import serializers
-from allauth.account import app_settings as allauth_settings
+# IMPORTANT: Import RegisterSerializer from allauth directly,
+# as dj_rest_auth's one might cause issues with username field if not carefully handled.
+from allauth.account.adapter import get_adapter
 from allauth.account.utils import setup_user_email
-from django.contrib.auth import get_user_model
 from django.db import transaction
+from .models import User # Import your custom User model
+from allauth.account.forms import SignupForm # This form is often used by RegisterSerializer
 
-# Get the custom User model
-User = get_user_model()
+from dj_rest_auth.serializers import UserDetailsSerializer as DefaultUserDetailsSerializer
 
-class CustomRegisterSerializer(serializers.Serializer):
+# Custom Register Serializer
+class CustomRegisterSerializer(serializers.Serializer): # Changed from RegisterSerializer to Serializer
     """
-    A custom serializer for user registration.
-    This serializer is designed to work with email-only authentication
-    and does not inherit from dj_rest_auth's RegisterSerializer to avoid
-    'username' field conflicts.
+    Custom serializer for user registration.
+    Overrides default RegisterSerializer fields to be email-only.
     """
     email = serializers.EmailField(required=True)
     password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
-    password_confirm = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
+    # You might also want password2 for confirmation in the serializer
+    password2 = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
 
-    # Add any other fields your custom User model might have for registration
-    # For example:
-    # first_name = serializers.CharField(max_length=30, required=False, allow_blank=True)
-    # last_name = serializers.CharField(max_length=30, required=False, allow_blank=True)
+    first_name = serializers.CharField(max_length=150, required=False, allow_blank=True)
+    last_name = serializers.CharField(max_length=150, required=False, allow_blank=True)
 
     def validate(self, data):
-        # Validate that passwords match
-        if data['password'] != data['password_confirm']:
-            raise serializers.ValidationError({"password_confirm": "Passwords do not match."})
-
-        # Validate that email is unique
-        if User.objects.filter(email=data['email']).exists():
-            raise serializers.ValidationError({"email": "A user with that email already exists."})
+        # Basic password matching validation
+        if data['password'] != data['password2']:
+            raise serializers.ValidationError({"password": "Password fields didn't match."})
+        
+        # Check if email is already registered using allauth's adapter
+        # This prevents the allauth/django-rest-auth default RegisterSerializer
+        # from trying to validate a username field.
+        adapter = get_adapter()
+        if adapter.username_field:
+            # If adapter expects a username, but we are email-only, this should not happen
+            pass # Or raise a configuration error if this path is unexpectedly hit
+        
+        # Validate email uniqueness via allauth adapter
+        adapter.validate_unique_email(data["email"])
 
         return data
 
-    @transaction.atomic
-    def save(self, request):
-        """
-        Creates and saves a new user instance using allauth's adapter.
-        """
-        adapter = allauth_settings.ADAPTER
-        user = User(email=self.validated_data['email'])
-        user.set_password(self.validated_data['password'])
-
-        # If you added custom fields, save them here:
-        # user.first_name = self.validated_data.get('first_name', '')
-        # user.last_name = self.validated_data.get('last_name', '')
-
-        # Use allauth's adapter to save the user, which handles activation, etc.
-        adapter.save_user(request, user, form=self)
-
-        # Set up user email for allauth's email verification flow
-        setup_user_email(request, user, []) # The second argument is for verified_emails, typically empty for new users
-
+    def create(self, validated_data):
+        # Create user without username
+        user = User(
+            email=validated_data['email'],
+            first_name=validated_data.get('first_name', ''),
+            last_name=validated_data.get('last_name', ''),
+        )
+        user.set_password(validated_data['password'])
+        user.save()
         return user
 
-# --- Djoser-specific serializers (still commented out) ---
-# As discussed, Djoser is not part of the current Milestone 4, Part 1 scope.
-# If you need Djoser functionality elsewhere, we'll need to re-evaluate.
-# from djoser.serializers import UserCreateSerializer as DjoserUserCreateSerializer
-# from djoser.serializers import UserSerializer as DjoserUserSerializer
+    def save(self, request):
+        # Allauth integration (copied from dj_rest_auth's RegisterSerializer logic)
+        user = self.create(self.validated_data)
+        self.custom_signup(request, user) # Call your custom_signup logic
+        setup_user_email(request, user, []) # Ensure allauth email handling
+        return user
+    
+    def custom_signup(self, request, user):
+        """
+        Called by allauth's signup process.
+        Assigns first_name and last_name to the newly created user.
+        """
+        user.first_name = self.validated_data.get('first_name', '')
+        user.last_name = self.validated_data.get('last_name', '')
+        user.save(update_fields=['first_name', 'last_name'])
 
-# class UserCreateSerializer(DjoserUserCreateSerializer):
-#     class Meta(DjoserUserCreateSerializer.Meta):
-#         model = User
-#         fields = ('id', 'email', 'password')
+# Custom User Details Serializer (Keep as is, it's fine)
+class UserDetailsSerializer(DefaultUserDetailsSerializer):
+    """
+    Custom serializer for viewing and updating user details.
+    Extends dj_rest_auth's default UserDetailsSerializer to include
+    first_name and last_name.
+    """
+    class Meta(DefaultUserDetailsSerializer.Meta):
+        model = User # Use your custom User model
+        fields = (
+            'pk',
+            'id', # Include 'id' for consistency if your frontend expects it
+            'email',
+            'first_name',
+            'last_name',
+            # Add any other fields you want to expose or allow updating
+            # e.g., 'is_staff', 'date_joined' (read-only)
+        )
+        read_only_fields = ('email', 'pk', 'id', 'date_joined', 'is_staff', 'is_superuser') # Email is read-only if not allowing email change directly via this endpoint
 
-# class UserSerializer(DjoserUserSerializer):
-#     class Meta(DjoserUserSerializer.Meta):
-#         model = User
-#         fields = ('id', 'email')
-#         read_only_fields = ('email',)
+    def update(self, instance, validated_data):
+        """
+        Custom update method to handle partial updates for user fields.
+        """
+        # It's good practice to wrap update operations in a transaction
+        # to ensure data consistency.
+        with transaction.atomic():
+            instance.first_name = validated_data.get('first_name', instance.first_name)
+            instance.last_name = validated_data.get('last_name', instance.last_name)
+            # Add other fields you want to be updatable
+            instance.save()
+            return instance
