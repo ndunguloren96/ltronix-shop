@@ -1,35 +1,35 @@
-#   Ltronix Shop
+# Ltronix Shop
 
-##   Project Description
+## Project Description
 
-Ltronix Shop is an e-commerce platform designed to facilitate online transactions and provide a seamless payment experience for users in Kenya through M-Pesa integration. [cite: 1, 2, 3]
+Ltronix Shop is an e-commerce platform designed to facilitate online transactions and provide a seamless payment experience for users in Kenya through M-Pesa integration.
 
 This project aims to create a functional e-commerce platform.
 
-##   Current Features
+## Current Features
 
-* Basic product catalog display
-* User ability to add products to cart
-* Checkout process
-* M-Pesa payment integration via Lipa na M-Pesa Online (STK Push) [cite: 6, 8]
+- Basic product catalog display
+- User ability to add products to cart
+- Checkout process
+- M-Pesa payment integration via Lipa na M-Pesa Online (STK Push)
 
-##   M-Pesa Integration Details
+## M-Pesa Integration Details
 
-The M-Pesa integration allows users to pay for their purchases using their M-Pesa accounts. [cite: 6]
+The M-Pesa integration allows users to pay for their purchases using their M-Pesa accounts.
 
-* When a user selects M-Pesa at checkout and enters their phone number, the application initiates an STK Push request. [cite: 6, 8]
-* The user receives a prompt on their phone to authorize the payment by entering their M-Pesa PIN. [cite: 8]
-* Upon successful authorization, the application processes the order and confirms the payment.
+- When a user selects M-Pesa at checkout and enters their phone number, the application initiates an STK Push request.
+- The user receives a prompt on their phone to authorize the payment by entering their M-Pesa PIN.
+- Upon successful authorization, the application processes the order and confirms the payment.
 
-##   Technology Stack
+## Technology Stack
 
-* Django (Backend)
-* HTML, CSS, JavaScript (Frontend)
-* PostgreSQL (Database)
-* django-environ (for environment variable management)
-* Safaricom M-Pesa APIs (Lipa na M-Pesa Online, Authorization)
+- Django (Backend)
+- HTML, CSS, TypeScript (Frontend)
+- PostgreSQL (Database)
+- django-environ (for environment variable management)
+- Safaricom M-Pesa APIs (Lipa na M-Pesa Online, Authorization)
 
-##   Getting Started
+## Getting Started
 
 1.  **Clone the repository:**
 
@@ -48,30 +48,34 @@ The M-Pesa integration allows users to pay for their purchases using their M-Pes
 3.  **Install dependencies:**
 
     ```bash
-    pip install -r requirements.txt
+    python3 -m pip install -r requirements.txt
+    # or use pip3 if pip is not available:
+    # pip3 install -r requirements.txt
     ```
 
 4.  **Configure the database:**
 
-    * Ensure PostgreSQL is installed and running.
-    * Create a database for the project.
-    * Set the database connection details in the `.env` file. You'll need to create a `.env` file in the root directory and add your database credentials. Example:
+    - Ensure PostgreSQL is installed and running.
+    - Create a database for the project.
+    - Set the database connection details in the `.env` file. You'll need to create a `.env` file in the root directory and add your database credentials. Example:
 
-        ```
-        DATABASE_URL=postgres://user:password@host:port/dbname
-        ```
+      ```
+      # For PostgreSQL, the format is:
+      # postgres://USER:PASSWORD@HOST:PORT/DBNAME
+      DATABASE_URL=postgres://user:password@host:port/dbname
+      ```
 
 5.  **Configure M-Pesa API credentials:**
 
-    * Obtain your Consumer Key, Consumer Secret, and Passkey from the Safaricom Developer Portal.
-    * Add these credentials to the `.env` file:
+    - Obtain your Consumer Key, Consumer Secret, and Passkey from the Safaricom Developer Portal.
+    - Add these credentials to the `.env` file:
 
-        ```
-        SAFARICOM_CONSUMER_KEY=YOUR_CONSUMER_KEY
-        SAFARICOM_CONSUMER_SECRET=YOUR_CONSUMER_SECRET
-        SAFARICOM_BUSINESS_SHORTCODE=YOUR_BUSINESS_SHORTCODE # PayBill or Till Number
-        SAFARICOM_PASSKEY=YOUR_PASSKEY
-        ```
+      ```
+      SAFARICOM_CONSUMER_KEY=YOUR_CONSUMER_KEY
+      SAFARICOM_CONSUMER_SECRET=YOUR_CONSUMER_SECRET
+      SAFARICOM_BUSINESS_SHORTCODE=YOUR_BUSINESS_SHORTCODE # PayBill or Till Number
+      SAFARICOM_PASSKEY=YOUR_PASSKEY
+      ```
 
 6.  **Run migrations:**
 
@@ -97,19 +101,18 @@ The M-Pesa integration allows users to pay for their purchases using their M-Pes
     http://localhost:8000/
     ```
 
+## Contributing
 
-##   Contributing
+- Contibution is welcomed.
 
-* Contibution is welcomed. 
-
-##   License
+## License
 
 This project is licensed under the [MIT] License.
 
-##   Future Enhancements
+## Future Enhancements
 
-* Implement other payment methods (e.g., card payments).
-* Add user authentication and authorization.
-* Improve product search and filtering.
-* Enhance the user interface and user experience.
-* Implement order management and tracking.
+- Implement other payment methods (e.g., card payments).
+- Add user authentication and authorization.
+- Smart Inventory.
+- Enhance the user interface and user experience.
+- Implement order management and tracking.
