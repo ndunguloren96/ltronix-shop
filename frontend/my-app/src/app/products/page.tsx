@@ -1,317 +1,53 @@
 // src/app/products/page.tsx
-'use client';
+import React from 'react';
+// Removed direct Chakra UI imports like Flex, Spinner, Alert, etc. as they are now in NoProductsMessage
+import ProductsClientPage, { Product } from './client_page'; // Import the client component and its Product type
+import NoProductsMessage from './no-products-message'; // Import the new client component for error/empty state
+import { notFound } from 'next/navigation'; // For handling 404s
 
-import React from 'react'; // import React not react
-import {
-  Box,
-  Container,
-  Heading,
-  SimpleGrid,
-  Text,
-  Flex,
-  VStack,
-  Accordion,
-  AccordionItem,
-  AccordionButton,
-  AccordionPanel,
-  AccordionIcon,
-  Checkbox,
-  RangeSlider,
-  RangeSliderTrack,
-  RangeSliderFilledTrack,
-  RangeSliderThumb,
-  Input,
-  InputGroup,
-  InputLeftElement,
-  Button, // ADD THIS: Import Button for the "Load More"
-} from '@chakra-ui/react';
-import { ProductCard } from '@/components/ProductCard';
-import { SearchIcon } from '@chakra-ui/icons';
-import Fuse from 'fuse.js';
+// Function to fetch products from your Django API
+async function getProducts(): Promise<Product[]> {
+  try {
+    const apiUrl = process.env.NEXT_PUBLIC_DJANGO_API_URL || 'http://127.0.0.1:8000/api/v1';
 
-// Placeholder data for products
-const mockProducts = [
-  { id: '1', name: 'iPhone 15 Pro Max', price: 'Ksh180,000.00', category: 'Cellphones & Tablets', brand: 'iPhone', imageUrl: 'https://via.placeholder.com/250/200?text=iPhone+15' },
-  { id: '2', name: 'Samsung Galaxy S24 Ultra', price: 'Ksh150,000.00', category: 'Cellphones & Tablets', brand: 'Samsung', imageUrl: 'https://via.placeholder.com/250/200?text=Galaxy+S24' },
-  { id: '3', name: 'Dell XPS 15 Laptop', price: 'Ksh130,000.00', category: 'Computers & Laptops', brand: 'Dell', imageUrl: 'https://via.placeholder.com/250/200?text=Dell+XPS' },
-  { id: '4', name: 'Xiaomi Redmi Note 13', price: 'Ksh25,000.00', category: 'Cellphones & Tablets', brand: 'Xiaomi', imageUrl: 'https://via.placeholder.com/250/200?text=Redmi+Note' },
-  { id: '5', name: 'Oraimo FreePods 4', price: 'Ksh3,500.00', category: 'Headphones & Speakers', brand: 'Oraimo', imageUrl: 'https://via.placeholder.com/250/200?text=Oraimo+Pods' },
-  { id: '6', name: 'Hisense 55" Smart 4K TV', price: 'Ksh65,000.00', category: 'Televisions & Projectors', brand: 'Hisense', imageUrl: 'https://via.placeholder.com/250/200?text=Hisense+TV' },
-  { id: '7', name: 'Samsung Galaxy Tab S9', price: 'Ksh80,000.00', category: 'Cellphones & Tablets', brand: 'Samsung', imageUrl: 'https://via.placeholder.com/250/200?text=Galaxy+Tab' },
-  { id: '8', name: 'Dell Inspiron 14', price: 'Ksh75,000.00', category: 'Computers & Laptops', brand: 'Dell', imageUrl: 'https://via.placeholder.com/250/200?text=Inspiron+14' },
-  { id: '9', name: 'Android Smartwatch', price: 'Ksh8,000.00', category: 'Smart Watches', brand: 'Android', imageUrl: 'https://via.placeholder.com/250/200?text=Android+Watch' },
-  { id: '10', name: 'Oraimo Bluetooth Speaker', price: 'Ksh2,000.00', category: 'Headphones & Speakers', brand: 'Oraimo', imageUrl: 'https://via.placeholder.com/250/200?text=Oraimo+Speaker' },
-  { id: '11', name: 'Xiaomi Mi Band 8', price: 'Ksh4,000.00', category: 'Smart Watches', brand: 'Xiaomi', imageUrl: 'https://via.placeholder.com/250/200?text=Mi+Band' },
-  { id: '12', name: 'Hisense Refrigerator', price: 'Ksh45,000.00', category: 'Smart Home Appliances', brand: 'Hisense', imageUrl: 'https://via.placeholder.com/250/200?text=Hisense+Fridge' },
-];
-
-const getNumericPrice = (priceString: string): number => {
-  return parseFloat(priceString.replace('Ksh', '').replace(/,/g, ''));
-};
-
-const fuseOptions = {
-  keys: ['name', 'category', 'brand'],
-  threshold: 0.3,
-  includeScore: true,
-};
-
-const PRODUCTS_PER_PAGE = 8; // Define how many products to show initially / load per click
-
-export default function ProductsPage() {
-  // Filter states
-  const [selectedCategories, setSelectedCategories] = React.useState<string[]>([]);
-  const [priceRange, setPriceRange] = React.useState<number[]>([0, 180000]);
-  const [selectedBrands, setSelectedBrands] = React.useState<string[]>([]);
-
-  // Search states
-  const [searchTerm, setSearchTerm] = React.useState<string>('');
-  const [debouncedSearchTerm, setDebouncedSearchTerm] = React.useState<string>('');
-
-  // ADD THIS NEW STATE FOR PAGINATION
-  const [visibleProductsCount, setVisibleProductsCount] = React.useState(PRODUCTS_PER_PAGE);
-
-  const debounceTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
-
-  React.useEffect(() => {
-    if (debounceTimeoutRef.current) {
-      clearTimeout(debounceTimeoutRef.current);
-    }
-    debounceTimeoutRef.current = setTimeout(() => {
-      setDebouncedSearchTerm(searchTerm);
-    }, 300);
-    return () => {
-      if (debounceTimeoutRef.current) {
-        clearTimeout(debounceTimeoutRef.current);
-      }
-    };
-  }, [searchTerm]);
-
-  // Reset visible products count whenever filters or search terms change
-  React.useEffect(() => {
-    setVisibleProductsCount(PRODUCTS_PER_PAGE);
-  }, [debouncedSearchTerm, selectedCategories, priceRange, selectedBrands]); // Add new dependencies here
-
-  const fuse = React.useMemo(() => new Fuse(mockProducts, fuseOptions), [mockProducts]);
-
-  const allCategories = Array.from(new Set(mockProducts.map(p => p.category)));
-  const allBrands = Array.from(new Set(mockProducts.map(p => p.brand)));
-  const maxPrice = Math.max(...mockProducts.map(p => getNumericPrice(p.price)));
-  const minPrice = Math.min(...mockProducts.map(p => getNumericPrice(p.price)));
-
-  const filteredAndSearchedProducts = React.useMemo(() => {
-    let productsToFilter = mockProducts;
-
-    if (debouncedSearchTerm) {
-      const searchResults = fuse.search(debouncedSearchTerm);
-      productsToFilter = searchResults.map(result => result.item);
-    }
-
-    return productsToFilter.filter(product => {
-      const productPrice = getNumericPrice(product.price);
-      const categoryMatch = selectedCategories.length === 0 || selectedCategories.includes(product.category);
-      const priceMatch = productPrice >= priceRange[0] && productPrice <= priceRange[1];
-      const brandMatch = selectedBrands.length === 0 || selectedBrands.includes(product.brand);
-      return categoryMatch && priceMatch && brandMatch;
+    // Fetch options for Static Site Generation (SSG) with Incremental Static Regeneration (ISR)
+    const res = await fetch(`${apiUrl}/products/`, {
+      next: { revalidate: 60 }, // Revalidate data every 60 seconds (ISR)
+      // Removed 'cache: no-store' as it conflicts with 'revalidate'.
+      // When 'revalidate' is present, 'cache: force-cache' is often implied for build time,
+      // or default cache behavior applies, and 'no-store' would override caching.
+      // For ISR, we want it to cache and revalidate periodically, so 'no-store' is incorrect.
     });
-  }, [debouncedSearchTerm, selectedCategories, priceRange, selectedBrands, fuse]);
 
-  const handleCategoryChange = (category: string) => {
-    setSelectedCategories(prev =>
-      prev.includes(category)
-        ? prev.filter(c => c !== category)
-        : [...prev, category]
-    );
-  };
+    if (!res.ok) {
+      if (res.status === 404) {
+        // If the API endpoint itself returns 404, throw notFound
+        notFound();
+      }
+      console.error(`Failed to fetch products: ${res.status} ${res.statusText}`);
+      // Throwing an error here will cause the boundary to catch it or Next.js to display its error.
+      // Returning an empty array and letting NoProductsMessage handle is also an option.
+      return []; // Return empty array to trigger NoProductsMessage component
+    }
 
-  const handleBrandChange = (brand: string) => {
-    setSelectedBrands(prev =>
-      prev.includes(brand)
-        ? prev.filter(b => b !== brand)
-        : [...prev, brand]
-    );
-  };
+    const products: Product[] = await res.json();
+    return products;
+  } catch (error) {
+    console.error('Error fetching products in getProducts (server component):', error);
+    // On hard failure, return empty to display the NoProductsMessage
+    return [];
+  }
+}
 
-  // Handler for "Load More" button
-  const handleLoadMore = () => {
-    setVisibleProductsCount(prevCount => prevCount + PRODUCTS_PER_PAGE);
-  };
+// This is a Server Component
+export default async function ProductsServerPage() {
+  const products = await getProducts();
 
-  // Determine products to display based on visibleProductsCount
-  const productsToDisplay = filteredAndSearchedProducts.slice(0, visibleProductsCount);
+  // If no products are found (either from backend or API error), display the client message component
+  if (!products || products.length === 0) {
+    return <NoProductsMessage />; // Render the dedicated Client Component
+  }
 
-  // Check if there are more products to load
-  const hasMoreProducts = visibleProductsCount < filteredAndSearchedProducts.length;
-
-
-  return (
-    <Container maxW="7xl" py={8}>
-      <Heading as="h1" size="xl" mb={6} textAlign="center">
-        All Products
-      </Heading>
-
-      <Box mb={6} width={{ base: 'full', md: '75%', lg: '50%' }} mx="auto">
-        <InputGroup>
-          <InputLeftElement pointerEvents="none">
-            <SearchIcon color="gray.300" />
-          </InputLeftElement>
-          <Input
-            type="text"
-            placeholder="Search for products by name, category, or brand..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            size="lg"
-            borderRadius="lg"
-            variant="filled"
-          />
-        </InputGroup>
-      </Box>
-
-      <Flex direction={{ base: 'column', md: 'row' }} gap={8}>
-        {/* Filter Sidebar*/}
-        <Box
-          w={{ base: 'full', md: '250px' }}
-          p={4}
-          borderWidth="1px"
-          borderRadius="lg"
-          boxShadow="sm"
-          mb={{ base: 6, md: 0 }}
-        >
-          <Heading as="h2" size="md" mb={4}>
-            Filters
-          </Heading>
-          <Accordion allowMultiple defaultIndex={[0, 1, 2]}>
-
-            {/* Category Filter */}
-            <AccordionItem>
-              <h2>
-                <AccordionButton>
-                  <Box flex="1" textAlign="left" fontWeight="bold">
-                    Category
-                  </Box>
-                  <AccordionIcon />
-                </AccordionButton>
-              </h2>
-              <AccordionPanel pb={4}>
-                <VStack align="flex-start">
-                  {allCategories.map(category => (
-                    <Checkbox
-                      key={category}
-                      isChecked={selectedCategories.includes(category)}
-                      onChange={() => handleCategoryChange(category)}
-                      colorScheme="brand"
-                    >
-                      {category}
-                    </Checkbox>
-                  ))}
-                </VStack>
-              </AccordionPanel>
-            </AccordionItem>
-
-            {/* Price Range Filter */}
-            <AccordionItem>
-              <h2>
-                <AccordionButton>
-                  <Box flex="1" textAlign="left" fontWeight="bold">
-                    Price Range
-                  </Box>
-                  <AccordionIcon />
-                </AccordionButton>
-              </h2>
-              <AccordionPanel pb={4}>
-                <Box pt={4} pb={2}>
-                  <RangeSlider
-                    aria-label={['min price', 'max price']}
-                    defaultValue={[minPrice, maxPrice]}
-                    min={minPrice}
-                    max={maxPrice}
-                    step={100}
-                    value={priceRange}
-                    onChangeEnd={setPriceRange}
-                    colorScheme="brand"
-                  >
-                    <RangeSliderTrack>
-                      <RangeSliderFilledTrack />
-                    </RangeSliderTrack>
-                    <RangeSliderThumb index={0} />
-                    <RangeSliderThumb index={1} />
-                  </RangeSlider>
-                  <Flex justifyContent="space-between" mt={2}>
-                    <Text fontSize="sm">Ksh{priceRange[0].toLocaleString()}</Text>
-                    <Text fontSize="sm">Ksh{priceRange[1].toLocaleString()}</Text>
-                  </Flex>
-                </Box>
-              </AccordionPanel>
-            </AccordionItem>
-
-            {/* Brand Filter */}
-            <AccordionItem>
-              <h2>
-                <AccordionButton>
-                  <Box flex="1" textAlign="left" fontWeight="bold">
-                    Brand
-                  </Box>
-                  <AccordionIcon />
-                </AccordionButton>
-              </h2>
-              <AccordionPanel pb={4}>
-                <VStack align="flex-start">
-                  {allBrands.map(brand => (
-                    <Checkbox
-                      key={brand}
-                      isChecked={selectedBrands.includes(brand)}
-                      onChange={() => handleBrandChange(brand)}
-                      colorScheme="brand"
-                    >
-                      {brand}
-                    </Checkbox>
-                  ))}
-                </VStack>
-              </AccordionPanel>
-            </AccordionItem>
-
-          </Accordion>
-        </Box>
-
-        {/* Product Grid Area - NOW USING productsToDisplay */}
-        <Box flex="1">
-          {productsToDisplay.length === 0 ? ( // Check productsToDisplay
-            <Text fontSize="xl" textAlign="center" mt={10} color="gray.500">
-              No products match your current filters or search.
-            </Text>
-          ) : (
-            <> {/* Use a fragment to group SimpleGrid and Button */}
-              <SimpleGrid
-                columns={{ base: 1, sm: 2, md: 2, lg: 3 }}
-                spacing={6}
-              >
-                {productsToDisplay.map(product => ( // Iterate over productsToDisplay
-                  <ProductCard
-                    key={product.id}
-                    id={product.id}
-                    name={product.name}
-                    price={product.price}
-                    imageUrl={product.imageUrl}
-                  />
-                ))}
-              </SimpleGrid>
-
-              {/* Load More Button (ONLY SHOW IF there are more products) */}
-              {hasMoreProducts && (
-                <Flex justifyContent="center" mt={8}>
-                  <Button
-                    onClick={handleLoadMore}
-                    colorScheme="brand"
-                    size="lg"
-                    px={10}
-                  >
-                    Load More
-                  </Button>
-                </Flex>
-              )}
-            </>
-          )}
-        </Box>
-      </Flex>
-    </Container>
-  );
+  // Pass the fetched products to the main products client component
+  return <ProductsClientPage initialProducts={products} />;
 }

@@ -5,35 +5,25 @@ Base Django settings for ecommerce project.
 
 from pathlib import Path
 import os
-from environ import Env # Import Env for environment variable management
+from environ import Env
+from django.utils import timezone # Import timezone for default values in migrations
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Initialize django-environ
-env = Env() # <--- 'env' is defined here
-# Read environment variables from .env file. Adjust path as needed.
-# Assumes .env is in the project root: ltronix-shop/ecommerce/.env
+env = Env()
+# Read environment variables from .env file.
 env.read_env(os.path.join(BASE_DIR.parent, '.env'))
-
-
-# --- ADD THESE PRINT STATEMENTS FOR DEBUGGING (PLACED AFTER env = Env() AND env.read_env()) ---
-print(f"DEBUG: Attempting to load .env from: {os.path.join(BASE_DIR.parent, '.env')}")
-print(f"DEBUG: DJANGO_SECRET_KEY: {env('DJANGO_SECRET_KEY', default='NOT_SET')}")
-print(f"DEBUG: DATABASE_URL: {env('DATABASE_URL', default='NOT_SET')}")
-print(f"DEBUG: DATABASE_ENGINE (individual): {env('DATABASE_ENGINE', default='NOT_SET')}")
-# --- END DEBUG STATEMENTS ---
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-# Fetch SECRET_KEY from environment variables for security
 SECRET_KEY = env('DJANGO_SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-# DEBUG is set in development.py and production.py
 DEBUG = False # Default to False, overridden by specific settings files
 
 ALLOWED_HOSTS = [] # Overridden by specific settings files
@@ -42,33 +32,42 @@ ALLOWED_HOSTS = [] # Overridden by specific settings files
 # Application definition
 
 INSTALLED_APPS = [
-"django.contrib.admin",
-"django.contrib.auth",
-"django.contrib.contenttypes",
-"django.contrib.sessions",
-"django.contrib.messages",
-"django.contrib.staticfiles",
-'django.contrib.sites',
-'allauth',
-'allauth.account',
-'allauth.socialaccount',
-'allauth.socialaccount.providers.google', # This is correct for social logins
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+    'django.contrib.sites',
 
-'dj_rest_auth',
-'dj_rest_auth.registration',
+    # AllAuth for authentication
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    'allauth.socialaccount.providers.google',
 
-'rest_framework',
-'rest_framework.authtoken',
+    # DRF and authentication related
+    'dj_rest_auth',
+    'dj_rest_auth.registration',
+    'rest_framework',
+    'rest_framework.authtoken',
 
-'oauth2_provider',
-'social_django',
-'drf_social_oauth2',
+    # OAuth2 and social login integration
+    'oauth2_provider', # Django OAuth Toolkit
+    'social_django', # Python Social Auth core
+    'drf_social_oauth2', # drf-social-oauth2
 
-"store.apps.StoreConfig",
-"payment",
-"django_daraja",
-"users",
-"corsheaders",
+    # Your custom apps
+    "store.apps.StoreConfig", # Ensure this is correct if your app is named 'store'
+    "payment",
+    "django_daraja",
+    "users", # Your custom user app
+
+    # CORS Headers
+    "corsheaders",
+
+    # Django Spectacular for API documentation
+    'drf_spectacular',
 ]
 
 MIDDLEWARE = [
@@ -156,7 +155,8 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles') # Collect static files here 
 
 # Media files (user-uploaded files)
 MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'mediafiles')
+# Ensure this directory exists and is writable by your Django process
+MEDIA_ROOT = os.path.join(BASE_DIR.parent, 'mediafiles') # Places mediafiles one level up from ecommerce
 
 
 # Default primary key field type
@@ -179,7 +179,7 @@ REST_FRAMEWORK = {
         # OAuth2 authentication (for drf-social-oauth2)
         # 'oauth2_provider.contrib.rest_framework.OAuth2Authentication',
         # 'rest_framework_social_oauth2.authentication.SocialAuthentication',
-    ),
+    ), # <--- Reverted to original commented-out state for debugging
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated', # Require authentication by default
     ),
@@ -190,7 +190,7 @@ REST_FRAMEWORK = {
     'DEFAULT_PARSER_CLASSES': (
         'rest_framework.parsers.JSONParser',
         'rest_framework.parsers.FormParser',
-        'rest_framework.parsers.MultiPartParser',
+        'rest_framework.parsers.MultiPartParser', # For file uploads
     ),
     'DEFAULT_THROTTLE_CLASSES': (
         'rest_framework.throttling.AnonRateThrottle',
@@ -200,6 +200,7 @@ REST_FRAMEWORK = {
         'anon': '100/day', # Anonymous users
         'user': '1000/day' # Authenticated users
     },
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema', # For OpenAPI/Swagger
 }
 
 # --- CORS Headers Settings ---
@@ -207,34 +208,10 @@ CORS_ALLOW_ALL_ORIGINS = False # Set to False for production
 CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=['http://localhost:3000'])
 CORS_ALLOW_CREDENTIALS = True # Allow cookies to be sent with cross-origin requests
 
-# Optional: You can also specify allowed methods and headers if needed
-# CORS_ALLOW_METHODS = [
-#     "DELETE",
-#     "GET",
-#     "OPTIONS",
-#     "PATCH",
-#     "POST",
-#     "PUT",
-# ]
-# CORS_ALLOW_HEADERS = [
-#     "accept",
-#     "accept-encoding",
-#     "authorization",
-#     "content-type",
-#     "dnt",
-#     "origin",
-#     "user-agent",
-#     "x-csrftoken",
-#     "x-requested-with",
-# ]
-
-
 # --- CSRF Settings ---
-# CSRF_TRUSTED_ORIGINS is crucial for allowing AJAX POST requests from your frontend
 CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=['http://localhost:3000'])
-# Ensure CSRF cookie is sent over HTTP-only (for security) and secure (for HTTPS)
-CSRF_COOKIE_HTTPONLY = True # Recommended
-CSRF_COOKIE_SECURE = False # Should be True in production (HTTPS)
+CSRF_COOKIE_HTTPONLY = True # Recommended for security
+CSRF_COOKIE_SECURE = False # IMPORTANT: Set to True in production (HTTPS)
 CSRF_COOKIE_SAMESITE = 'Lax' # Recommended for most cases
 
 
@@ -243,101 +220,70 @@ SITE_ID = 1 # Required for django-allauth
 
 # Specify authentication backend
 AUTHENTICATION_BACKENDS = (
-    # Django AllAuth specific authentication methods
-    'allauth.account.auth_backends.AuthenticationBackend',
-    # Python Social Auth backends for social login
-    'social_core.backends.google.GoogleOAuth2', # Google OAuth2 backend
-    # drf-social-oauth2 backend for DRF OAuth2 token conversion
-    'drf_social_oauth2.backends.DjangoOAuth2',
-    # Django's default authentication backend (for admin, etc.)
-    'django.contrib.auth.backends.ModelBackend',
+    'django.contrib.auth.backends.ModelBackend', # Django's default (for admin, etc.)
+    'allauth.account.auth_backends.AuthenticationBackend', # AllAuth specific
+    'social_core.backends.google.GoogleOAuth2', # Python Social Auth Google OAuth2 backend
+    'drf_social_oauth2.backends.DjangoOAuth2', # drf-social-oauth2 backend
 )
 
-# AllAuth account settings
-ACCOUNT_AUTHENTICATION_METHOD = 'email' # Users log in with email
-ACCOUNT_EMAIL_REQUIRED = True # Email is mandatory
-ACCOUNT_USERNAME_REQUIRED = False # No username, email is primary identifier
-ACCOUNT_SIGNUP_EMAIL_ENTER_IF_REQUIRED = False # Don't force email entry if not required (but we require it)
-ACCOUNT_UNIQUE_EMAIL = True # Ensure emails are unique
-ACCOUNT_EMAIL_VERIFICATION = 'optional' # Email verification is required
-ACCOUNT_CONFIRM_EMAIL_ON_GET = True # Confirm email when confirmation link is visited
-ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True # Log in after email confirmation
-ACCOUNT_LOGIN_ATTEMPTS_LIMIT = 5 # Limit login attempts
-ACCOUNT_LOGIN_ATTEMPTS_TIMEOUT = 300 # Timeout for login attempts in seconds (5 minutes)
-ACCOUNT_LOGOUT_ON_PASSWORD_CHANGE = True # Log out all sessions on password change
-ACCOUNT_EMAIL_SUBJECT_PREFIX = '[Ltronix-Shop]' # Email subject prefix
+# AllAuth account settings (updated to avoid deprecation warnings where possible)
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_USERNAME_REQUIRED = False
+ACCOUNT_UNIQUE_EMAIL = True
+ACCOUNT_EMAIL_VERIFICATION = 'optional' # 'mandatory' for production best practice
+ACCOUNT_CONFIRM_EMAIL_ON_GET = True
+ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
+ACCOUNT_LOGOUT_ON_PASSWORD_CHANGE = True
+ACCOUNT_EMAIL_SUBJECT_PREFIX = '[Ltronix-Shop]'
 
-# Redirect after login/logout
-LOGIN_REDIRECT_URL = '/' # Not used directly by DRF, but good practice
-LOGOUT_REDIRECT_URL = '/' # Not used directly by DRF, but good practice
-ACCOUNT_LOGOUT_REDIRECT_URL = '/' # AllAuth specific logout redirect
+# New/Updated AllAuth settings based on deprecation warnings:
+ACCOUNT_LOGIN_METHODS = ['email'] # Replaces ACCOUNT_AUTHENTICATION_METHOD
+ACCOUNT_SIGNUP_FIELDS = ['email'] # Replaces ACCOUNT_EMAIL_REQUIRED, ACCOUNT_USERNAME_REQUIRED (assuming only email is needed for signup)
+ACCOUNT_RATE_LIMITS = { # Replaces ACCOUNT_LOGIN_ATTEMPTS_LIMIT/TIMEOUT
+    'login_failed': '5/5m', # 5 login attempts per 5 minutes
+}
+
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/'
+ACCOUNT_LOGOUT_REDIRECT_URL = '/'
 
 # --- Email Settings for AllAuth ---
-# In development, use console backend or Mailhog/Mailpit
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-DEFAULT_FROM_EMAIL = 'noreply@ltronix-shop.com' # Your application's email address
+EMAIL_BACKEND = env('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')
+DEFAULT_FROM_EMAIL = 'noreply@ltronix-shop.com'
+SERVER_EMAIL = DEFAULT_FROM_EMAIL
 EMAIL_HOST = env('EMAIL_HOST', default='localhost')
-EMAIL_PORT = env.int('EMAIL_PORT', default=1025) # Default MailHog/Mailpit SMTP port
+EMAIL_PORT = env.int('EMAIL_PORT', default=1025)
 EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS', default=False)
 EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='')
 EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')
-SERVER_EMAIL = DEFAULT_FROM_EMAIL # Email for server errors
 
 # --- dj-rest-auth Settings ---
-# If you want to use TokenAuthentication instead of SessionAuthentication by default
-# REST_USE_JWT = True # Set to True if using JWT (drf_simplejwt)
-# For this setup with NextAuth.js, we expect dj-rest-auth to handle sessions (for admin)
-# and also optionally generate a token for NextAuth if configured.
-# NextAuth.js will handle its own session state.
 REST_AUTH = {
     'USE_JWT': False, # We're not using JWT from dj-rest-auth directly for frontend. NextAuth handles JWT.
     'SESSION_LOGIN': True, # Enable session login for the browsable API/admin
     'LOGIN_SERIALIZER': 'dj_rest_auth.serializers.LoginSerializer',
     'TOKEN_MODEL': None, # Set to None if not using TokenAuthentication or if using JWT.
-                         # If you still want a token for your frontend to directly use (not via NextAuth),
-                         # you might keep TokenAuthentication enabled and use TokenModel,
-                         # but NextAuth setup generally means it manages tokens.
-    'USER_DETAILS_SERIALIZER': 'users.serializers.UserDetailsSerializer', # Point to your custom UserDetailsSerializer
-    'REGISTER_SERIALIZER': 'users.serializers.CustomRegisterSerializer', # Point to your custom RegisterSerializer
-    'PASSWORD_RESET_USE_SITECONTROL': True, # Uses site.url to build reset links
-    'PASSWORD_RESET_CONFIRM_URL': 'http://localhost:3000/auth/password-reset-confirm/{uid}/{token}', # Important! Frontend URL
-    # Adjust for production: 'https://your-frontend-domain.com/auth/password-reset-confirm/{uid}/{token}'
-    'OLD_PASSWORD_FIELD_ENABLED': True, # Enable old password check for password change
+    'USER_DETAILS_SERIALIZER': 'users.serializers.UserDetailsSerializer',
+    'REGISTER_SERIALIZER': 'users.serializers.CustomRegisterSerializer',
+    'PASSWORD_RESET_USE_SITECONTROL': True,
+    'PASSWORD_RESET_CONFIRM_URL': env('DJANGO_PASSWORD_RESET_CONFIRM_URL', default='http://localhost:3000/auth/password-reset-confirm/{uid}/{token}'),
+    'OLD_PASSWORD_FIELD_ENABLED': True,
 }
 
 # --- Python Social Auth and drf-social-oauth2 Settings ---
-# Google OAuth2 credentials
-SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = env('SOCIAL_AUTH_GOOGLE_OAUTH2_KEY') # Google Client ID
-SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = env('SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET') # Google Client Secret
-
-# Specify additional scopes for Google OAuth2 if needed
-# Example: ['openid', 'email', 'profile', 'https://www.googleapis.com/auth/user.birthday.read']
+SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = env('SOCIAL_AUTH_GOOGLE_OAUTH2_KEY')
+SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = env('SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET')
 SOCIAL_AUTH_GOOGLE_OAUTH2_SCOPE = ['openid', 'email', 'profile']
-
-# Redirect URI for social login.
-# For local development, this usually matches the redirect URI configured in Google Cloud Console.
-# Example: http://localhost:8000/api/auth/complete/google-oauth2/
-# However, for drf-social-oauth2's convert-token flow, the redirect happens
-# from Google to NextAuth, and then NextAuth sends the Google token to Django.
-# So, this is less critical for the `convert-token` flow.
 SOCIAL_AUTH_GOOGLE_OAUTH2_REDIRECT_URI = env('SOCIAL_AUTH_GOOGLE_OAUTH2_REDIRECT_URI', default='http://127.0.0.1:8000/api/auth/complete/google-oauth2/')
-
-
-# Set True for https if your site is secure (production)
 SOCIAL_AUTH_REDIRECT_IS_HTTPS = env.bool('SOCIAL_AUTH_REDIRECT_IS_HTTPS', default=False)
-
-# This setting ensures allauth integrates with social_django for user creation/association.
-# When a user signs in via social, allauth automatically creates a local user account.
 SOCIALACCOUNT_ADAPTER = 'allauth.socialaccount.adapter.DefaultSocialAccountAdapter'
-
-# If you use the 'convert-token' endpoint, you might need to configure OAuth2 Provider
-# OAuth2_PROVIDER_APPLICATION_MODEL = 'oauth2_provider.models.Application'
-# OAuth2_PROVIDER = {
-#     'SCOPES': {
-#         'read': 'Read scope',
-#         'write': 'Write scope',
-#         'openid': 'OpenID Connect scope',
-#         'profile': 'User profile information',
-#         'email': 'User email address',
-#     }
-# }
+# OAuth2_PROVIDER settings for drf-social-oauth2
+OAUTH2_PROVIDER = {
+    'SCOPES': {
+        'read': 'Read scope',
+        'write': 'Write scope',
+        'openid': 'OpenID Connect scope',
+        'profile': 'User profile information',
+        'email': 'User email address',
+    }
+}
