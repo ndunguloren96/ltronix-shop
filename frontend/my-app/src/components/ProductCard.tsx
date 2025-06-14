@@ -1,4 +1,5 @@
-'use client'; // This component uses client-side hooks like useCartStore
+// frontend/my-app/src/components/ProductCard.tsx
+'use client';
 
 import {
   Box,
@@ -6,66 +7,82 @@ import {
   Heading,
   Text,
   VStack,
-  Stack, // Added Stack for consistent spacing
-  Divider, // Added Divider
+  Stack,
+  Divider,
 } from '@chakra-ui/react';
-import Image from 'next/image'; // Next.js Image component
+import Image from 'next/image';
+import Link from 'next/link';
 
-// Import your Zustand cart store
 import { useCartStore } from '@/store/useCartStore';
 
 interface ProductCardProps {
-  id: number;
-  title: string;
+  id: string;
+  name: string;
   description: string;
-  imageUrl: string;
-  imageAlt: string;
-  price: number; // Price should be a number for calculation
+  imageUrl?: string;
+  price: string;
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({
   id,
-  title,
+  name,
   description,
   imageUrl,
-  imageAlt,
   price,
 }) => {
   const addItemToCart = useCartStore((state) => state.addItem);
 
+  const formatPrice = (priceString: string): string => {
+    const numericPrice = parseFloat(priceString);
+    if (isNaN(numericPrice)) {
+      return priceString;
+    }
+    return `KES ${numericPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
+
+  const priceAsNumber = parseFloat(price);
+
   return (
     <Box maxW="sm" borderWidth="1px" borderRadius="lg" overflow="hidden" boxShadow="md" bg="white">
-      {/* Product Image */}
-      <Box position="relative" height="200px" width="100%">
-        <Image
-          src={imageUrl}
-          alt={imageAlt}
-          fill // Makes the image fill the parent Box
-          style={{ objectFit: 'cover' }} // Ensures the image covers the area
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" // Responsive sizing
-        />
-      </Box>
+      <Link href={`/products/${id}`} passHref>
+        <Box as="a" position="relative" height="200px" width="100%" display="block" _hover={{ cursor: 'pointer', opacity: 0.9 }}>
+          {imageUrl ? (
+            <Image
+              src={imageUrl}
+              alt={name}
+              fill // Use fill instead of layout="fill"
+              style={{ objectFit: 'cover' }} // Use style prop instead of objectFit prop
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              priority={false}
+            />
+          ) : (
+            <Box height="200px" width="100%" bg="gray.200" display="flex" alignItems="center" justifyContent="center">
+              <Text color="gray.500">No Image</Text>
+            </Box>
+          )}
+        </Box>
+      </Link>
 
-      {/* Product Info */}
       <Box p={6}>
         <Stack spacing={3}>
-          <Heading size="md" noOfLines={1}>{title}</Heading> {/* Limit title to one line */}
+          <Link href={`/products/${id}`} passHref>
+            <Heading as="a" size="md" noOfLines={1} _hover={{ textDecoration: 'underline' }}>{name}</Heading>
+          </Link>
           <Text fontSize="sm" color="gray.600" noOfLines={2}>{description}</Text>
           <Text color="brand.600" fontSize="2xl" fontWeight="bold">
-            KES {price.toFixed(2)}
+            {formatPrice(price)}
           </Text>
         </Stack>
       </Box>
 
       <Divider />
 
-      {/* Add to Cart Button */}
       <Box p={6}>
         <Button
           variant='solid'
           colorScheme='brand'
           width="full"
-          onClick={() => addItemToCart({ id, name: title, price })}
+          onClick={() => addItemToCart({ id, name, price: priceAsNumber })}
         >
           Add to cart
         </Button>
