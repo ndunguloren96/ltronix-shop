@@ -1,9 +1,9 @@
-// src/app/auth/login/page.tsx
+// /var/www/ltronix-shop/frontend/my-app/src/app/auth/login/page.tsx
 'use client';
 
 import { Box, Heading, Text, VStack, FormControl, FormLabel, Input, FormHelperText, Flex, useToast } from '@chakra-ui/react';
-import { MyButton } from '../../../components/MyButton'; // Adjust path if necessary
-import GoogleSignInButton from '../../../components/GoogleSignInButton'; // <<--- CHANGE HERE: Removed curly braces for default import
+import { MyButton } from '../../../components/MyButton';
+import GoogleSignInButton from '../../../components/GoogleSignInButton';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
@@ -21,19 +21,28 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
+      // Attempt to sign in using the 'credentials' provider configured in [...nextauth]/route.ts
       const result = await signIn('credentials', {
-        redirect: false, // Do not redirect automatically
+        redirect: false, // Prevents automatic redirection by NextAuth.js; we handle it manually
         email,
         password,
       });
 
       if (result?.error) {
-        let errorMessage = 'Invalid credentials. Please try again.';
-        // You might want to parse result.error for more specific messages from NextAuth.js
-        // or ensure your Django backend sends more user-friendly messages for credentials.
-        if (result.error.includes('401')) { // Example: if your backend error includes '401'
-          errorMessage = 'Incorrect email or password.';
+        console.error('Credentials login failed:', result.error); // Log the specific error for debugging
+        let errorMessage = 'Login failed. Please check your email and password.'; // More general initial message
+
+        // NextAuth's 'credentials' provider errors are often generic like 'CredentialsSignin'.
+        // If your Django backend is set up to return specific messages via `route.ts` and
+        // NextAuth passes them through, you can enhance this parsing.
+        if (result.error === 'CredentialsSignin') {
+            errorMessage = 'Incorrect email or password. Please try again.';
+        } else if (result.error.includes('timeout')) {
+            errorMessage = 'Network timeout during login. Please check your connection.';
         }
+        // Add more specific parsing here if result.error contains more structured info
+        // e.g., if (result.error.includes('UserNotFound')) ...
+
         toast({
           title: 'Login Failed',
           description: errorMessage,
@@ -49,19 +58,19 @@ export default function LoginPage() {
           duration: 3000,
           isClosable: true,
         });
-        router.push('/'); // Redirect to the home page or a dashboard upon successful login
+        router.push('/'); // Redirect to the home page or dashboard upon successful login
       }
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('Unexpected login error (network or unhandled exception):', error);
       toast({
         title: 'Login Error',
-        description: 'An unexpected error occurred during login.',
+        description: 'An unexpected error occurred during login. Please try again.',
         status: 'error',
         duration: 5000,
         isClosable: true,
       });
     } finally {
-      setIsLoading(false);
+      setIsLoading(false); // Ensure loading state is reset regardless of success or failure
     }
   };
 
@@ -78,25 +87,25 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit}>
             <VStack spacing={4}>
-              <FormControl id="email">
+              <FormControl id="email" isRequired>
                 <FormLabel>Email address</FormLabel>
                 <Input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter your email"
-                  required
+                  autoComplete="email"
                 />
               </FormControl>
 
-              <FormControl id="password">
+              <FormControl id="password" isRequired>
                 <FormLabel>Password</FormLabel>
                 <Input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
-                  required
+                  autoComplete="current-password"
                 />
                 <FormHelperText>
                   <Link href="/auth/forgot-password" passHref>
@@ -109,7 +118,7 @@ export default function LoginPage() {
 
               {/* Explicit Sign In Button */}
               <MyButton
-                type="submit" // Set type to submit for form submission
+                type="submit"
                 width="full"
                 isLoading={isLoading}
                 isDisabled={isLoading}
@@ -124,7 +133,6 @@ export default function LoginPage() {
           </Text>
 
           {/* Google Sign-In Button */}
-          {/* Changed props to onClick and children */}
           <GoogleSignInButton onClick={() => signIn('google')} isLoading={isLoading}>
             Sign In with Google
           </GoogleSignInButton>
