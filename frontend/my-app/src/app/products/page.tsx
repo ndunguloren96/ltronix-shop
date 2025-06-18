@@ -1,53 +1,62 @@
-// src/app/products/page.tsx
+// /var/www/ltronix-shop/frontend/my-app/src/app/products/page.tsx
+// This is a Server Component, indicated by the absence of 'use client'
+
 import React from 'react';
-// Removed direct Chakra UI imports like Flex, Spinner, Alert, etc. as they are now in NoProductsMessage
-import ProductsClientPage, { Product } from './client_page'; // Import the client component and its Product type
-import NoProductsMessage from './no-products-message'; // Import the new client component for error/empty state
-import { notFound } from 'next/navigation'; // For handling 404s
+import { QueryClient, dehydrate, HydrationBoundary } from '@tanstack/react-query'; // For server-side query features
+import ProductsClientPage from './client_page'; // Import the client component
+import NoProductsMessage from './no-products-message'; // Import the client component for error/empty state
+import { notFound } from 'next/navigation';
+import { fetchProducts, Product } from '../../api/products'; // <<-- CORRECTED PATH HERE -->>
 
-// Function to fetch products from your Django API
-async function getProducts(): Promise<Product[]> {
+// This function now specifically fetches data for the server component
+// It can be directly called here without useQuery.
+async function getProductsForServer(): Promise<Product[]> {
+  const apiUrl = process.env.NEXT_PUBLIC_DJANGO_API_URL || 'http://127.0.0.1:8000/api/v1';
   try {
-    const apiUrl = process.env.NEXT_PUBLIC_DJANGO_API_URL || 'http://127.0.0.1:8000/api/v1';
-
-    // Fetch options for Static Site Generation (SSG) with Incremental Static Regeneration (ISR)
     const res = await fetch(`${apiUrl}/products/`, {
       next: { revalidate: 60 }, // Revalidate data every 60 seconds (ISR)
-      // Removed 'cache: no-store' as it conflicts with 'revalidate'.
-      // When 'revalidate' is present, 'cache: force-cache' is often implied for build time,
-      // or default cache behavior applies, and 'no-store' would override caching.
-      // For ISR, we want it to cache and revalidate periodically, so 'no-store' is incorrect.
     });
 
     if (!res.ok) {
       if (res.status === 404) {
-        // If the API endpoint itself returns 404, throw notFound
-        notFound();
+        notFound(); // If the API endpoint itself returns 404, throw notFound
       }
-      console.error(`Failed to fetch products: ${res.status} ${res.statusText}`);
-      // Throwing an error here will cause the boundary to catch it or Next.js to display its error.
-      // Returning an empty array and letting NoProductsMessage handle is also an option.
+      console.error(`Failed to fetch products from Django API: ${res.status} ${res.statusText}`);
       return []; // Return empty array to trigger NoProductsMessage component
     }
 
     const products: Product[] = await res.json();
     return products;
   } catch (error) {
-    console.error('Error fetching products in getProducts (server component):', error);
-    // On hard failure, return empty to display the NoProductsMessage
-    return [];
+    console.error('Error fetching products in getProductsForServer (server component):', error);
+    return []; // On hard failure, return empty to display the NoProductsMessage
   }
 }
 
-// This is a Server Component
+// This is the Server Component for the Products page
 export default async function ProductsServerPage() {
-  const products = await getProducts();
+  const queryClient = new QueryClient(); // Create a new QueryClient instance for each request on the server
 
-  // If no products are found (either from backend or API error), display the client message component
-  if (!products || products.length === 0) {
-    return <NoProductsMessage />; // Render the dedicated Client Component
+  let products: Product[] = [];
+  try {
+    // Prefetch the products data into the QueryClient cache on the server
+    products = await queryClient.fetchQuery({
+      queryKey: ['products'], // This MUST match the queryKey used in ProductsClientPage
+      queryFn: fetchProducts, // Use the same fetcher function as on the client
+    });
+  } catch (error) {
+    console.error('Server-side prefetch of products failed:', error);
+    products = []; // If prefetching fails, render no products, client will retry
   }
 
-  // Pass the fetched products to the main products client component
-  return <ProductsClientPage initialProducts={products} />;
+  if (!products || products.length === 0) {
+    return <NoProductsMessage />;
+  }
+
+  return (
+    // HydrationBoundary passes the server-prefetched data to the client-side cache
+    <HydrationBoundary state={dehydrate(queryClient)}>
+      <ProductsClientPage /> {/* No need to pass initialProducts now, useQuery gets it from cache */}
+    </HydrationBoundary>
+  );
 }

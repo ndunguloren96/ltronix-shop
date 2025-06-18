@@ -1,3 +1,4 @@
+// /var/www/ltronix-shop/frontend/my-app/src/components/Footer.tsx
 'use client'; // This component might include interactive elements or relies on client-side features.
 
 import {
@@ -13,12 +14,13 @@ import {
   Heading,
 } from '@chakra-ui/react';
 import Image from 'next/image'; // Import Next.js Image component
-import Link from 'next/link'; // Import Next.js Link component
+import NextLink from 'next/link'; // Renamed Next.js Link to NextLink to avoid conflict
 
 // You can add more icons if needed, e.g., for social media
 // import { FaFacebook, FaTwitter, FaInstagram } from 'react-icons/fa';
 
-export function Footer() {
+// --- CRITICAL FIX: Changed to default export ---
+export default function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
@@ -45,9 +47,10 @@ export function Footer() {
                 alt={`Brand ${i} Logo`}
                 width={80} // Explicit width for Next.js Image
                 height={80} // Explicit height for Next.js Image
-                objectFit="contain" // Ensures image fits without cropping
+                style={{ objectFit: 'contain' }} // Use style prop instead of objectFit prop (fixes legacy prop warning)
                 quality={80} // Image quality
-                style={{ filter: 'grayscale(100%) opacity(70%)' }} // Example: grayscale effect
+                // style prop filter is already good
+                // style={{ filter: 'grayscale(100%) opacity(70%)' }} // Example: grayscale effect
               />
             </Box>
           ))}
@@ -68,26 +71,29 @@ export function Footer() {
 
           <VStack align="flex-start" spacing={3}>
             <Heading size="md" color="whiteAlpha.900">Customer Service</Heading>
-            <ChakraLink as={Link} href="/contact-us" fontSize="sm" _hover={{ color: 'brand.300' }}>Contact Us</ChakraLink>
-            <ChakraLink as={Link} href="/faqs" fontSize="sm" _hover={{ color: 'brand.300' }}>FAQs</ChakraLink>
-            <ChakraLink as={Link} href="/shipping-returns" fontSize="sm" _hover={{ color: 'brand.300' }}>Shipping & Returns</ChakraLink>
-            <ChakraLink as={Link} href="/warranty" fontSize="sm" _hover={{ color: 'brand.300' }}>Warranty Info</ChakraLink>
+            {/* CRITICAL FIX: Use ChakraLink as NextLink and passHref */}
+            <ChakraLink as={NextLink} href="/contact-us" fontSize="sm" _hover={{ color: 'brand.300' }}>Contact Us</ChakraLink>
+            <ChakraLink as={NextLink} href="/faqs" fontSize="sm" _hover={{ color: 'brand.300' }}>FAQs</ChakraLink>
+            <ChakraLink as={NextLink} href="/shipping-returns" fontSize="sm" _hover={{ color: 'brand.300' }}>Shipping & Returns</ChakraLink>
+            <ChakraLink as={NextLink} href="/warranty" fontSize="sm" _hover={{ color: 'brand.300' }}>Warranty Info</ChakraLink>
           </VStack>
 
           <VStack align="flex-start" spacing={3}>
             <Heading size="md" color="whiteAlpha.900">Explore</Heading>
-            <ChakraLink as={Link} href="/products" fontSize="sm" _hover={{ color: 'brand.300' }}>All Products</ChakraLink>
-            <ChakraLink as={Link} href="/products/categories" fontSize="sm" _hover={{ color: 'brand.300' }}>Categories</ChakraLink>
-            <ChakraLink as={Link} href="/products/hot-deals" fontSize="sm" _hover={{ color: 'brand.300' }}>Hot Deals</ChakraLink>
-            <ChakraLink as={Link} href="/blog" fontSize="sm" _hover={{ color: 'brand.300' }}>Blog</ChakraLink>
+            {/* CRITICAL FIX: Use ChakraLink as NextLink and passHref */}
+            <ChakraLink as={NextLink} href="/products" fontSize="sm" _hover={{ color: 'brand.300' }}>All Products</ChakraLink>
+            <ChakraLink as={NextLink} href="/products/categories" fontSize="sm" _hover={{ color: 'brand.300' }}>Categories</ChakraLink>
+            <ChakraLink as={NextLink} href="/products/hot-deals" fontSize="sm" _hover={{ color: 'brand.300' }}>Hot Deals</ChakraLink>
+            <ChakraLink as={NextLink} href="/blog" fontSize="sm" _hover={{ color: 'brand.300' }}>Blog</ChakraLink>
           </VStack>
 
           <VStack align="flex-start" spacing={3}>
             <Heading size="md" color="whiteAlpha.900">My Account</Heading>
-            <ChakraLink as={Link} href="/account" fontSize="sm" _hover={{ color: 'brand.300' }}>Account Dashboard</ChakraLink>
-            <ChakraLink as={Link} href="/account/orders" fontSize="sm" _hover={{ color: 'brand.300' }}>My Orders</ChakraLink>
-            <ChakraLink as={Link} href="/account/wishlist" fontSize="sm" _hover={{ color: 'brand.300' }}>Wishlist</ChakraLink>
-            <ChakraLink as={Link} href="/cart" fontSize="sm" _hover={{ color: 'brand.300' }}>Shopping Cart</ChakraLink>
+            {/* CRITICAL FIX: Use ChakraLink as NextLink and passHref */}
+            <ChakraLink as={NextLink} href="/account" fontSize="sm" _hover={{ color: 'brand.300' }}>Account Dashboard</ChakraLink>
+            <ChakraLink as={NextLink} href="/account/orders" fontSize="sm" _hover={{ color: 'brand.300' }}>My Orders</ChakraLink>
+            <ChakraLink as={NextLink} href="/account/wishlist" fontSize="sm" _hover={{ color: 'brand.300' }}>Wishlist</ChakraLink>
+            <ChakraLink as={NextLink} href="/cart" fontSize="sm" _hover={{ color: 'brand.300' }}>Shopping Cart</ChakraLink>
           </VStack>
         </SimpleGrid>
 
@@ -108,8 +114,9 @@ export function Footer() {
             {/* <IconButton aria-label="Facebook" icon={<FaFacebook />} variant="ghost" color="gray.200" _hover={{ color: 'brand.300' }} />
             <IconButton aria-label="Twitter" icon={<FaTwitter />} variant="ghost" color="gray.200" _hover={{ color: 'brand.300' }} />
             <IconButton aria-label="Instagram" icon={<FaInstagram />} variant="ghost" color="gray.200" _hover={{ color: 'brand.300' }} /> */}
-            <ChakraLink as={Link} href="/privacy-policy" fontSize="sm" _hover={{ color: 'brand.300' }}>Privacy Policy</ChakraLink>
-            <ChakraLink as={Link} href="/terms-of-service" fontSize="sm" _hover={{ color: 'brand.300' }}>Terms of Service</ChakraLink>
+            {/* CRITICAL FIX: Use ChakraLink as NextLink and passHref */}
+            <ChakraLink as={NextLink} href="/privacy-policy" fontSize="sm" _hover={{ color: 'brand.300' }}>Privacy Policy</ChakraLink>
+            <ChakraLink as={NextLink} href="/terms-of-service" fontSize="sm" _hover={{ color: 'brand.300' }}>Terms of Service</ChakraLink>
           </HStack>
         </Flex>
       </Container>

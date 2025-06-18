@@ -9,9 +9,10 @@ import {
   VStack,
   Stack,
   Divider,
+  Link as ChakraLink, // Import Chakra UI's Link and alias it
 } from '@chakra-ui/react';
 import Image from 'next/image';
-import Link from 'next/link';
+import NextLink from 'next/link'; // Renamed Next.js Link to NextLink for consistency
 
 import { useCartStore } from '@/store/useCartStore';
 
@@ -44,14 +45,15 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
   return (
     <Box maxW="sm" borderWidth="1px" borderRadius="lg" overflow="hidden" boxShadow="md" bg="white">
-      <Link href={`/products/${id}`} passHref>
-        <Box as="a" position="relative" height="200px" width="100%" display="block" _hover={{ cursor: 'pointer', opacity: 0.9 }}>
+      {/* CRITICAL FIX: Use ChakraLink as NextLink here to prevent <a> nesting */}
+      <ChakraLink as={NextLink} href={`/products/${id}`} passHref>
+        <Box position="relative" height="200px" width="100%" display="block" _hover={{ cursor: 'pointer', opacity: 0.9 }}>
           {imageUrl ? (
             <Image
               src={imageUrl}
               alt={name}
-              fill // Use fill instead of layout="fill"
-              style={{ objectFit: 'cover' }} // Use style prop instead of objectFit prop
+              fill
+              style={{ objectFit: 'cover' }}
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
               priority={false}
             />
@@ -61,13 +63,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             </Box>
           )}
         </Box>
-      </Link>
+      </ChakraLink>
 
       <Box p={6}>
         <Stack spacing={3}>
-          <Link href={`/products/${id}`} passHref>
-            <Heading as="a" size="md" noOfLines={1} _hover={{ textDecoration: 'underline' }}>{name}</Heading>
-          </Link>
+          {/* CRITICAL FIX: Use ChakraLink as NextLink for the Heading link */}
+          <ChakraLink as={NextLink} href={`/products/${id}`} passHref>
+            <Heading size="md" noOfLines={1} _hover={{ textDecoration: 'underline' }}>{name}</Heading>
+          </ChakraLink>
           <Text fontSize="sm" color="gray.600" noOfLines={2}>{description}</Text>
           <Text color="brand.600" fontSize="2xl" fontWeight="bold">
             {formatPrice(price)}

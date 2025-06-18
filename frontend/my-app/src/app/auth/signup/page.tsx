@@ -8,9 +8,9 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import Link from 'next/link';
+import NextLink from 'next/link'; // Alias Next.js Link for clarity with ChakraLink
 
 // Define your Django backend URL from environment variables
-// This should point to your Django API root (e.g., https://your-ngrok-url.ngrok-free.app/api/v1)
 const DJANGO_API_BASE_URL = process.env.NEXT_PUBLIC_DJANGO_API_URL || 'http://127.0.0.1:8000/api/v1';
 
 export default function SignupPage() {
@@ -21,7 +21,6 @@ export default function SignupPage() {
   const toast = useToast();
   const router = useRouter();
 
-  // Handler for email/password signup form submission
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsLoading(true);
@@ -39,19 +38,20 @@ export default function SignupPage() {
     }
 
     try {
-      // Make a direct POST request to your Django backend's registration endpoint
-      // Ensure path is /auth/registration/ as per CustomRegisterView setup
-      const signupRes = await fetch(`${DJANGO_API_BASE_URL}/auth/registration/`, {
+      // Make a direct POST request to your Django backend's signup endpoint
+      const signupRes = await fetch(`${DJANGO_API_BASE_URL}/auth/signup/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        credentials: 'include', // Important if your backend relies on cookies/sessions for some operations
+        credentials: 'include',
         body: JSON.stringify({
           email,
           password,
-          password_confirm: confirmPassword, // CRITICAL: Changed from 'password2' to 'password_confirm'
-                                          // to match CustomRegisterSerializer's expectation
+          password2: confirmPassword, // CRITICAL FIX: Changed from 'password_confirm' to 'password2'
+                                       // to match CustomRegisterSerializer's expectation from your provided backend code.
+                                       // Also consider adding first_name and last_name here if they become mandatory
+                                       // in your backend serializer.
         }),
       });
 
@@ -64,9 +64,8 @@ export default function SignupPage() {
           isClosable: true,
         });
 
-        // Attempt to automatically sign the user in after successful registration via NextAuth.js
         const signInResult = await signIn('credentials', {
-          redirect: false, // Do not redirect automatically
+          redirect: false,
           email,
           password,
         });
@@ -80,7 +79,7 @@ export default function SignupPage() {
             duration: 5000,
             isClosable: true,
           });
-          router.push('/auth/login'); // Redirect to login page if auto-login fails
+          router.push('/auth/login');
         } else if (signInResult?.ok) {
           toast({
             title: 'Login Successful',
@@ -89,53 +88,42 @@ export default function SignupPage() {
             duration: 3000,
             isClosable: true,
           });
-          router.push('/'); // Redirect to the home page after successful signup and auto-login
+          router.push('/');
         }
       } else {
-        // Handle non-2xx responses from Django
         const errorData = await signupRes.json();
         console.error('Django signup failed (Status:', signupRes.status, '):', errorData);
         let errorMessage = 'Signup failed. Please check your details.';
 
-        // --- IMPROVED: Specific handling for "email already exists" error ---
-        if (signupRes.status === 400 && errorData.email && Array.isArray(errorData.email) && errorData.email.includes('A user with that email already exists.')) {
-            errorMessage = 'An account with this email already exists. Please login instead.';
-            toast({
-                title: 'Account Exists',
-                description: errorMessage,
-                status: 'info', // Use 'info' or 'warning' for existing accounts
-                duration: 7000,
-                isClosable: true,
-            });
-            router.push('/auth/login'); // Immediately redirect to login page
-            return; // Stop further processing in this block
+        // Specific handling for "email already exists" or other common errors
+        if (signupRes.status === 400) {
+            if (errorData.email && Array.isArray(errorData.email) && errorData.email.includes('A user with that email already exists.')) {
+                errorMessage = 'An account with this email already exists. Please login instead.';
+                toast({ title: 'Account Exists', description: errorMessage, status: 'info', duration: 7000, isClosable: true });
+                router.push('/auth/login');
+                return;
+            } else if (errorData.password && Array.isArray(errorData.password)) {
+                errorMessage = `Password: ${errorData.password[0]}`;
+            } else if (errorData.password2 && Array.isArray(errorData.password2)) { // Check for password2 errors
+                errorMessage = `Confirm Password: ${errorData.password2[0]}`;
+            } else if (errorData.non_field_errors && Array.isArray(errorData.non_field_errors)) {
+                errorMessage = errorData.non_field_errors[0];
+            } else if (typeof errorData === 'object' && errorData !== null) {
+                errorMessage = Object.values(errorData).flat().filter(Boolean).join(', ');
+                if (errorMessage === '') errorMessage = 'Signup failed due to invalid data.';
+            } else if (typeof errorData === 'string') {
+                errorMessage = errorData;
+            }
+        } else if (signupRes.status === 405) { // Method Not Allowed - indicates a URL/method mismatch
+            errorMessage = 'Signup not allowed. Server endpoint configuration issue.';
         }
-        // --- END IMPROVED ---
 
-        // General parsing for other Django REST framework errors
-        if (errorData.email && Array.isArray(errorData.email)) {
-          errorMessage = `Email: ${errorData.email[0]}`;
-        } else if (errorData.password && Array.isArray(errorData.password)) {
-          errorMessage = `Password: ${errorData.password[0]}`;
-        } else if (errorData.password_confirm && Array.isArray(errorData.password_confirm)) {
-            errorMessage = `Confirm Password: ${errorData.password_confirm[0]}`;
-        } else if (errorData.non_field_errors && Array.isArray(errorData.non_field_errors)) {
-          errorMessage = errorData.non_field_errors[0];
-        } else if (typeof errorData === 'object' && errorData !== null) {
-          // Fallback for any other errors returned as an object (e.g., if Django sends a generic error object)
-          // Combines all messages from object properties into a single string
-          errorMessage = Object.values(errorData).flat().filter(Boolean).join(', ');
-          if (errorMessage === '') errorMessage = 'Signup failed due to invalid data.'; // Fallback if values are empty
-        } else if (typeof errorData === 'string') {
-          // Fallback for raw string errors
-          errorMessage = errorData;
-        }
 
         toast({
           title: 'Signup Failed',
           description: errorMessage,
           status: 'error',
-          duration: 7000, // Longer duration for detailed errors
+          duration: 7000,
           isClosable: true,
         });
       }
@@ -153,12 +141,9 @@ export default function SignupPage() {
     }
   };
 
-  // Handler for Google Sign-up button
   const handleGoogleSignUp = () => {
     setIsLoading(true);
-    // Initiate Google sign-up flow via NextAuth.js
-    // The social token conversion logic is handled in `src/app/api/auth/[...nextauth]/route.ts`
-    signIn('google', { callbackUrl: '/' }); // Redirect to home on successful Google OAuth
+    signIn('google', { callbackUrl: '/' });
   };
 
   return (
@@ -171,71 +156,36 @@ export default function SignupPage() {
           <Text fontSize="md" textAlign="center" color="gray.600">
             Create an account to start shopping.
           </Text>
-
           <form onSubmit={handleSubmit}>
             <VStack spacing={4}>
               <FormControl id="email" isRequired>
-                <FormLabel>Email address</FormLabel>
-                <Input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your email"
-                  autoComplete="email"
-                />
+                <FormLabel>Email</FormLabel>
+                <Input type="email" value={email} onChange={e => setEmail(e.target.value)} />
               </FormControl>
-
               <FormControl id="password" isRequired>
                 <FormLabel>Password</FormLabel>
-                <Input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
-                  autoComplete="new-password"
-                />
-                <FormHelperText>
-                  Password must be at least 8 characters.
-                </FormHelperText>
+                <Input type="password" value={password} onChange={e => setPassword(e.target.value)} />
+                <FormHelperText>At least 8 characters.</FormHelperText>
               </FormControl>
-
               <FormControl id="confirm-password" isRequired>
                 <FormLabel>Confirm Password</FormLabel>
-                <Input
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Confirm your password"
-                  autoComplete="new-password"
-                />
+                <Input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
               </FormControl>
-
-              <MyButton
-                type="submit"
-                width="full"
-                isLoading={isLoading}
-                isDisabled={isLoading}
-              >
+              <MyButton type="submit" isLoading={isLoading} width="full">
                 Sign Up
               </MyButton>
             </VStack>
           </form>
-
-          <Text textAlign="center" mt={4} mb={4}>
-            Or
-          </Text>
-
+          <Text textAlign="center">Or</Text>
           <GoogleSignInButton onClick={handleGoogleSignUp} isLoading={isLoading}>
             Sign Up with Google
           </GoogleSignInButton>
-
-          <Text fontSize="sm" textAlign="center" mt={4}>
+          <Text textAlign="center">
             Already have an account?{' '}
-            <Link href="/auth/login" passHref> {/* CRITICAL: Added passHref to Link component */}
-              <Text as="a" color="brand.500" fontWeight="bold">
-                Sign In
-              </Text>
-            </Link>
+            {/* Correct NextLink and Chakra Text as link for consistency */}
+            <NextLink href="/auth/login" passHref>
+              <Text as="a" color="brand.500" fontWeight="bold">Sign In</Text>
+            </NextLink>
           </Text>
         </VStack>
       </Box>
