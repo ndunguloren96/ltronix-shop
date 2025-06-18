@@ -1,5 +1,5 @@
-// src/app/products/client_page.tsx
-'use client';
+// /var/www/ltronix-shop/frontend/my-app/src/app/products/client_page.tsx
+'use client'; // This is a client component
 
 import React from 'react';
 import {
@@ -24,13 +24,21 @@ import {
   InputGroup,
   InputLeftElement,
   Button,
+  Spinner, // Explicitly imported for loading state
+  Center,  // Explicitly imported for layout
+  Alert,   // Explicitly imported for error state
+  AlertIcon,
+  AlertDescription,
 } from '@chakra-ui/react';
 import { ProductCard } from '@/components/ProductCard';
 import { SearchIcon } from '@chakra-ui/icons';
 import Fuse from 'fuse.js';
 
+import { useQuery } from '@tanstack/react-query'; // Import useQuery
+import { fetchProducts, Product } from '../../api/products'; // <<-- CORRECTED PATH HERE -->>
+
+// This type definition must also exist in src/api/products.ts
 // Define the Product type based on your Django API response
-// Ensure these fields match your Django Product model and serializer
 export interface Product {
   id: string; // Django PK/ID, ensure it's treated as a string for consistency
   name: string;
@@ -38,47 +46,54 @@ export interface Product {
   description: string;
   image_url?: string; // Optional image URL from Django
   category: string; // Assuming your Django product has a category field
-  brand: string;   // Assuming your Django product has a brand field
-}
-
-interface ProductsClientPageProps {
-  initialProducts: Product[];
+  brand: string;    // Assuming your Django product has a brand field
 }
 
 const getNumericPrice = (priceString: string): number => {
-  // Handles 'Ksh180,000.00' format from mock data, but will need adjustment if Django returns pure numbers/decimals
-  // If Django returns a clean number string, this can be simpler: return parseFloat(priceString);
-  return parseFloat(priceString.replace('Ksh', '').replace(/,/g, ''));
+  const cleanedPrice = priceString.replace(/[^0-9.]/g, '');
+  return parseFloat(cleanedPrice);
 };
 
 
 const fuseOptions = {
-  keys: ['name', 'category', 'brand', 'description'], // Added description for better search
+  keys: ['name', 'category', 'brand', 'description'],
   threshold: 0.3,
   includeScore: true,
 };
 
 const PRODUCTS_PER_PAGE = 8; // Define how many products to show initially / load per click
 
-export default function ProductsClientPage({ initialProducts }: ProductsClientPageProps) {
-  // Use initialProducts as the source of truth for all products
-  const allProducts = React.useMemo(() => initialProducts, [initialProducts]);
-
-  // Filter states
-  const [selectedCategories, setSelectedCategories] = React.useState<string[]>([]);
-  const [priceRange, setPriceRange] = React.useState<number[]>(() => {
-    // Initialize price range based on actual fetched products
-    if (allProducts.length === 0) return [0, 100000]; // Default if no products
-    const prices = allProducts.map(p => getNumericPrice(p.price));
-    return [Math.min(...prices), Math.max(...prices)];
+export default function ProductsClientPage() {
+  const { data: products, isLoading, isError, error } = useQuery<Product[], Error>({
+    queryKey: ['products'],
+    queryFn: fetchProducts,
   });
+
+  const allCategories = React.useMemo(() =>
+    products ? Array.from(new Set(products.map(p => p.category))) : [],
+    [products]
+  );
+  const allBrands = React.useMemo(() =>
+    products ? Array.from(new Set(products.map(p => p.brand))) : [],
+    [products]
+  );
+
+  const maxPrice = React.useMemo(() =>
+    products && products.length > 0 ? Math.max(...products.map(p => getNumericPrice(p.price))) : 100000,
+    [products]
+  );
+  const minPrice = React.useMemo(() =>
+    products && products.length > 0 ? Math.min(...products.map(p => getNumericPrice(p.price))) : 0,
+    [products]
+  );
+
+  const [selectedCategories, setSelectedCategories] = React.useState<string[]>([]);
+  const [priceRange, setPriceRange] = React.useState<number[]>(() => [minPrice, maxPrice]);
   const [selectedBrands, setSelectedBrands] = React.useState<string[]>([]);
 
-  // Search states
   const [searchTerm, setSearchTerm] = React.useState<string>('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = React.useState<string>('');
 
-  // Pagination state
   const [visibleProductsCount, setVisibleProductsCount] = React.useState(PRODUCTS_PER_PAGE);
 
   const debounceTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
@@ -97,31 +112,20 @@ export default function ProductsClientPage({ initialProducts }: ProductsClientPa
     };
   }, [searchTerm]);
 
-  // Reset visible products count whenever filters or search terms change
+  React.useEffect(() => {
+    setPriceRange([minPrice, maxPrice]);
+  }, [minPrice, maxPrice]);
+
   React.useEffect(() => {
     setVisibleProductsCount(PRODUCTS_PER_PAGE);
   }, [debouncedSearchTerm, selectedCategories, priceRange, selectedBrands]);
 
-  // Re-initialize Fuse.js when allProducts changes (i.e., when new initialProducts are loaded)
-  const fuse = React.useMemo(() => new Fuse(allProducts, fuseOptions), [allProducts]);
-
-  // Derive filter options dynamically from allProducts
-  const allCategories = React.useMemo(() => Array.from(new Set(allProducts.map(p => p.category))), [allProducts]);
-  const allBrands = React.useMemo(() => Array.from(new Set(allProducts.map(p => p.brand))), [allProducts]);
-  const maxPrice = React.useMemo(() => allProducts.length > 0 ? Math.max(...allProducts.map(p => getNumericPrice(p.price))) : 180000, [allProducts]);
-  const minPrice = React.useMemo(() => allProducts.length > 0 ? Math.min(...allProducts.map(p => getNumericPrice(p.price))) : 0, [allProducts]);
-
-  // Adjust priceRange if maxPrice changes (e.g., if new products loaded have higher prices)
-  React.useEffect(() => {
-    // Only adjust if current max is less than new max, or vice-versa
-    if (priceRange[1] > maxPrice || priceRange[0] < minPrice) {
-      setPriceRange([minPrice, maxPrice]);
-    }
-  }, [minPrice, maxPrice]);
-
+  const fuse = React.useMemo(() => new Fuse(products || [], fuseOptions), [products]);
 
   const filteredAndSearchedProducts = React.useMemo(() => {
-    let productsToFilter = allProducts;
+    if (!products) return [];
+
+    let productsToFilter = products;
 
     if (debouncedSearchTerm) {
       const searchResults = fuse.search(debouncedSearchTerm);
@@ -135,7 +139,7 @@ export default function ProductsClientPage({ initialProducts }: ProductsClientPa
       const brandMatch = selectedBrands.length === 0 || selectedBrands.includes(product.brand);
       return categoryMatch && priceMatch && brandMatch;
     });
-  }, [debouncedSearchTerm, selectedCategories, priceRange, selectedBrands, fuse, allProducts]);
+  }, [debouncedSearchTerm, selectedCategories, priceRange, selectedBrands, fuse, products]);
 
   const handleCategoryChange = (category: string) => {
     setSelectedCategories(prev =>
@@ -153,17 +157,65 @@ export default function ProductsClientPage({ initialProducts }: ProductsClientPa
     );
   };
 
-  // Handler for "Load More" button
   const handleLoadMore = () => {
     setVisibleProductsCount(prevCount => prevCount + PRODUCTS_PER_PAGE);
   };
 
-  // Determine products to display based on visibleProductsCount
   const productsToDisplay = filteredAndSearchedProducts.slice(0, visibleProductsCount);
 
-  // Check if there are more products to load
   const hasMoreProducts = visibleProductsCount < filteredAndSearchedProducts.length;
 
+  if (isLoading) {
+    return (
+      <Center height="50vh">
+        <Spinner size="xl" thickness="4px" speed="0.65s" emptyColor="gray.200" color="brand.500" />
+        <Text ml={4} fontSize="lg" color="gray.600">Loading products...</Text>
+      </Center>
+    );
+  }
+
+  if (isError) {
+    return (
+      <Center height="50vh" p={4}>
+        <Alert
+          status="error"
+          variant="subtle"
+          flexDirection="column"
+          alignItems="center"
+          justifyContent="center"
+          textAlign="center"
+          height="200px"
+          borderRadius="lg"
+          boxShadow="md"
+        >
+          <AlertIcon boxSize="40px" mr={0} />
+          <Heading size="md" mt={4} mb={1}>Failed to load products</Heading>
+          <AlertDescription maxWidth="sm">
+            {error?.message || 'An unexpected error occurred while fetching products.'}
+            <br />
+            Please ensure your Django backend is running and reachable.
+            <br />
+            <Button onClick={() => window.location.reload()} mt={4} colorScheme="brand">
+              Try Reloading Page
+            </Button>
+          </AlertDescription>
+        </Alert>
+      </Center>
+    );
+  }
+
+  if (!products || products.length === 0) {
+    return (
+      <Center height="50vh">
+        <Box textAlign="center" p={4}>
+          <Heading size="lg" mb={4} color="gray.700">No Products Found</Heading>
+          <Text fontSize="md" color="gray.500">
+            It seems there are no products available at the moment or your filters/search yielded no results.
+          </Text>
+        </Box>
+      </Center>
+    );
+  }
 
   return (
     <Container maxW="7xl" py={8}>
@@ -215,16 +267,20 @@ export default function ProductsClientPage({ initialProducts }: ProductsClientPa
               </h2>
               <AccordionPanel pb={4}>
                 <VStack align="flex-start">
-                  {allCategories.map(category => (
-                    <Checkbox
-                      key={category}
-                      isChecked={selectedCategories.includes(category)}
-                      onChange={() => handleCategoryChange(category)}
-                      colorScheme="brand"
-                    >
-                      {category}
-                    </Checkbox>
-                  ))}
+                  {allCategories.length === 0 && !isLoading && !isError ? (
+                      <Text fontSize="sm" color="gray.500">No categories available.</Text>
+                  ) : (
+                      allCategories.map(category => (
+                          <Checkbox
+                              key={category}
+                              isChecked={selectedCategories.includes(category)}
+                              onChange={() => handleCategoryChange(category)}
+                              colorScheme="brand"
+                          >
+                              {category}
+                          </Checkbox>
+                      ))
+                  )}
                 </VStack>
               </AccordionPanel>
             </AccordionItem>
@@ -240,28 +296,35 @@ export default function ProductsClientPage({ initialProducts }: ProductsClientPa
                 </AccordionButton>
               </h2>
               <AccordionPanel pb={4}>
-                <Box pt={4} pb={2}>
-                  <RangeSlider
-                    aria-label={['min price', 'max price']}
-                    defaultValue={[minPrice, maxPrice]}
-                    min={minPrice}
-                    max={maxPrice}
-                    step={100}
-                    value={priceRange}
-                    onChangeEnd={setPriceRange}
-                    colorScheme="brand"
-                  >
-                    <RangeSliderTrack>
-                      <RangeSliderFilledTrack />
-                    </RangeSliderTrack>
-                    <RangeSliderThumb index={0} />
-                    <RangeSliderThumb index={1} />
-                  </RangeSlider>
-                  <Flex justifyContent="space-between" mt={2}>
-                    <Text fontSize="sm">Ksh{priceRange[0].toLocaleString()}</Text>
-                    <Text fontSize="sm">Ksh{priceRange[1].toLocaleString()}</Text>
-                  </Flex>
-                </Box>
+                {minPrice === maxPrice && products && products.length > 0 ? (
+                    <Text fontSize="sm" color="gray.500">All products are Ksh{minPrice.toLocaleString()}.</Text>
+                ) : products && products.length > 0 ? (
+                    <Box pt={4} pb={2}>
+                        <RangeSlider
+                            aria-label={['min price', 'max price']}
+                            defaultValue={[minPrice, maxPrice]}
+                            min={minPrice}
+                            max={maxPrice}
+                            step={100}
+                            value={priceRange}
+                            onChangeEnd={setPriceRange}
+                            onChange={setPriceRange}
+                            colorScheme="brand"
+                        >
+                            <RangeSliderTrack>
+                                <RangeSliderFilledTrack />
+                            </RangeSliderTrack>
+                            <RangeSliderThumb index={0} />
+                            <RangeSliderThumb index={1} />
+                        </RangeSlider>
+                        <Flex justifyContent="space-between" mt={2}>
+                            <Text fontSize="sm">Ksh{priceRange[0].toLocaleString()}</Text>
+                            <Text fontSize="sm">Ksh{priceRange[1].toLocaleString()}</Text>
+                        </Flex>
+                    </Box>
+                ) : (
+                    <Text fontSize="sm" color="gray.500">Price range not available.</Text>
+                )}
               </AccordionPanel>
             </AccordionItem>
 
@@ -277,16 +340,20 @@ export default function ProductsClientPage({ initialProducts }: ProductsClientPa
               </h2>
               <AccordionPanel pb={4}>
                 <VStack align="flex-start">
-                  {allBrands.map(brand => (
-                    <Checkbox
-                      key={brand}
-                      isChecked={selectedBrands.includes(brand)}
-                      onChange={() => handleBrandChange(brand)}
-                      colorScheme="brand"
-                    >
-                      {brand}
-                    </Checkbox>
-                  ))}
+                  {allBrands.length === 0 && !isLoading && !isError ? (
+                      <Text fontSize="sm" color="gray.500">No brands available.</Text>
+                  ) : (
+                      allBrands.map(brand => (
+                          <Checkbox
+                              key={brand}
+                              isChecked={selectedBrands.includes(brand)}
+                              onChange={() => handleBrandChange(brand)}
+                              colorScheme="brand"
+                          >
+                              {brand}
+                          </Checkbox>
+                      ))
+                  )}
                 </VStack>
               </AccordionPanel>
             </AccordionItem>
@@ -312,7 +379,7 @@ export default function ProductsClientPage({ initialProducts }: ProductsClientPa
                     id={product.id}
                     name={product.name}
                     price={product.price}
-                    imageUrl={product.image_url} // Use image_url from fetched data
+                    imageUrl={product.image_url}
                   />
                 ))}
               </SimpleGrid>
