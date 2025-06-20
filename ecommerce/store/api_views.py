@@ -1,131 +1,191 @@
 # ecommerce/store/api_views.py
-from rest_framework import viewsets, permissions, status
+from rest_framework import viewsets, mixins, status
 from rest_framework.response import Response
-from rest_framework.decorators import action # Import action for custom viewset actions
+from rest_framework.decorators import action
+from rest_framework import permissions # Import permissions
+from django.db import transaction
 from django.shortcuts import get_object_or_404
-from django.db import transaction # For atomic operations
+from django.db.models import F
+from django.utils import timezone # Import timezone for date_ordered update
 
-from .models import Product, Order, OrderItem, Customer
-from .serializers import ProductSerializer, OrderSerializer, WritableOrderItemSerializer, ReadOnlyOrderItemSerializer
+from .models import Product, Order, OrderItem, Customer # Ensure Customer is imported
+from .serializers import ProductSerializer, OrderSerializer, ReadOnlyOrderItemSerializer, WritableOrderItemSerializer # Corrected imports
 
 class ProductViewSet(viewsets.ReadOnlyModelViewSet):
     """
-    A ViewSet for listing and retrieving product instances.
-    Products are generally read-only for public API access.
-    Management (create/update/delete) typically happens via Django Admin.
+    API endpoint that allows products to be viewed.
+    Read-only as products are managed via Django Admin.
     """
-    queryset = Product.objects.all()
+    queryset = Product.objects.all().order_by('name')
     serializer_class = ProductSerializer
-    permission_classes = [permissions.AllowAny] # Allow any user (authenticated or not) to read products
+    permission_classes = [permissions.AllowAny] # Ensure public access to product listings
 
-    def get_serializer_context(self):
-        """
-        Passes the request context to the serializer.
-        This is essential for `image_url` to generate absolute URLs (`request.build_absolute_uri`).
-        """
-        return {'request': self.request}
-
-class OrderViewSet(viewsets.ModelViewSet):
+class OrderViewSet(
+    mixins.CreateModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.UpdateModelMixin,
+    mixins.DestroyModelMixin,
+    mixins.ListModelMixin, # Add ListModelMixin to allow listing orders (for authenticated users)
+    viewsets.GenericViewSet
+):
     """
-    A ViewSet for managing customer orders.
-    Requires authentication for all actions.
-    Filters orders to show only those belonging to the authenticated user.
+    API endpoint that allows orders (and shopping carts) to be managed.
+    - An 'Order' represents a shopping cart when `complete` is False.
+    - For authenticated users, the cart is linked to `request.user`.
+    - For unauthenticated (guest) users, the cart is linked to `session_key`.
     """
-    queryset = Order.objects.all()
+    queryset = Order.objects.all().order_by('-date_ordered') # Order by most recent
     serializer_class = OrderSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    # CRITICAL CHANGE: AllowAny to support guest users.
+    # Permissions will be handled manually within methods where necessary.
+    permission_classes = [permissions.AllowAny]
 
     def get_queryset(self):
         """
-        Filters orders by the authenticated user's customer profile.
-        A user can only view their own orders/carts.
-        Admins/staff can view all orders (by default behavior of ModelViewSet
-        if this method isn't overridden for superusers).
+        Filters orders based on the authenticated user or session key.
+        - Authenticated users see their complete orders and active cart.
+        - Unauthenticated users (guests) see only their active cart based on session_key.
         """
         user = self.request.user
-        if user.is_authenticated:
-            customer, created = Customer.objects.get_or_create(user=user)
-            return Order.objects.filter(customer=customer).order_by('-date_ordered')
-        return Order.objects.none() # If user is not authenticated
+        session_key = self.request.headers.get('X-Session-Key') # Get session_key from header
 
-    def get_serializer(self, *args, **kwargs):
-        """
-        Pass the request context to the serializer.
-        """
-        kwargs['context'] = {'request': self.request}
-        return super().get_serializer(*args, **kwargs)
+        if user.is_authenticated:
+            # Authenticated users can see their own orders (complete and incomplete)
+            customer, created = Customer.objects.get_or_create(user=user) # Ensure customer exists for user
+            return self.queryset.filter(customer=customer)
+        elif session_key:
+            # Unauthenticated users can only see their own incomplete order (cart) via session_key
+            return self.queryset.filter(session_key=session_key, complete=False)
+        return self.queryset.none() # No orders for unauthenticated users without session_key
+
 
     def create(self, request, *args, **kwargs):
         """
-        Handles creating a new order (cart) or updating an existing one.
-        Expects 'order_items_input' containing a list of {product_id, quantity} dicts.
+        Creates or updates a shopping cart (Order with complete=False).
+        Handles both authenticated and unauthenticated users.
         """
         user = request.user
-        if not user.is_authenticated:
-            return Response({"detail": "Authentication required to create or update cart."},
-                            status=status.HTTP_401_UNAUTHORIZED)
+        session_key = request.headers.get('X-Session-Key')
+        order_items_input = request.data.get('order_items_input', [])
 
-        customer, created = Customer.objects.get_or_create(user=user)
-        # Attempt to find an existing incomplete order (cart) for the user
-        existing_cart = Order.objects.filter(customer=customer, complete=False).first()
-
-        # Use the serializer for validation.
-        # When creating a new cart, the serializer will handle initial validation.
-        # When updating, we use the existing instance.
-        if existing_cart:
-            serializer = self.get_serializer(existing_cart, data=request.data, partial=True)
-        else:
-            serializer = self.get_serializer(data=request.data)
-
-        serializer.is_valid(raise_exception=True)
+        if not user.is_authenticated and not session_key:
+            return Response(
+                {"detail": "Authentication credentials or a session key must be provided."},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
 
         with transaction.atomic():
-            if existing_cart:
-                # Update the existing cart
-                order = self.perform_update(serializer)
+            order = None
+            customer = None
+            if user.is_authenticated:
+                customer, created = Customer.objects.get_or_create(user=user)
+                order, created = Order.objects.get_or_create(customer=customer, complete=False)
+                # If a guest cart exists for this user (they just logged in), merge it
+                if session_key:
+                    guest_order = Order.objects.filter(session_key=session_key, complete=False).first()
+                    if guest_order:
+                        # Merge guest_order items into the authenticated order
+                        for guest_item in guest_order.orderitem_set.all():
+                            existing_item = order.orderitem_set.filter(product=guest_item.product).first()
+                            if existing_item:
+                                # Use F() for atomic update to avoid race conditions
+                                existing_item.quantity = F('quantity') + guest_item.quantity
+                                existing_item.save()
+                            else:
+                                OrderItem.objects.create(
+                                    product=guest_item.product,
+                                    order=order,
+                                    quantity=guest_item.quantity
+                                )
+                        guest_order.delete() # Delete the merged guest cart
+                        print(f"Merged guest cart ({session_key}) into user's cart ({user.email})")
+
+            elif session_key:
+                order, created = Order.objects.get_or_create(session_key=session_key, complete=False)
             else:
-                # Create a new cart
-                order = self.perform_create(serializer) # serializer.save(customer=customer, complete=False) is handled by serializer.create
+                # This case should be caught by the initial check, but as a fallback
+                return Response(
+                    {"detail": "Invalid request. Must be authenticated or provide a session key."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
-            # After saving the order, we need to manually process the nested order_items_input.
-            # The serializer's create/update methods already handle this due to the `items` source.
-            # However, if your frontend sends the items as `order_items_input`,
-            # we need to pass that to serializer.save(). Let's re-verify the serializer `source` logic.
+            # Update order items based on `order_items_input`
+            # This logic updates or creates order items. Items not in `order_items_input` will be removed.
+            current_product_ids_in_payload = [item.get('product_id') for item in order_items_input]
+            
+            # Remove items from the backend cart that are not in the incoming payload
+            # This handles deletions from the frontend cart
+            order.orderitem_set.exclude(product__id__in=current_product_ids_in_payload).delete()
 
-            # Re-fetch the order to get updated calculated properties like get_cart_total
+            for item_data in order_items_input:
+                product_id = item_data.get('product_id')
+                quantity = item_data.get('quantity')
+
+                if not product_id or quantity is None or quantity < 0: # Ensure quantity is non-negative
+                    continue
+
+                product = get_object_or_404(Product, id=product_id)
+
+                if quantity == 0: # If quantity is 0, delete the item
+                    order.orderitem_set.filter(product=product).delete()
+                    continue
+
+                # Update or create the order item
+                order_item, created = OrderItem.objects.update_or_create(
+                    order=order,
+                    product=product,
+                    defaults={'quantity': quantity}
+                )
+            
+            # Re-fetch the order to get accurate calculated properties (get_cart_total, get_cart_items)
+            # after all item modifications
             order.refresh_from_db()
-            response_serializer = self.get_serializer(order) # Use the read-only serializer for response
 
-        return Response(response_serializer.data, status=status.HTTP_200_OK if existing_cart else status.HTTP_201_CREATED)
+            serializer = self.get_serializer(order)
+            return Response(serializer.data, status=status.HTTP_200_OK if not created else status.HTTP_201_CREATED)
 
 
-    def perform_create(self, serializer):
+    @action(detail=False, methods=['get'])
+    def my_cart(self, request):
         """
-        Custom perform_create to set customer and initial complete status.
-        The nested item creation is handled by the serializer's `create` method.
+        Retrieves the authenticated user's current incomplete order (shopping cart)
+        or a guest user's cart based on session_key.
         """
-        user = self.request.user
-        customer, created = Customer.objects.get_or_create(user=user)
-        # Ensure the order is created as incomplete (a cart)
-        return serializer.save(customer=customer, complete=False)
+        user = request.user
+        session_key = request.headers.get('X-Session-Key')
 
+        order = None
+        customer = None
+        if user.is_authenticated:
+            customer, created = Customer.objects.get_or_create(user=user)
+            order = Order.objects.filter(customer=customer, complete=False).first()
+        elif session_key:
+            order = Order.objects.filter(session_key=session_key, complete=False).first()
 
-    def perform_update(self, serializer):
-        """
-        Custom perform_update to manage nested order items.
-        The serializer's `update` method is designed to handle this.
-        """
-        return serializer.save() # The serializer's update method handles items processing
+        if not order:
+            # If no active cart exists, return an empty cart representation
+            # Create a dummy order object to serialize for consistent response structure
+            return Response(
+                self.get_serializer(Order(customer=customer, session_key=session_key, complete=False)).data,
+                status=status.HTTP_200_OK
+            )
+        serializer = self.get_serializer(order)
+        return Response(serializer.data)
 
-    # Custom action to "complete" an order (i.e., checkout the cart)
-    @action(detail=True, methods=['post'], url_path='complete')
-    def complete_order(self, request, pk=None):
+    @action(detail=True, methods=['post'])
+    def complete_order(self, request, pk=None): # Renamed to complete_order to match previous immersive
         """
         Marks an order as complete (checkout).
-        Expects the order ID in the URL.
+        Only authenticated users can complete an order.
         """
-        order = get_object_or_404(Order, pk=pk, customer=request.user.customer, complete=False)
-        
+        if not request.user.is_authenticated:
+            return Response(
+                {"detail": "Authentication required to complete an order."},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
+        order = get_object_or_404(Order, pk=pk, customer=request.user, complete=False) # Ensure it's their incomplete order
+
         # Additional validation before completing:
         # - Check if cart is empty
         if not order.orderitem_set.exists():
@@ -138,12 +198,12 @@ class OrderViewSet(viewsets.ModelViewSet):
                     {"detail": f"Not enough stock for {item.product.name}. Available: {item.product.stock}, Requested: {item.quantity}"},
                     status=status.HTTP_400_BAD_REQUEST
                 )
-        
+
         with transaction.atomic():
             order.complete = True
-            # Generate a transaction ID (you might integrate with a payment gateway here)
-            import uuid
-            order.transaction_id = str(uuid.uuid4())
+            order.date_ordered = timezone.now() # Set order completion time
+            import uuid # Import uuid here if not already at top
+            order.transaction_id = str(uuid.uuid4()) # Generate a unique transaction ID
             order.save()
 
             # Optional: Decrease product stock
@@ -151,38 +211,95 @@ class OrderViewSet(viewsets.ModelViewSet):
                 item.product.stock -= item.quantity
                 item.product.save()
 
-            serializer = self.get_serializer(order)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-
-    # Custom action to get the active cart for the authenticated user
-    @action(detail=False, methods=['get'], url_path='my_cart')
-    def my_cart(self, request):
-        """
-        Retrieves the authenticated user's active shopping cart (incomplete order).
-        If no cart exists, returns an empty object or a 404.
-        """
-        user = request.user
-        if not user.is_authenticated:
-            return Response({"detail": "Authentication required to view cart."},
-                            status=status.HTTP_401_UNAUTHORIZED)
-
-        customer, created = Customer.objects.get_or_create(user=user)
-        cart = Order.objects.filter(customer=customer, complete=False).first()
-
-        if not cart:
-            # If no active cart exists, return a structured empty cart response
-            return Response({
-                "id": None,
-                "customer": customer.id,
-                "date_ordered": None,
-                "complete": False,
-                "transaction_id": None,
-                "get_cart_total": "0.00",
-                "get_cart_items": 0,
-                "shipping": False,
-                "items": []
-            }, status=status.HTTP_200_OK) # Return 200 with empty data, not 404
-
-        serializer = self.get_serializer(cart)
+        serializer = self.get_serializer(order)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    # Override list method to ensure only authenticated users can see their _history_ of orders
+    def list(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return Response(
+                {"detail": "Authentication required to view order history."},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        # Ensure only complete orders are listed as order history
+        customer, created = Customer.objects.get_or_create(user=request.user)
+        queryset = self.filter_queryset(self.get_queryset()).filter(complete=True, customer=customer)
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    # Override retrieve method to ensure users can only retrieve their own orders
+    # Unauthenticated users can retrieve their cart via my_cart, but not arbitrary order IDs
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        user = request.user
+        session_key = request.headers.get('X-Session-Key')
+
+        # Allow retrieval if authenticated user owns it, or if it's an incomplete guest cart with matching session_key
+        if user.is_authenticated and instance.customer == user:
+            serializer = self.get_serializer(instance)
+            return Response(serializer.data)
+        elif not user.is_authenticated and instance.session_key == session_key and not instance.complete:
+            serializer = self.get_serializer(instance)
+            return Response(serializer.data)
+        else:
+            return Response(
+                {"detail": "You do not have permission to access this order."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+    # Override update/destroy to ensure users can only update/destroy their own incomplete carts
+    # Completed orders should generally not be updatable/destroyable via API
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        user = request.user
+        session_key = request.headers.get('X-Session-Key')
+
+        if instance.complete: # Cannot update a completed order
+            return Response(
+                {"detail": "Cannot update a completed order."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        if (user.is_authenticated and instance.customer == user) or \
+           (not user.is_authenticated and instance.session_key == session_key):
+            # If order_items_input is provided, re-use the create/update logic for items.
+            # Otherwise, perform standard update.
+            if 'order_items_input' in request.data:
+                # We need to re-validate the order items using WritableOrderItemSerializer
+                # before passing to the logic within `create` method.
+                order_items_serializer = WritableOrderItemSerializer(data=request.data['order_items_input'], many=True, context={'request': request})
+                order_items_serializer.is_valid(raise_exception=True)
+                # Pass validated data to create method for processing items
+                return self.create(request, *args, **kwargs) # This will handle updates/deletes of items
+
+            # If no order_items_input, perform a partial update on other fields
+            serializer = self.get_serializer(instance, data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data)
+        else:
+            return Response(
+                {"detail": "You do not have permission to update this order."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        user = request.user
+        session_key = request.headers.get('X-Session-Key')
+
+        if instance.complete: # Cannot delete a completed order
+            return Response(
+                {"detail": "Cannot delete a completed order."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        if (user.is_authenticated and instance.customer == user) or \
+           (not user.is_authenticated and instance.session_key == session_key):
+            return super().destroy(request, *args, **kwargs)
+        else:
+            return Response(
+                {"detail": "You do not have permission to delete this order."},
+                status=status.HTTP_403_FORBIDDEN
+            )
 

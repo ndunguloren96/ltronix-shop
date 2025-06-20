@@ -78,6 +78,9 @@ class Order(models.Model):
     date_ordered = models.DateTimeField(auto_now_add=True)
     complete = models.BooleanField(default=False) # False means it's a cart, True means it's a completed order
     transaction_id = models.CharField(max_length=100, null=True)
+    
+    # NEW FIELD for guest carts
+    session_key = models.CharField(max_length=255, null=True, blank=True, unique=True) # Unique ID for guest carts
 
     class Meta:
         verbose_name = _('Order')
