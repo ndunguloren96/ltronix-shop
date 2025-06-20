@@ -1,17 +1,18 @@
-// /var/www/ltronix-shop/frontend/my-app/src/api/products.ts
+// frontend/my-app/src/api/products.ts
 
 // Define your Django backend API base URL
 const DJANGO_API_BASE_URL = process.env.NEXT_PUBLIC_DJANGO_API_URL || 'http://127.0.0.1:8000/api/v1';
 
 // Define a simple type for your product (adjust according to your Django model's serializer output)
 export interface Product {
-  id: number;
+  id: number; // Django DecimalField might come as string
   name: string;
   price: string; // Django DecimalField might come as string
   description: string;
   image_url: string; // Assuming Django provides a direct URL to the image (e.g., from MEDIA_URL)
   category?: string;
   stock?: number;
+  brand?: string;
   // Add other product fields as per your Django serializer
 }
 
@@ -20,13 +21,12 @@ export interface Product {
  */
 export async function fetchProducts(): Promise<Product[]> {
   try {
-    const response = await fetch(`${DJANGO_API_BASE_URL}/products/`, {
+    // CRITICAL FIX: Corrected the endpoint URL to access the actual product list
+    const response = await fetch(`${DJANGO_API_BASE_URL}/products/products/`, { // <-- Added '/products/' here
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
       },
-      // You might add authentication headers here if your products API requires authentication
-      // e.g., 'Authorization': `Bearer ${accessToken}` if you get the token from NextAuth session
     });
 
     if (!response.ok) {
@@ -48,7 +48,8 @@ export async function fetchProducts(): Promise<Product[]> {
  */
 export async function fetchProductById(id: number | string): Promise<Product> {
   try {
-    const response = await fetch(`${DJANGO_API_BASE_URL}/products/${id}/`, {
+    // CRITICAL FIX: Corrected the endpoint URL for single product fetch as well
+    const response = await fetch(`${DJANGO_API_BASE_URL}/products/products/${id}/`, { // <-- Added '/products/' here
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',

@@ -9,10 +9,10 @@ import {
   VStack,
   Stack,
   Divider,
-  Link as ChakraLink, // Import Chakra UI's Link and alias it
+  Link as ChakraLink,
 } from '@chakra-ui/react';
-import Image from 'next/image';
-import NextLink from 'next/link'; // Renamed Next.js Link to NextLink for consistency
+import Image from 'next/image'; // Import Next.js Image
+import NextLink from 'next/link';
 
 import { useCartStore } from '@/store/useCartStore';
 
@@ -20,7 +20,7 @@ interface ProductCardProps {
   id: string;
   name: string;
   description: string;
-  imageUrl?: string;
+  imageUrl?: string; // Ensure this is consistently named
   price: string;
 }
 
@@ -45,12 +45,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
   return (
     <Box maxW="sm" borderWidth="1px" borderRadius="lg" overflow="hidden" boxShadow="md" bg="white">
-      {/* CRITICAL FIX: Use ChakraLink as NextLink here to prevent <a> nesting */}
       <ChakraLink as={NextLink} href={`/products/${id}`} passHref>
         <Box position="relative" height="200px" width="100%" display="block" _hover={{ cursor: 'pointer', opacity: 0.9 }}>
           {imageUrl ? (
             <Image
-              src={imageUrl}
+              src={imageUrl} // Use the provided imageUrl
               alt={name}
               fill
               style={{ objectFit: 'cover' }}
@@ -67,7 +66,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
       <Box p={6}>
         <Stack spacing={3}>
-          {/* CRITICAL FIX: Use ChakraLink as NextLink for the Heading link */}
           <ChakraLink as={NextLink} href={`/products/${id}`} passHref>
             <Heading size="md" noOfLines={1} _hover={{ textDecoration: 'underline' }}>{name}</Heading>
           </ChakraLink>
@@ -85,7 +83,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           variant='solid'
           colorScheme='brand'
           width="full"
-          onClick={() => addItemToCart({ id, name, price: priceAsNumber })}
+          // CRITICAL FIX: Pass image_url to addItemToCart
+          onClick={() => addItemToCart({ id, name, price: priceAsNumber, image_url: imageUrl })}
         >
           Add to cart
         </Button>
