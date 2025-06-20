@@ -159,4 +159,3 @@ class OrderSerializer(serializers.ModelSerializer):
             instance.refresh_from_db()
 
         return instance
-

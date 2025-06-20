@@ -1,74 +1,80 @@
-// src/api/orders.ts
+// /var/www/ltronix-shop/frontend/my-app/src/api/orders.ts
 
-import { getSession } from 'next-auth/react'; // Import getSession for authenticated requests
+import { getSession } from 'next-auth/react'; // Keep for authenticated users
+import { useCartStore } from '@/store/useCartStore'; // Import Zustand store to get session_key
 
-// Define base URL for your Django API
 const DJANGO_API_BASE_URL = process.env.NEXT_PUBLIC_DJANGO_API_URL || 'http://127.0.0.1:8000/api/v1';
 
-// --- Type Definitions for Cart/Order Operations ---
-// These should mirror your Django backend's expectations for consistency.
-
 export interface ProductInCart {
-  id: string; // Product ID, used for API calls
+  id: string;
   name: string;
   price: number;
   quantity: number;
-  image_url?: string; // Optional for display, not sent to backend for cart updates
+  image_url?: string;
 }
 
-// Data structure expected by the backend for creating or updating OrderItems
 export interface OrderItemPayload {
-  id?: number; // Optional: ID if updating an existing OrderItem
+  id?: number; // Optional: ID if updating an existing OrderItem (from backend)
   product_id: string; // The ID of the product
   quantity: number;
 }
 
-// Data structure expected by the backend for creating or updating an Order/Cart
 export interface OrderPayload {
-  items: OrderItemPayload[];
-  // You can add shipping address, payment method ID, etc. here later for checkout
-  // For initial cart management, primarily 'items' is used.
-  complete?: boolean; // Used to mark order as complete during checkout
-  transaction_id?: string; // Generated on backend during completion
+  order_items_input: OrderItemPayload[]; // Backend expects this specific field name now
+  complete?: boolean;
+  transaction_id?: string;
 }
 
-// Data structure returned by the backend for a full Order (Cart or Completed Order)
 export interface BackendOrderItem {
   id: number;
-  product: { // Nested product data as returned by ProductSerializer
-    id: string;
+  product: {
+    id: string; // Product ID, kept as string from backend
     name: string;
-    price: string; // From Django DecimalField
+    price: string; // Price from backend as string
     image_url?: string;
-    // ... other product fields as per ProductSerializer
   };
   quantity: number;
-  get_total: string; // Calculated total for this item
+  get_total: string;
 }
 
 export interface BackendOrder {
   id: number; // Order ID
-  customer: number; // Customer ID
+  customer: number | null; // Customer ID (null for guest)
+  session_key: string | null; // NEW: Session key for guest carts
   date_ordered: string;
-  complete: boolean; // False for cart, True for completed order
+  complete: boolean;
   transaction_id: string | null;
-  get_cart_total: string; // Total price of the cart/order
-  get_cart_items: number; // Total quantity of items in cart/order
-  shipping: boolean; // Indicates if shipping is required
-  items: BackendOrderItem[]; // Nested order items
+  get_cart_total: string;
+  get_cart_items: number;
+  shipping: boolean;
+  items: BackendOrderItem[];
 }
 
-// --- Helper for authenticated API calls ---
-async function fetchAuthenticated(url: string, options?: RequestInit) {
-  const session = await getSession();
-  const headers = {
+/**
+ * Helper function to make authenticated or guest requests to Django backend.
+ * It prioritizes authentication token, then falls back to X-Session-Key header for guests.
+ * @param url The API endpoint URL.
+ * @param options Request options (method, body, etc.).
+ * @param sessionKey Optional session key for guest users.
+ */
+async function fetchWithAuthOrSession(url: string, options?: RequestInit, sessionKey?: string | null) {
+  const session = await getSession(); // Get NextAuth session
+  const headers: HeadersInit = {
     'Content-Type': 'application/json',
     ...(options?.headers || {}),
   };
 
-  // If a user is logged in, attach their JWT token
   if (session?.user?.accessToken) {
+    // Authenticated user: send Bearer token
     headers['Authorization'] = `Bearer ${session.user.accessToken}`;
+    console.log(`Sending authenticated request to: ${url}`);
+  } else if (sessionKey) {
+    // Guest user: send X-Session-Key header
+    headers['X-Session-Key'] = sessionKey;
+    console.log(`Sending guest request with session key to: ${url}`);
+  } else {
+    // Neither authenticated nor session key available (e.g., initial fetch for new guest)
+    console.log(`Sending unauthenticated/no-session-key request to: ${url}`);
   }
 
   const response = await fetch(url, {
@@ -83,7 +89,6 @@ async function fetchAuthenticated(url: string, options?: RequestInit) {
       if (errorData.detail) {
         errorDetail = errorData.detail;
       } else if (typeof errorData === 'object' && errorData !== null) {
-        // Flatten nested errors from DRF serializers
         errorDetail = Object.entries(errorData)
           .map(([key, value]) => {
             if (Array.isArray(value)) {
@@ -101,63 +106,76 @@ async function fetchAuthenticated(url: string, options?: RequestInit) {
     throw new Error(`API Error: ${response.status} ${response.statusText} - ${errorDetail}`);
   }
 
-  if (response.status === 204) {
+  if (response.status === 204) { // No Content
     return null;
   }
+
+  // Check for X-Session-Key in response headers and update Zustand store (for client-side only)
+  // This needs to be done on the client side, so we'll handle this in the mutation's onSuccess
+  // when the actual store is accessible. This function is a backend API wrapper.
 
   return response.json();
 }
 
-// --- API Functions for Cart (via Order endpoint) ---
-
 /**
- * Fetches the authenticated user's active shopping cart.
- * Calls the custom `/products/orders/my_cart/` endpoint.
- * Returns null if no cart exists, or the BackendOrder representing the cart.
+ * Fetches the user's active shopping cart (authenticated or guest).
+ * @param sessionKey Optional session key for guest users.
  */
-export async function fetchCartAPI(): Promise<BackendOrder | null> {
+export async function fetchCartAPI(sessionKey?: string | null): Promise<BackendOrder | null> {
   try {
-    const response = await fetchAuthenticated(`${DJANGO_API_BASE_URL}/products/orders/my_cart/`);
-    // Backend returns a structured empty cart if none exists. Check its ID.
-    if (response && response.id === null) {
-      return null;
+    const response = await fetchWithAuthOrSession(`${DJANGO_API_BASE_URL}/products/orders/my_cart/`, {}, sessionKey);
+    // Backend's my_cart endpoint should now return a cart object even if empty, not null if it exists
+    if (response && response.id === null && response.get_cart_items === 0) { // A new "empty" cart might have id: null
+      return response; // Return the empty cart object
     }
     return response;
   } catch (error) {
-    // If a 401 or similar occurs, it means no authenticated cart
     console.error("Error fetching cart:", error);
-    // Depending on error, you might want to differentiate between network error vs no cart found for unauth user
-    throw error; // Re-throw to be caught by useQuery
+    throw error;
   }
 }
 
 /**
- * Adds a product to the cart or updates its quantity.
- * This function will send the *entire current cart state* to the backend.
- * The backend's OrderViewSet's `create` or `update` method will handle merging/updating.
- * @param currentCart The current state of the cart (from frontend Zustand store or previous API call).
- * @param newItem The item to add/update (product_id, quantity).
+ * Sends the current desired state of cart items to the backend.
+ * The backend's OrderViewSet will either create a new cart, or update an existing one.
+ * It expects 'order_items_input' as a list of {product_id, quantity, (optional) id}
+ * @param cartItems The array of ProductInCart (frontend cart items) to sync.
+ * @param sessionKey Optional session key for guest users.
  * @returns The updated BackendOrder (cart).
  */
-export async function updateEntireCartAPI(cartItems: ProductInCart[]): Promise<BackendOrder> {
+export async function updateEntireCartAPI(cartItems: ProductInCart[], sessionKey?: string | null): Promise<BackendOrder> {
   const payload: OrderPayload = {
-    items: cartItems.map(item => ({
+    order_items_input: cartItems.map(item => ({
       product_id: item.id,
       quantity: item.quantity,
-      // Pass item.id if you have it and are supporting updating specific OrderItems by ID
-      // id: item.backend_item_id // Assuming you'd store this if backend returns it
+      // If you were tracking backend order_item_id on the frontend, you'd include it here:
+      // id: item.backendOrderItemId // e.g., if you store this when fetching cart
     })),
   };
 
-  // We rely on the backend's OrderViewSet create/update logic to find or create the cart
-  // and process the `items` payload.
-  // The backend's `create` method in OrderViewSet handles finding/creating the cart.
-  // We send a POST request with the full desired state of the cart items.
   const url = `${DJANGO_API_BASE_URL}/products/orders/`;
-  const response = await fetchAuthenticated(url, {
-    method: 'POST', // POST is used because the backend's create method has the logic to find or create the cart
+  const response = await fetchWithAuthOrSession(url, {
+    method: 'POST', // POST is used to either create a new cart or update the existing one via custom logic in OrderViewSet's create method
     body: JSON.stringify(payload),
-  });
+  }, sessionKey); // Pass sessionKey to the helper
+  return response;
+}
+
+/**
+ * Clears the entire cart by sending an empty list of items.
+ * @param cartId The ID of the cart (Order) to clear.
+ * @param sessionKey Optional session key for guest users.
+ * @returns The updated BackendOrder (empty cart).
+ */
+export async function clearCartAPI(cartId: number, sessionKey?: string | null): Promise<BackendOrder> {
+  const payload: OrderPayload = {
+    order_items_input: [], // Send an empty array to clear the cart
+  };
+  const url = `${DJANGO_API_BASE_URL}/products/orders/${cartId}/`; // Target the specific cart
+  const response = await fetchWithAuthOrSession(url, {
+    method: 'PUT', // Use PUT to completely replace the cart's items
+    body: JSON.stringify(payload),
+  }, sessionKey); // Pass sessionKey to the helper
   return response;
 }
 
@@ -167,10 +185,9 @@ export async function updateEntireCartAPI(cartItems: ProductInCart[]): Promise<B
  * @returns The completed BackendOrder.
  */
 export async function checkoutCartAPI(cartId: number): Promise<BackendOrder> {
-  const url = `${DJANGO_API_BASE_URL}/products/orders/${cartId}/complete/`;
-  const response = await fetchAuthenticated(url, {
+  // Checkout always requires authentication as per your requirements
+  const response = await fetchWithAuthOrSession(`${DJANGO_API_BASE_URL}/products/orders/${cartId}/complete_order/`, { // Ensure correct action name
     method: 'POST',
-    // No body needed for this action if backend logic handles completion based on ID
   });
   return response;
 }
@@ -179,10 +196,7 @@ export async function checkoutCartAPI(cartId: number): Promise<BackendOrder> {
  * Fetches the order history for the authenticated user.
  */
 export async function fetchOrdersAPI(): Promise<BackendOrder[]> {
-  const url = `${DJANGO_API_BASE_URL}/products/orders/`; // This endpoint lists all orders for the user
-  const response = await fetchAuthenticated(url, {
-    method: 'GET',
-  });
-  // Filter out the incomplete cart if it's returned here, as fetchOrdersAPI should be for history
+  // Order history always requires authentication as per your requirements
+  const response = await fetchWithAuthOrSession(`${DJANGO_API_BASE_URL}/products/orders/`);
   return response.filter((order: BackendOrder) => order.complete === true);
 }
