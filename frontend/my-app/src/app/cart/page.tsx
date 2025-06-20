@@ -1,3 +1,4 @@
+// frontend/my-app/src/app/cart/page.tsx
 'use client';
 
 import {
@@ -7,7 +8,7 @@ import {
   VStack,
   HStack,
   Button,
-  Image,
+  Image, // Chakra Image
   Divider,
   Flex,
   Spacer,
@@ -34,7 +35,7 @@ export default function CartPage() {
   const getTotalItems = useCartStore((state) => state.getTotalItems);
   const getTotalPrice = useCartStore((state) => state.getTotalPrice);
 
-  const handleRemoveItem = (id: number) => {
+  const handleRemoveItem = (id: string) => { // Changed id to string
     removeItem(id);
     toast({
       title: 'Item Removed.',
@@ -46,7 +47,7 @@ export default function CartPage() {
     });
   };
 
-  const handleQuantityChange = (id: number, value: string) => {
+  const handleQuantityChange = (id: string, value: string) => { // Changed id to string
     const newQuantity = parseInt(value, 10);
     if (!isNaN(newQuantity) && newQuantity >= 1) {
       updateItemQuantity(id, newQuantity);
@@ -80,8 +81,6 @@ export default function CartPage() {
       });
       return;
     }
-    // Implement your checkout logic here
-    // For now, we'll just show a toast and navigate
     toast({
       title: 'Proceeding to Checkout',
       description: 'Redirecting you to the checkout page...',
@@ -90,8 +89,7 @@ export default function CartPage() {
       isClosable: true,
       position: 'top-right',
     });
-    // Example: Navigate to a checkout page (you would create this next)
-    router.push('/checkout');
+    router.push('/checkout'); // Example: Navigate to a checkout page (you would create this next)
   };
 
   return (
@@ -124,18 +122,19 @@ export default function CartPage() {
               >
                 <HStack spacing={4} align="center">
                   <Image
-                    src={`/images/products/${item.id}.jpg`} // Assuming your product images are named by ID
+                    // CRITICAL FIX: Use item.image_url directly
+                    src={item.image_url || "https://placehold.co/100x100?text=No+Image"} // Fallback to a placeholder
                     alt={item.name}
                     boxSize="100px"
                     objectFit="cover"
                     borderRadius="md"
-                    fallbackSrc="https://via.placeholder.com/100?text=No+Image"
+                    // fallbackSrc="https://via.placeholder.com/100?text=No+Image" // Not needed with direct src or Next.js Image
                   />
                   <Box flex={1}>
                     <Text fontWeight="bold" fontSize="lg">
                       {item.name}
                     </Text>
-                    <Text color="gray.600">Ksh {item.price.toFixed(2)}</Text> {/* Display price in KES */}
+                    <Text color="gray.600">Ksh {item.price.toFixed(2)}</Text>
                   </Box>
                   <HStack>
                     <Text>Qty:</Text>
@@ -143,7 +142,7 @@ export default function CartPage() {
                       maxW="100px"
                       defaultValue={item.quantity}
                       min={1}
-                      onChange={(valueAsString, valueAsNumber) =>
+                      onChange={(valueAsString) =>
                         handleQuantityChange(item.id, valueAsString)
                       }
                       keepWithinRange={false}
@@ -189,9 +188,9 @@ export default function CartPage() {
             borderRadius="lg"
             boxShadow="md"
             bg="white"
-            position={{ lg: 'sticky' }} // Make it sticky on larger screens
-            top="4" // Distance from top when sticky
-            alignSelf="flex-start" // Align to the start of the flex container
+            position={{ lg: 'sticky' }}
+            top="4"
+            alignSelf="flex-start"
           >
             <Heading as="h2" size="md" mb={4}>
               Order Summary
