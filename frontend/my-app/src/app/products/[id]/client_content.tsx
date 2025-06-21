@@ -1,5 +1,5 @@
 // frontend/my-app/src/app/products/[id]/client_content.tsx
-'use client';
+'use client'; // This directive makes this a Client Component
 
 import React from 'react';
 import {
@@ -17,13 +17,16 @@ import {
   Input,
   InputGroup,
   InputRightElement,
+  Spinner, // For loading states
+  Center, // For centering content
 } from '@chakra-ui/react';
-import { CheckCircleIcon, StarIcon } from '@chakra-ui/icons'; // Now these are imported in a Client Component
-import Image from 'next/image';
+import { CheckCircleIcon, StarIcon } from '@chakra-ui/icons';
+import Image from 'next/image'; // Import Next.js Image
 import { useCartStore } from '@/store/useCartStore'; // Import Zustand store
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { updateEntireCartAPI, BackendOrder, ProductInCart } from '@/api/orders';
+import { updateEntireCartAPI, BackendOrder, ProductInCart, BackendOrderItem } from '@/api/orders';
 import { useSession } from 'next-auth/react';
+import Link from 'next/link'; // For Next.js Link component
 
 // Define the Product interface (should match the data passed from the server component)
 interface Product {
@@ -52,9 +55,19 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
   const queryClient = useQueryClient();
   const { data: session, status } = useSession();
 
-  const [quantity, setQuantity] = React.useState(1); // State for quantity input
-  const localCartItems = useCartStore((state) => state.items); // Get current local cart
-  const addItemToLocalCart = useCartStore((state) => state.addItem); // Zustand action
+  const [quantity, setQuantity] = React.useState(1);
+  const localCartItems = useCartStore((state) => state.items);
+  const setLocalCartItems = useCartStore((state) => state.setItems);
+  const guestSessionKey = useCartStore((state) => state.guestSessionKey);
+  const setGuestSessionKey = useCartStore((state) => state.setGuestSessionKey);
+
+  React.useEffect(() => {
+    if (status === 'unauthenticated' && !guestSessionKey) {
+      const { v4: uuidv4 } = require('uuid');
+      setGuestSessionKey(uuidv4());
+    }
+  }, [guestSessionKey, setGuestSessionKey, status]);
+
 
   const formatPrice = (priceString: string): string => {
     const numericPrice = parseFloat(priceString);
@@ -66,9 +79,8 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
 
   const priceAsNumber = parseFloat(product.price);
 
-  // TanStack Query mutation for adding/updating cart on the backend
   const addToCartMutation = useMutation<BackendOrder, Error, ProductInCart[], unknown>({
-    mutationFn: updateEntireCartAPI,
+    mutationFn: (items) => updateEntireCartAPI(items, guestSessionKey),
     onMutate: async (newCartItems: ProductInCart[]) => {
       await queryClient.cancelQueries({ queryKey: ['cart'] });
       const previousCart = queryClient.getQueryData<BackendOrder>(['cart']);
@@ -95,8 +107,9 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
           };
         }
         return {
-          id: Math.random(),
+          id: null,
           customer: session?.user?.id ? parseInt(session.user.id) : null,
+          session_key: guestSessionKey,
           date_ordered: new Date().toISOString(),
           complete: false,
           transaction_id: null,
@@ -107,7 +120,8 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
         } as BackendOrder;
       });
 
-      useCartStore.setState({ items: newCartItems });
+      setLocalCartItems(newCartItems);
+
       return { previousCart };
     },
     onError: (err, newCartItems, context) => {
@@ -121,16 +135,20 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
       });
       queryClient.setQueryData(['cart'], context?.previousCart);
       if (context?.previousCart) {
-        useCartStore.setState({ items: context.previousCart.items.map(bi => ({
+        setLocalCartItems(context.previousCart.items.map(bi => ({
             id: bi.product.id, name: bi.product.name, price: parseFloat(bi.product.price),
             quantity: bi.quantity, image_url: bi.product.image_url
-        }))});
+        })));
       } else {
-        useCartStore.setState({ items: [] });
+        setLocalCartItems([]);
       }
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['cart'] });
+    onSettled: async (data, error, variables, context) => {
+        if (data && data.session_key && !guestSessionKey) {
+            setGuestSessionKey(data.session_key);
+            console.log("Guest session key received from backend and set:", data.session_key);
+        }
+        queryClient.invalidateQueries({ queryKey: ['cart'] });
     },
     onSuccess: (data) => {
       const transformedItems: ProductInCart[] = data.items.map(backendItem => ({
@@ -140,7 +158,7 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
         quantity: backendItem.quantity,
         image_url: backendItem.product.image_url,
       }));
-      useCartStore.setState({ items: transformedItems });
+      setLocalCartItems(transformedItems);
 
       toast({
         title: 'Item Added/Updated',
@@ -153,15 +171,14 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
   });
 
   const handleAddToCart = () => {
-    // Logic for guest/authenticated cart
-    // For now, we'll keep the session check from ProductCard.tsx
-    // We'll address full guest cart support in the next major step.
-    if (status === 'unauthenticated' || !session?.user?.id) {
+    const currentSessionKey = guestSessionKey;
+
+    if (status === 'unauthenticated' && !currentSessionKey) {
         toast({
-            title: 'Login Required',
-            description: 'Please log in to add items to your cart. Guest cart not fully implemented yet.',
-            status: 'info',
-            duration: 3000,
+            title: 'Session Error',
+            description: 'Unable to establish a guest session. Please try refreshing or logging in.',
+            status: 'error',
+            duration: 5000,
             isClosable: true,
         });
         return;
@@ -197,22 +214,20 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
       image_url: product.image_url,
     };
 
-    const currentLocalCartItems = localCartItems; // Get current state from Zustand
+    const currentLocalCartItems = localCartItems;
 
     const existingLocalItem = currentLocalCartItems.find(item => item.id === product.id);
 
     let updatedLocalCartItems: ProductInCart[];
     if (existingLocalItem) {
-      // If item exists, update its quantity
       updatedLocalCartItems = currentLocalCartItems.map(item =>
         item.id === product.id ? { ...item, quantity: item.quantity + quantity } : item
       );
     } else {
-      // If new, add it
       updatedLocalCartItems = [...currentLocalCartItems, { ...itemToAddOrUpdate, quantity: quantity }];
     }
 
-    addToCartMutation.mutate(updatedLocalCartItems); // Trigger mutation
+    addToCartMutation.mutate(updatedLocalCartItems);
   };
 
   return (
@@ -229,6 +244,7 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
               style={{ objectFit: 'contain' }}
               priority={false}
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              unoptimized={true} {/* NEW: Add unoptimized prop here */}
             />
           ) : (
             <Box w="100%" h="500px" bg="gray.200" display="flex" alignItems="center" justifyContent="center">
@@ -312,11 +328,26 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
               flex={1}
               onClick={handleAddToCart}
               isLoading={addToCartMutation.isPending || status === 'loading'}
-              isDisabled={addToCartMutation.isPending || status === 'unauthenticated' || status === 'loading' || product.stock <= 0}
+              isDisabled={addToCartMutation.isPending || status === 'loading' || product.stock <= 0}
             >
-              {product.stock > 0 ? (status === 'authenticated' ? 'Add to Cart' : 'Login to Add') : 'Out of Stock'}
+              {addToCartMutation.isPending ? 'Adding...' : (product.stock > 0 ? 'Add to Cart' : 'Out of Stock')}
             </Button>
           </HStack>
+
+          {status === 'unauthenticated' && (
+            <Text fontSize="sm" color="gray.500" mt={2}>
+              You are currently browsing as a guest. Your cart will be saved locally.
+              <br/>
+              <Link href="/auth/login" passHref>
+                <Text as="a" color="brand.500" fontWeight="bold">Login</Text>
+              </Link>
+              {' '}or{' '}
+              <Link href="/auth/signup" passHref>
+                <Text as="a" color="brand.500" fontWeight="bold">Sign Up</Text>
+              </Link>
+              {' '}to permanently save your cart and access order history.
+            </Text>
+          )}
 
           {product.digital && (
             <HStack spacing={2} mt={4}>

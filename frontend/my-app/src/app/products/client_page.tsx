@@ -24,29 +24,28 @@ import {
   InputGroup,
   InputLeftElement,
   Button,
-  Spinner, // Explicitly imported for loading state
-  Center,  // Explicitly imported for layout
-  Alert,   // Explicitly imported for error state
+  Spinner,
+  Center,
+  Alert,
   AlertIcon,
   AlertDescription,
 } from '@chakra-ui/react';
-import { ProductCard } from '@/components/ProductCard';
+import { ProductCard } from '@/components/ProductCard'; // Correct named import
 import { SearchIcon } from '@chakra-ui/icons';
 import Fuse from 'fuse.js';
 
-import { useQuery } from '@tanstack/react-query'; // Import useQuery
-import { fetchProducts, Product } from '../../api/products'; // <<-- CORRECTED PATH HERE -->>
+import { useQuery } from '@tanstack/react-query';
+import { fetchProducts, Product } from '../../api/products';
 
-// This type definition must also exist in src/api/products.ts
-// Define the Product type based on your Django API response
 export interface Product {
-  id: string; // Django PK/ID, ensure it's treated as a string for consistency
+  id: string;
   name: string;
-  price: string; // Django's DecimalField often comes as a string in JSON
+  price: string;
   description: string;
-  image_url?: string; // Optional image URL from Django
-  category: string; // Assuming your Django product has a category field
-  brand: string;    // Assuming your Django product has a brand field
+  image_url?: string;
+  category: string;
+  brand: string;
+  stock: number; // Ensure stock is always part of the Product interface here
 }
 
 const getNumericPrice = (priceString: string): number => {
@@ -54,14 +53,13 @@ const getNumericPrice = (priceString: string): number => {
   return parseFloat(cleanedPrice);
 };
 
-
 const fuseOptions = {
   keys: ['name', 'category', 'brand', 'description'],
   threshold: 0.3,
   includeScore: true,
 };
 
-const PRODUCTS_PER_PAGE = 8; // Define how many products to show initially / load per click
+const PRODUCTS_PER_PAGE = 8;
 
 export default function ProductsClientPage() {
   const { data: products, isLoading, isError, error } = useQuery<Product[], Error>({
@@ -113,8 +111,11 @@ export default function ProductsClientPage() {
   }, [searchTerm]);
 
   React.useEffect(() => {
-    setPriceRange([minPrice, maxPrice]);
-  }, [minPrice, maxPrice]);
+    // Only update priceRange if products are loaded and min/max prices are valid
+    if (products && products.length > 0) {
+      setPriceRange([minPrice, maxPrice]);
+    }
+  }, [minPrice, maxPrice, products]); // Depend on products here
 
   React.useEffect(() => {
     setVisibleProductsCount(PRODUCTS_PER_PAGE);
@@ -380,6 +381,7 @@ export default function ProductsClientPage() {
                     name={product.name}
                     price={product.price}
                     imageUrl={product.image_url}
+                    stock={product.stock} // Ensure stock is passed here
                   />
                 ))}
               </SimpleGrid>

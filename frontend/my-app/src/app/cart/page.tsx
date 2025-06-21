@@ -18,16 +18,16 @@ import {
   NumberInputStepper,
   NumberIncrementStepper,
   NumberDecrementStepper,
-  Spinner, // For loading states
-  Center, // For centering loading/error messages
-  Alert, AlertIcon, AlertDescription, // For error messages
-  Link as ChakraLink, // For internal Chakra links
+  Spinner,
+  Center,
+  Alert, AlertIcon, AlertDescription,
+  Link as ChakraLink,
 } from '@chakra-ui/react';
 import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
-import Link from 'next/link'; // For Next.js Link
+import Link from 'next/link';
 
 
 import {
@@ -39,15 +39,14 @@ import {
   ProductInCart,
   BackendOrderItem,
 } from '@/api/orders';
-import { useCartStore } from '@/store/useCartStore'; // Zustand store
+import { useCartStore } from '@/store/useCartStore';
 
 export default function CartPage() {
   const toast = useToast();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { data: session, status } = useSession(); // NextAuth.js session status
+  const { data: session, status } = useSession();
 
-  // Zustand cart state and actions for local/optimistic updates
   const localCartItems = useCartStore((state) => state.items);
   const setLocalCartItems = useCartStore((state) => state.setItems);
   const getLocalTotalItems = useCartStore((state) => state.getTotalItems);
@@ -55,10 +54,7 @@ export default function CartPage() {
   const guestSessionKey = useCartStore((state) => state.guestSessionKey);
   const setGuestSessionKey = useCartStore((state) => state.setGuestSessionKey);
 
-  // --- Guest Session Key Management ---
   useEffect(() => {
-    // Generate a guestSessionKey if it doesn't exist AND the user is unauthenticated
-    // The Zustand persist middleware's onRehydrateStorage might do this, but this ensures it.
     if (status === 'unauthenticated' && !guestSessionKey) {
       const { v4: uuidv4 } = require('uuid');
       const newKey = uuidv4();
@@ -67,39 +63,32 @@ export default function CartPage() {
     }
   }, [status, guestSessionKey, setGuestSessionKey]);
 
-  // Determine the key to use for fetching/mutating the cart based on auth status
   const currentSessionKey = status === 'unauthenticated' ? guestSessionKey : null;
 
-  // TanStack Query: Fetch the user's active cart
   const {
     data: backendCart,
     isLoading,
     isError,
     error,
-    isFetching, // Indicates background refetches
+    isFetching,
   } = useQuery<BackendOrder | null, Error>({
-    queryKey: ['cart', status, currentSessionKey], // Include auth status and session key in query key
+    queryKey: ['cart', status, currentSessionKey],
     queryFn: () => {
-      // If authenticated, make API call without sessionKey (backend uses auth token)
       if (status === 'authenticated') {
         return fetchCartAPI();
       }
-      // If unauthenticated AND a guestSessionKey exists, make API call with sessionKey
       if (status === 'unauthenticated' && currentSessionKey) {
         return fetchCartAPI(currentSessionKey);
       }
-      // If unauthenticated and no session key (e.g., initial load before key is set),
-      // resolve immediately as null so isLoading becomes false and UI shows empty cart.
       return Promise.resolve(null);
     },
-    enabled: status !== 'loading' && (status === 'authenticated' || (status === 'unauthenticated' && !!currentSessionKey)), // Only fetch if not loading auth and ready
-    staleTime: 0, // Always consider cart data stale to ensure real-time accuracy
+    enabled: status !== 'loading' && (status === 'authenticated' || (status === 'unauthenticated' && !!currentSessionKey)),
+    staleTime: 0,
     refetchOnWindowFocus: true,
     refetchOnMount: true,
-    refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes in background
+    refetchInterval: 5 * 60 * 1000,
   });
 
-  // Transform BackendOrderItem to ProductInCart for Zustand store
   const transformBackendItemsToFrontend = (items: BackendOrderItem[]): ProductInCart[] => {
     return items.map((item) => ({
       id: item.product.id,
@@ -110,33 +99,27 @@ export default function CartPage() {
     }));
   };
 
-  // Sync backend cart with Zustand store on successful fetch
   useEffect(() => {
     if (backendCart && status !== 'loading') {
       setLocalCartItems(transformBackendItemsToFrontend(backendCart.items));
-      // If backend returns a session key (e.g., on first guest cart creation), store it.
-      if (backendCart.session_key && !guestSessionKey) {
+      if (backendCart.session_key && !guestSessionKey && status === 'unauthenticated') { // Ensure condition explicitly checks unauthenticated
         setGuestSessionKey(backendCart.session_key);
         console.log('Backend returned new guest session key:', backendCart.session_key);
       }
     } else if (!backendCart && status !== 'loading' && (status === 'authenticated' || (status === 'unauthenticated' && !!currentSessionKey))) {
-      // If backend returns null or an empty cart object, clear local cart (for authenticated or existing guest sessions)
       setLocalCartItems([]);
     }
   }, [backendCart, status, setLocalCartItems, guestSessionKey, setGuestSessionKey, currentSessionKey]);
 
-
-  // TanStack Query: Mutation for updating the cart on the backend
   const updateCartMutation = useMutation<BackendOrder, Error, ProductInCart[]>({
-    mutationFn: (items) => updateEntireCartAPI(items, currentSessionKey), // Pass currentSessionKey to mutation
+    mutationFn: (items) => updateEntireCartAPI(items, currentSessionKey),
     onMutate: async (newFrontendCartItems: ProductInCart[]) => {
       await queryClient.cancelQueries({ queryKey: ['cart', status, currentSessionKey] });
       const previousCart = queryClient.getQueryData<BackendOrder>(['cart', status, currentSessionKey]);
 
-      // Optimistically update the TanStack Query cache
       queryClient.setQueryData<BackendOrder>(['cart', status, currentSessionKey], (oldCart) => {
         const updatedBackendItems: BackendOrderItem[] = newFrontendCartItems.map(item => ({
-            id: oldCart?.items.find(bi => bi.product.id === item.id)?.id || Math.random(), // Use existing ID or dummy
+            id: oldCart?.items.find(bi => bi.product.id === item.id)?.id || Math.random(),
             product: { id: item.id, name: item.name, price: item.price.toFixed(2), image_url: item.image_url },
             quantity: item.quantity,
             get_total: (item.price * item.quantity).toFixed(2),
@@ -150,7 +133,6 @@ export default function CartPage() {
             get_cart_total: newFrontendCartItems.reduce((acc, item) => acc + item.price * item.quantity, 0).toFixed(2),
           };
         }
-        // If no old cart, create a basic optimistic cart (for first item added by guest/new user)
         return {
             id: null,
             customer: session?.user?.id ? parseInt(session.user.id) : null,
@@ -165,7 +147,7 @@ export default function CartPage() {
         } as BackendOrder;
       });
 
-      setLocalCartItems(newFrontendCartItems); // Optimistically update Zustand directly
+      setLocalCartItems(newFrontendCartItems);
 
       return { previousCart };
     },
@@ -178,20 +160,19 @@ export default function CartPage() {
         duration: 5000,
         isClosable: true,
       });
-      queryClient.setQueryData(['cart', status, currentSessionKey], context?.previousCart); // Rollback TanStack Query cache
+      queryClient.setQueryData(['cart', status, currentSessionKey], context?.previousCart);
       if (context?.previousCart) {
-          setLocalCartItems(transformBackendItemsToFrontend(context.previousCart.items)); // Rollback Zustand
+          setLocalCartItems(transformBackendItemsToFrontend(context.previousCart.items));
       } else {
-          setLocalCartItems([]); // If no previous cart, clear local Zustand
+          setLocalCartItems([]);
       }
     },
     onSettled: async (data, error, variables, context) => {
-      // If mutation successful and backend returns a session_key for a guest cart, store it
       if (data && data.session_key && !guestSessionKey && status === 'unauthenticated') {
           setGuestSessionKey(data.session_key);
           console.log("Backend returned new guest session key (from mutation):", data.session_key);
       }
-      queryClient.invalidateQueries({ queryKey: ['cart', status, currentSessionKey] }); // Always refetch for consistency
+      queryClient.invalidateQueries({ queryKey: ['cart', status, currentSessionKey] });
     },
     onSuccess: (data) => {
       toast({
@@ -201,33 +182,29 @@ export default function CartPage() {
         duration: 2000,
         isClosable: true,
       });
-      // After successful backend sync, update Zustand to precisely match the backend data (e.g., actual item IDs)
       setLocalCartItems(transformBackendItemsToFrontend(data.items));
     },
   });
 
-  // TanStack Query: Mutation for clearing the cart
   const clearCartMutation = useMutation<BackendOrder, Error, number | undefined>({
     mutationFn: (cartId) => {
         if (cartId) {
-            return clearCartAPI(cartId, currentSessionKey); // Pass sessionKey
+            return clearCartAPI(cartId, currentSessionKey);
         }
-        // If no cartId (e.g., new guest with no backend cart yet), just clear local
-        return Promise.resolve({} as BackendOrder); // Return empty object for optimistic update
+        return Promise.resolve({} as BackendOrder);
     },
     onMutate: async (cartId) => {
       await queryClient.cancelQueries({ queryKey: ['cart', status, currentSessionKey] });
       const previousCart = queryClient.getQueryData<BackendOrder>(['cart', status, currentSessionKey]);
 
-      // Optimistically clear the cart in TanStack Query cache
       queryClient.setQueryData<BackendOrder>(['cart', status, currentSessionKey], (oldCart) => {
         if (oldCart) {
           return { ...oldCart, items: [], get_cart_items: 0, get_cart_total: "0.00" };
         }
         return null;
       });
-      setLocalCartItems([]); // Optimistically clear Zustand cart
-      setGuestSessionKey(null); // Clear guest session key as cart is empty
+      setLocalCartItems([]);
+      setGuestSessionKey(null);
 
       return { previousCart };
     },
@@ -240,15 +217,13 @@ export default function CartPage() {
         duration: 5000,
         isClosable: true,
       });
-      queryClient.setQueryData(['cart', status, currentSessionKey], context?.previousCart); // Rollback cache
+      queryClient.setQueryData(['cart', status, currentSessionKey], context?.previousCart);
       if (context?.previousCart) {
-          setLocalCartItems(transformBackendItemsToFrontend(context.previousCart.items)); // Rollback Zustand
+          setLocalCartItems(transformBackendItemsToFrontend(context.previousCart.items));
       }
-      // Re-evaluate if guestSessionKey needs to be restored here based on context.
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['cart', status, currentSessionKey] });
-      // A new session key might be implicitly generated by the backend if a guest adds an item again.
     },
     onSuccess: () => {
       toast({
@@ -262,21 +237,19 @@ export default function CartPage() {
     },
   });
 
-  // TanStack Query: Mutation for checking out the cart
   const checkoutMutation = useMutation<BackendOrder, Error, number>({
     mutationFn: checkoutCartAPI,
     onMutate: async (cartId) => {
       await queryClient.cancelQueries({ queryKey: ['cart', status, currentSessionKey] });
       const previousCart = queryClient.getQueryData<BackendOrder>(['cart', status, currentSessionKey]);
-      // Optimistically mark cart as complete and clear items in cache
       queryClient.setQueryData<BackendOrder>(['cart', status, currentSessionKey], (oldCart) => {
         if (oldCart && oldCart.id === cartId) {
           return { ...oldCart, complete: true, items: [], get_cart_items: 0, get_cart_total: "0.00" };
         }
         return oldCart;
       });
-      setLocalCartItems([]); // Optimistically clear Zustand cart
-      setGuestSessionKey(null); // Clear guest session key as cart is completed
+      setLocalCartItems([]);
+      setGuestSessionKey(null);
 
       return { previousCart };
     },
@@ -289,15 +262,14 @@ export default function CartPage() {
         duration: 5000,
         isClosable: true,
       });
-      queryClient.setQueryData(['cart', status, currentSessionKey], context?.previousCart); // Rollback cache
+      queryClient.setQueryData(['cart', status, currentSessionKey], context?.previousCart);
       if (context?.previousCart) {
-          setLocalCartItems(transformBackendItemsToFrontend(context.previousCart.items)); // Rollback Zustand
+          setLocalCartItems(transformBackendItemsToFrontend(context.previousCart.items));
       }
-      // Re-evaluate if guestSessionKey needs to be restored here based on context.
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['cart', status, currentSessionKey] }); // Invalidate cart query
-      queryClient.invalidateQueries({ queryKey: ['orders'] }); // Invalidate orders history query
+      queryClient.invalidateQueries({ queryKey: ['cart', status, currentSessionKey] });
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
     },
     onSuccess: (data) => {
       toast({
@@ -307,12 +279,10 @@ export default function CartPage() {
         duration: 5000,
         isClosable: true,
       });
-      router.push('/account/orders'); // Redirect to order history
+      router.push('/account/orders');
     },
   });
 
-
-  // Event Handlers for Cart Actions (now calling mutations)
 
   const handleRemoveItem = (id: string) => {
     const updatedItems = localCartItems.filter((item) => item.id !== id);
@@ -338,7 +308,7 @@ export default function CartPage() {
     if (backendCart?.id) {
         clearCartMutation.mutate(backendCart.id);
     } else {
-        clearCartMutation.mutate(undefined); // Trigger mutation for local-only clear
+        clearCartMutation.mutate(undefined);
     }
   };
 
@@ -353,7 +323,6 @@ export default function CartPage() {
         });
         return;
     }
-    // Checkout now requires authentication
     if (status === 'unauthenticated') {
       toast({
         title: 'Login Required for Checkout',
@@ -363,7 +332,7 @@ export default function CartPage() {
         isClosable: true,
         position: 'top-right',
       });
-      router.push('/auth/login'); // Redirect to login page
+      router.push('/auth/login');
       return;
     }
 
@@ -378,11 +347,9 @@ export default function CartPage() {
       });
       return;
     }
-    // Trigger checkout mutation
     checkoutMutation.mutate(backendCart.id);
   };
 
-  // Render states for the cart page
   if (status === 'loading' || isLoading) {
     return (
       <Center minH="80vh">
@@ -396,8 +363,6 @@ export default function CartPage() {
     );
   }
 
-  // Use the local Zustand cart items for rendering, as they are optimistically updated
-  // This ensures immediate UI feedback. The backendCart (from useQuery) is for initial sync.
   const itemsToRender = localCartItems;
 
 
@@ -441,7 +406,7 @@ export default function CartPage() {
         </Alert>
       )}
 
-      {itemsToRender.length === 0 && !isLoading && !isFetching && ( // Only show empty message if not loading or fetching
+      {itemsToRender.length === 0 && !isLoading && !isFetching && (
         <VStack spacing={4} textAlign="center" py={10}>
           <Text fontSize="xl" color="gray.600">
             Your cart is currently empty.
@@ -454,7 +419,6 @@ export default function CartPage() {
 
       {itemsToRender.length > 0 && (
         <Flex direction={{ base: 'column', lg: 'row' }} gap={10}>
-          {/* Cart Items List */}
           <VStack spacing={6} align="stretch" flex={2}>
             {itemsToRender.map((item) => (
               <Box
@@ -484,13 +448,13 @@ export default function CartPage() {
                     <NumberInput
                       maxW="100px"
                       value={item.quantity}
-                      min={0} // Allow 0 quantity to trigger removal
+                      min={0}
                       onChange={(valueAsString) =>
                         handleQuantityChange(item.id, valueAsString)
                       }
                       keepWithinRange={false}
                       clampValueOnBlur={false}
-                      isDisabled={updateCartMutation.isPending} // Disable quantity input during mutation
+                      isDisabled={updateCartMutation.isPending}
                     >
                       <NumberInputField />
                       <NumberInputStepper>
@@ -507,7 +471,7 @@ export default function CartPage() {
                     colorScheme="red"
                     variant="ghost"
                     onClick={() => handleRemoveItem(item.id)}
-                    isLoading={updateCartMutation.isPending} // Disable button during mutation
+                    isLoading={updateCartMutation.isPending}
                   >
                     Remove
                   </Button>
@@ -527,7 +491,6 @@ export default function CartPage() {
             </Button>
           </VStack>
 
-          {/* Order Summary */}
           <Box
             flex={1}
             p={6}
