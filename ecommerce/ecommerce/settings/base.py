@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     'dj_rest_auth.registration',
     'rest_framework',
     'rest_framework.authtoken',
+    'rest_framework_simplejwt',
 
     # OAuth2 and social login integration
     'oauth2_provider', # Django OAuth Toolkit

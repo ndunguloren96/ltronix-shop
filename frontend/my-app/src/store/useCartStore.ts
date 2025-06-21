@@ -1,6 +1,6 @@
 // frontend/my-app/src/store/useCartStore.ts
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware'; // Import persist and createJSONStorage
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { v4 as uuidv4 } from 'uuid'; // Import uuid for generating session keys
 
 interface CartItem {
@@ -13,22 +13,22 @@ interface CartItem {
 
 interface CartState {
     items: CartItem[];
-    guestSessionKey: string | null; // NEW: Session key for unauthenticated users
+    guestSessionKey: string | null; // Session key for unauthenticated users
     addItem: (item: Omit<CartItem, 'quantity'> & { image_url?: string }) => void;
     removeItem: (id: string) => void;
     updateItemQuantity: (id: string, quantity: number) => void;
     clearCart: () => void;
     setItems: (items: CartItem[]) => void;
-    setGuestSessionKey: (key: string | null) => void; // NEW: Action to set guest session key
+    setGuestSessionKey: (key: string | null) => void;
     getTotalItems: () => number;
     getTotalPrice: () => number;
 }
 
 export const useCartStore = create<CartState>()(
-    persist( // Wrap your store with persist middleware
+    persist(
         (set, get) => ({
             items: [],
-            guestSessionKey: null, // Initialize guestSessionKey
+            guestSessionKey: null,
 
             addItem: (item) =>
                 set((state) => {
@@ -56,41 +56,30 @@ export const useCartStore = create<CartState>()(
                     ),
                 })),
 
-            clearCart: () => set({ items: [], guestSessionKey: null }), // Clear key on cart clear
+            clearCart: () => set({ items: [], guestSessionKey: null }),
 
             setItems: (items) => set({ items: items }),
 
-            setGuestSessionKey: (key) => set({ guestSessionKey: key }), // Implementation for new action
+            setGuestSessionKey: (key) => set({ guestSessionKey: key }),
 
             getTotalItems: () => get().items.reduce((total, item) => total + item.quantity, 0),
 
             getTotalPrice: () => get().items.reduce((total, item) => total + item.price * item.quantity, 0),
         }),
         {
-            name: 'ltronix-cart-storage', // Name of the item in localStorage
-            storage: createJSONStorage(() => localStorage), // Use localStorage for persistence
-            // Optionally, you can choose which parts of the state to persist
+            name: 'ltronix-cart-storage',
+            storage: createJSONStorage(() => localStorage),
             partialize: (state) => ({
                 items: state.items,
-                guestSessionKey: state.guestSessionKey, // Persist the guestSessionKey
+                guestSessionKey: state.guestSessionKey,
             }),
             onRehydrateStorage: (state) => {
-                // This callback is fired right before rehydration
-                // Ensure guestSessionKey exists, if not, generate one
                 if (state && state.guestSessionKey === null) {
                     const newSessionKey = uuidv4();
                     state.guestSessionKey = newSessionKey;
-                    // Directly update localStorage here if not updated by setGuestSessionKey
-                    // This is handled implicitly by persist middleware on hydration.
-                    console.log('Generated new guest session key:', newSessionKey);
+                    console.log('Generated new guest session key on rehydrate:', newSessionKey);
                 }
             },
         }
     )
 );
-
-// Ensure a session key is generated/set on initial load if none exists
-// This will happen implicitly with the onRehydrateStorage callback of persist middleware.
-// However, if the store is accessed before rehydration, the key might be null.
-// A common pattern is to check for this in a useEffect or an initializer.
-// For now, the onRehydrateStorage handles initial generation.

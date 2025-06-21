@@ -17,7 +17,7 @@ import NextLink from 'next/link';
 
 import { useCartStore } from '@/store/useCartStore';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { updateEntireCartAPI, BackendOrder, ProductInCart } from '@/api/orders';
+import { updateEntireCartAPI, BackendOrder, ProductInCart, BackendOrderItem } from '@/api/orders';
 import { useSession } from 'next-auth/react';
 
 interface ProductCardProps {
@@ -26,6 +26,7 @@ interface ProductCardProps {
   description: string;
   imageUrl?: string;
   price: string;
+  stock: number;
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({
@@ -34,22 +35,21 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   description,
   imageUrl,
   price,
+  stock,
 }) => {
   const toast = useToast();
   const { data: session, status } = useSession();
   const queryClient = useQueryClient();
 
-  // Get guestSessionKey from Zustand store
   const guestSessionKey = useCartStore((state) => state.guestSessionKey);
-  const setGuestSessionKey = useCartStore((state) => state.setGuestSessionKey); // To set new key if backend returns one
+  const setGuestSessionKey = useCartStore((state) => state.setGuestSessionKey);
 
-  // Zustand actions and state for local cart (for optimistic updates)
   const getLocalCartItems = useCartStore((state) => state.items);
-  const setLocalCartItems = useCartStore((state) => state.setItems); // Assuming you added this in useCartStore
+  const setLocalCartItems = useCartStore((state) => state.setItems);
 
-  // TanStack Query mutation for adding/updating cart on the backend
+  const priceAsNumber = parseFloat(price);
+
   const addToCartMutation = useMutation<BackendOrder, Error, ProductInCart[], unknown>({
-    // Pass the guestSessionKey to the mutationFn
     mutationFn: (items) => updateEntireCartAPI(items, guestSessionKey),
     onMutate: async (newCartItems: ProductInCart[]) => {
       await queryClient.cancelQueries({ queryKey: ['cart'] });
@@ -76,11 +76,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             get_cart_total: newCartItems.reduce((acc, item) => acc + item.price * item.quantity, 0).toFixed(2),
           };
         }
-        // For a completely new cart (e.g., first item added by guest)
         return {
-          id: null, // Backend will assign ID, use null or dummy for optimistic
-          customer: null, // Null for guest
-          session_key: guestSessionKey, // Include guest session key for optimistic updates
+          id: null,
+          customer: session?.user?.id ? parseInt(session.user.id) : null,
+          session_key: guestSessionKey,
           date_ordered: new Date().toISOString(),
           complete: false,
           transaction_id: null,
@@ -91,7 +90,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         } as BackendOrder;
       });
 
-      setLocalCartItems(newCartItems); // Optimistically update Zustand for immediate UI feedback
+      setLocalCartItems(newCartItems);
 
       return { previousCart };
     },
@@ -115,15 +114,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       }
     },
     onSettled: async (data, error, variables, context) => {
-        // If the mutation was successful and a session_key was returned by Django (for first guest cart creation)
         if (data && data.session_key && !guestSessionKey) {
-            setGuestSessionKey(data.session_key); // Update Zustand/localStorage with the key from backend
+            setGuestSessionKey(data.session_key);
             console.log("Guest session key received from backend and set:", data.session_key);
         }
         queryClient.invalidateQueries({ queryKey: ['cart'] });
     },
     onSuccess: (data) => {
-      // On successful backend update, ensure Zustand matches the actual backend state
       const transformedItems: ProductInCart[] = data.items.map(backendItem => ({
         id: backendItem.product.id,
         name: backendItem.product.name,
@@ -144,16 +141,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   });
 
   const handleAddToCart = () => {
-    // If not authenticated and no guestSessionKey, generate one locally first
-    // The useEffect in client_content.tsx and the persist middleware in useCartStore
-    // should already handle initial generation.
     if (status === 'unauthenticated' && !guestSessionKey) {
-        // This case should be rare, but if it happens, trigger generation and re-call
-        // This is a safety net; the useEffect in client_content.tsx for instance should set it up.
         const { v4: uuidv4 } = require('uuid');
         const newKey = uuidv4();
         setGuestSessionKey(newKey);
-        // A toast might be good here to inform the user about guest session initialization.
         toast({
             title: 'Initializing Guest Session',
             description: 'Creating a temporary session for your cart. Please try adding to cart again.',
@@ -164,13 +155,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         return;
     }
 
-    const priceAsNumber = parseFloat(price); // Parse price here as it's used directly
-
     const itemToAddOrUpdate: ProductInCart = {
       id: id,
       name: name,
       price: priceAsNumber,
-      quantity: 1, // Always add one at a time for this button
+      quantity: 1,
       image_url: imageUrl,
     };
 
@@ -187,7 +176,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       updatedLocalCartItems = [...currentLocalCartItems, { ...itemToAddOrUpdate, quantity: 1 }];
     }
 
-    // Trigger the mutation to sync with the backend
     addToCartMutation.mutate(updatedLocalCartItems);
   };
 
@@ -199,8 +187,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     return `KES ${numericPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
-  // Determine if the button should be disabled for general loading or out of stock
-  const isButtonDisabled = addToCartMutation.isPending || status === 'loading' || parseFloat(product.stock) <= 0;
+  const isButtonDisabled = addToCartMutation.isPending || status === 'loading' || stock <= 0;
 
   return (
     <Box maxW="sm" borderWidth="1px" borderRadius="lg" overflow="hidden" boxShadow="md" bg="white">
@@ -214,6 +201,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               style={{ objectFit: 'cover' }}
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
               priority={false}
+              unoptimized={true}
             />
           ) : (
             <Box height="200px" width="100%" bg="gray.200" display="flex" alignItems="center" justifyContent="center">
@@ -244,9 +232,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           width="full"
           onClick={handleAddToCart}
           isLoading={addToCartMutation.isPending || status === 'loading'}
-          isDisabled={isButtonDisabled} // Use the combined disabled state
+          isDisabled={isButtonDisabled}
         >
-          {addToCartMutation.isPending ? 'Adding...' : (parseFloat(product.stock) > 0 ? 'Add to cart' : 'Out of Stock')}
+          {addToCartMutation.isPending ? 'Adding...' : (stock > 0 ? 'Add to cart' : 'Out of Stock')}
         </Button>
       </Box>
     </Box>

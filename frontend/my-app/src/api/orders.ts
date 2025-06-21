@@ -1,7 +1,8 @@
 // /var/www/ltronix-shop/frontend/my-app/src/api/orders.ts
 
-import { getSession } from 'next-auth/react'; // Keep for authenticated users
-import { useCartStore } from '@/store/useCartStore'; // Import Zustand store to get session_key
+import { getSession } from 'next-auth/react';
+// The useCartStore import is not needed directly in the API utility, but okay if left.
+// import { useCartStore } from '@/store/useCartStore';
 
 const DJANGO_API_BASE_URL = process.env.NEXT_PUBLIC_DJANGO_API_URL || 'http://127.0.0.1:8000/api/v1';
 
@@ -38,7 +39,7 @@ export interface BackendOrderItem {
 }
 
 export interface BackendOrder {
-  id: number; // Order ID
+  id: number | null; // Order ID (can be null for a newly created cart on frontend before backend assigns one)
   customer: number | null; // Customer ID (null for guest)
   session_key: string | null; // NEW: Session key for guest carts
   date_ordered: string;
@@ -64,9 +65,9 @@ async function fetchWithAuthOrSession(url: string, options?: RequestInit, sessio
     ...(options?.headers || {}),
   };
 
-  if (session?.user?.accessToken) {
+  if (session?.accessToken) { // Use session.accessToken directly
     // Authenticated user: send Bearer token
-    headers['Authorization'] = `Bearer ${session.user.accessToken}`;
+    headers['Authorization'] = `Bearer ${session.accessToken}`;
     console.log(`Sending authenticated request to: ${url}`);
   } else if (sessionKey) {
     // Guest user: send X-Session-Key header
@@ -109,10 +110,6 @@ async function fetchWithAuthOrSession(url: string, options?: RequestInit, sessio
   if (response.status === 204) { // No Content
     return null;
   }
-
-  // Check for X-Session-Key in response headers and update Zustand store (for client-side only)
-  // This needs to be done on the client side, so we'll handle this in the mutation's onSuccess
-  // when the actual store is accessible. This function is a backend API wrapper.
 
   return response.json();
 }
