@@ -1,110 +1,26 @@
-from django.shortcuts import render
-from django.http import JsonResponse, HttpResponse
-from django.views import View
-from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_GET
-from django.conf import settings
-from django_daraja.mpesa.core import MpesaClient
-from .models import Transaction
-from store.models import Order
-import json
+# ecommerce/payment/views.py
+# This file will now primarily host the M-Pesa callback view which doesn't need to be part of the DRF router.
+# It can also host traditional Django views if you need any, but for API purposes, api_views.py is used.
+
 import logging
+from django.http import HttpResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+
+# Import the MpesaConfirmationAPIView directly to expose it at a non-API URL for callbacks
+from .api_views import MpesaConfirmationAPIView 
 
 logger = logging.getLogger(__name__)
 
-class STKPushView(View):    # For M-PESA STK Push processing and initiation.
-    def post(self, request):
-        phone = request.POST.get('phone')
-        order_id = request.POST.get('order_id')
+# The M-Pesa callback URL, as configured in settings.MPESA_CALLBACK_URL,
+# will point to this specific view. It doesn't need to be an APIView in the DRF router sense,
+# as it's a direct webhook. We're re-using the logic from MpesaConfirmationAPIView.
+# @csrf_exempt is necessary for external POST requests.
+# The `as_view()` method is used to turn a class-based view into a callable function.
+mpesa_stk_push_callback = MpesaConfirmationAPIView.as_view()
 
-        if not phone or not order_id:
-            return JsonResponse({'error': 'Phone and order ID are required'}, status=400)
+# You can keep a simple render view for initial testing or other non-API pages here if needed.
+# For example:
+# def some_other_page_view(request):
+#    return HttpResponse("This is a non-API view in payment app.")
 
-        try:
-            order = Order.objects.get(id=order_id)
-        except Order.DoesNotExist:
-            return JsonResponse({'error': 'Order not found'}, status=400)
-
-        amount = int(order.get_cart_total)
-        if amount <= 0:
-            return JsonResponse({'error': 'Order amount must be greater than zero'}, status=400)
-
-        tx = Transaction.objects.create(phone=phone, amount=amount, order=order, status='PENDING')
-
-        client = MpesaClient()
-        account_reference = 'Ltronix Shop'
-        transaction_desc = 'Order payment'
-        callback_url = settings.MPESA_CALLBACK_URL
-
-        try:
-            response = client.stk_push(
-                phone_number=phone,
-                amount=amount,
-                account_reference=account_reference,
-                transaction_desc=transaction_desc,
-                callback_url=callback_url
-            )
-            logger.info(f"STK Push Response: {response}")
-
-            # Save IDs for callback matching
-            response_data = vars(response) if hasattr(response, '__dict__') else response
-            tx.merchant_request_id = response_data.get('MerchantRequestID')
-            tx.checkout_request_id = response_data.get('CheckoutRequestID')
-            tx.save()
-
-            # Return JSON for AJAX
-            return JsonResponse({
-                'transaction_id': tx.id,
-                'status': tx.status,
-                'merchant_request_id': tx.merchant_request_id,
-                'checkout_request_id': tx.checkout_request_id,
-            })
-
-        except Exception as e:
-            logger.exception(f"Error during STK Push: {e}")
-            tx.status = 'FAILED'
-            tx.save()
-            return JsonResponse({'error': f'An error occurred: {e}'}, status=500)
-
-@csrf_exempt
-def mpesa_stk_push_callback(request): # Handles M-PESA callback to update transaction status. Receives callback from M-PESA
-    logger.info("M-Pesa STK Push Callback received!")
-    logger.info(f"Callback Raw Body: {request.body.decode('utf-8')}") # Log raw body
-    try:
-        callback_data = json.loads(request.body)
-        logger.info(f"Callback Data: {callback_data}")
-
-        if 'Body' in callback_data and 'stkCallback' in callback_data['Body']:
-            stk_callback = callback_data['Body']['stkCallback']
-            result_code = stk_callback.get('ResultCode')
-            merchant_request_id = stk_callback.get('MerchantRequestID')
-
-            try:
-                transaction = Transaction.objects.get(merchant_request_id=merchant_request_id)
-                if result_code == 0:
-                    transaction.status = 'COMPLETED'
-                    transaction.save()
-                    if transaction.order:
-                        transaction.order.complete = True
-                        transaction.order.save()
-                else:
-                    transaction.status = 'FAILED'
-                    transaction.save()
-            except Transaction.DoesNotExist:
-                logger.error(f"Transaction not found for MerchantRequestID: {merchant_request_id}")
-
-    except Exception as e:
-        logger.exception(f"Unexpected error in mpesa_stk_push_callback: {e}")
-        return HttpResponse('Internal server error', status=500)
-
-    return HttpResponse('OK')
-
-# this view will check the status of a transaction
-@require_GET
-def payment_status(request):
-    transaction_id = request.GET.get('transaction_id')
-    try:
-        tx = Transaction.objects.get(id=transaction_id)
-        return JsonResponse({'status': tx.status})
-    except Transaction.DoesNotExist:
-        return JsonResponse({'status': 'NOT_FOUND'}, status=404)
