@@ -30,7 +30,11 @@ import {
   AlertIcon,
   AlertDescription,
 } from '@chakra-ui/react';
-import { ProductCard } from '@/components/ProductCard'; // Correct named import
+// CRITICAL FIX: Changed import path to a relative path for better module resolution.
+// Given your project structure: frontend/my-app/src/app/products/client_page.tsx
+// to reach: frontend/my-app/src/components/ProductCard.tsx
+// You need to go up two directories (../../) then into components/
+import { ProductCard } from '../../components/ProductCard'; 
 import { SearchIcon } from '@chakra-ui/icons';
 import Fuse from 'fuse.js';
 
@@ -379,9 +383,10 @@ export default function ProductsClientPage() {
                     key={product.id}
                     id={product.id}
                     name={product.name}
+                    description={product.description} // Make sure description is passed
                     price={product.price}
                     imageUrl={product.image_url}
-                    stock={product.stock} // Ensure stock is passed here
+                    stock={product.stock}
                   />
                 ))}
               </SimpleGrid>
@@ -406,3 +411,4 @@ export default function ProductsClientPage() {
     </Container>
   );
 }
+

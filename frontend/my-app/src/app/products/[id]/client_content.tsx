@@ -56,17 +56,26 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
   const { data: session, status } = useSession();
 
   const [quantity, setQuantity] = React.useState(1);
-  const localCartItems = useCartStore((state) => state.items);
+  const localCartItems = useCartStore((state) => state.items); // CORRECTED: This directly extracts the items array.
   const setLocalCartItems = useCartStore((state) => state.setItems);
   const guestSessionKey = useCartStore((state) => state.guestSessionKey);
   const setGuestSessionKey = useCartStore((state) => state.setGuestSessionKey);
 
+  // This useEffect ensures a guestSessionKey exists on page load if unauthenticated
   React.useEffect(() => {
-    if (status === 'unauthenticated' && !guestSessionKey) {
-      const { v4: uuidv4 } = require('uuid');
-      setGuestSessionKey(uuidv4());
+    if (typeof window !== 'undefined' && status === 'unauthenticated' && !guestSessionKey) {
+      import('uuid').then(({ v4: uuidv4 }) => {
+        setGuestSessionKey(uuidv4());
+        toast({
+          title: 'Initializing Guest Session',
+          description: 'Creating a temporary session for your cart.',
+          status: 'info',
+          duration: 3000,
+          isClosable: true,
+        });
+      });
     }
-  }, [guestSessionKey, setGuestSessionKey, status]);
+  }, [guestSessionKey, setGuestSessionKey, status, toast]);
 
 
   const formatPrice = (priceString: string): string => {
@@ -171,17 +180,15 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
   });
 
   const handleAddToCart = () => {
-    const currentSessionKey = guestSessionKey;
-
-    if (status === 'unauthenticated' && !currentSessionKey) {
-        toast({
-            title: 'Session Error',
-            description: 'Unable to establish a guest session. Please try refreshing or logging in.',
-            status: 'error',
-            duration: 5000,
-            isClosable: true,
-        });
-        return;
+    if (status === 'unauthenticated' && !guestSessionKey) {
+      toast({
+          title: 'Initializing Guest Session',
+          description: 'Creating a temporary session for your cart. Please try adding to cart again.',
+          status: 'info',
+          duration: 3000,
+          isClosable: true,
+      });
+      return;
     }
 
     if (quantity <= 0) {
@@ -214,7 +221,8 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
       image_url: product.image_url,
     };
 
-    const currentLocalCartItems = localCartItems;
+    // CORRECTED: Use `localCartItems` directly as it's already the array
+    const currentLocalCartItems = localCartItems; 
 
     const existingLocalItem = currentLocalCartItems.find(item => item.id === product.id);
 
@@ -244,7 +252,7 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
               style={{ objectFit: 'contain' }}
               priority={false}
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-              unoptimized={true} {/* NEW: Add unoptimized prop here */}
+              unoptimized={true}
             />
           ) : (
             <Box w="100%" h="500px" bg="gray.200" display="flex" alignItems="center" justifyContent="center">

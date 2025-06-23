@@ -2,15 +2,15 @@
 from rest_framework import viewsets, mixins, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
-from rest_framework.permissions import AllowAny, IsAuthenticated # Import specific permissions
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django.db.models import F
-from django.utils import timezone # Import timezone for date_ordered update
-import uuid # Import uuid for generating session keys
+from django.utils import timezone
+import uuid
 
-from .models import Product, Order, OrderItem, Customer # Ensure Customer is imported
-from .serializers import ProductSerializer, OrderSerializer, ReadOnlyOrderItemSerializer, WritableOrderItemSerializer # Corrected imports
+from .models import Product, Order, OrderItem, Customer
+from .serializers import ProductSerializer, OrderSerializer, ReadOnlyOrderItemSerializer, WritableOrderItemSerializer
 
 class ProductViewSet(viewsets.ReadOnlyModelViewSet):
     """
@@ -19,14 +19,14 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
     """
     queryset = Product.objects.all().order_by('name')
     serializer_class = ProductSerializer
-    permission_classes = [AllowAny] # Ensure public access to product listings
+    permission_classes = [AllowAny]
 
 class OrderViewSet(
     mixins.CreateModelMixin,
     mixins.RetrieveModelMixin,
     mixins.UpdateModelMixin,
     mixins.DestroyModelMixin,
-    mixins.ListModelMixin, # Add ListModelMixin to allow listing orders (for authenticated users)
+    mixins.ListModelMixin,
     viewsets.GenericViewSet
 ):
     """
@@ -35,23 +35,18 @@ class OrderViewSet(
     - For authenticated users, the cart is linked to `request.user`.
     - For unauthenticated (guest) users, the cart is linked to `session_key`.
     """
-    queryset = Order.objects.all().order_by('-date_ordered') # Order by most recent
-    serializer_class = OrderSerializer # Default serializer
-    permission_classes = [AllowAny] # AllowAny at class level, specific methods will enforce authentication
+    queryset = Order.objects.all().order_by('-date_ordered')
+    serializer_class = OrderSerializer
+    permission_classes = [AllowAny]
 
-    # This method is crucial for filtering the base queryset that DRF uses for actions like `list`, `retrieve`, etc.
     def get_queryset(self):
         user = self.request.user
         session_key = self.request.headers.get('X-Session-Key')
 
-        # For the `list` action (order history), only show complete orders for authenticated user
         if self.action == 'list' and user.is_authenticated:
             customer, _ = Customer.objects.get_or_create(user=user)
             return self.queryset.filter(customer=customer, complete=True)
 
-        # For `retrieve`, `update`, `destroy` on a specific Order ID
-        # (e.g., getting a specific cart by ID, or updating/deleting it)
-        # The logic for `my_cart` action will be separate.
         if self.action in ['retrieve', 'update', 'destroy', 'complete_order']:
             if user.is_authenticated:
                 customer, _ = Customer.objects.get_or_create(user=user)
@@ -60,23 +55,22 @@ class OrderViewSet(
                 return self.queryset.filter(session_key=session_key)
             return self.queryset.none()
         
-        # For other actions like `create`, `my_cart`, the queryset isn't strictly filtered here
-        # as the logic within those methods handles getting/creating the specific order instance.
-        return self.queryset.all() # Or .none() if you want to be strict and rely only on explicit filtering
+        return self.queryset.all()
 
 
     def create(self, request, *args, **kwargs):
         """
         Creates or updates a shopping cart (Order with complete=False).
         Handles both authenticated and unauthenticated users.
-        The request body should contain 'order_items_input': [{product_id: '...', quantity: X}]
+        The request body should contain 'items': [{product_id: '...', quantity: X}]
         """
         user = request.user
         session_key = request.headers.get('X-Session-Key')
-        order_items_input = request.data.get('order_items_input', [])
+        # CRITICAL FIX: Change 'order_items_input' to 'items' to match frontend payload
+        items_payload = request.data.get('items', []) 
 
-        if not isinstance(order_items_input, list):
-            return Response({"order_items_input": "Must be a list of items."}, status=status.HTTP_400_BAD_REQUEST)
+        if not isinstance(items_payload, list):
+            return Response({"items": "Must be a list of items."}, status=status.HTTP_400_BAD_REQUEST)
 
         with transaction.atomic():
             order = None
@@ -86,10 +80,9 @@ class OrderViewSet(
                 customer, _ = Customer.objects.get_or_create(user=user)
                 order, created = Order.objects.get_or_create(customer=customer, complete=False)
                 
-                # If a guest cart exists for this user (they just logged in or returned with a guest session), merge it
                 if session_key:
                     guest_order = Order.objects.filter(session_key=session_key, complete=False).first()
-                    if guest_order and guest_order.id != order.id: # Ensure we don't try to merge the same order
+                    if guest_order and guest_order.id != order.id:
                         for guest_item in guest_order.orderitem_set.all():
                             existing_item = order.orderitem_set.filter(product=guest_item.product).first()
                             if existing_item:
@@ -101,58 +94,48 @@ class OrderViewSet(
                                     order=order,
                                     quantity=guest_item.quantity
                                 )
-                        guest_order.delete() # Delete the merged guest cart
+                        guest_order.delete()
                         print(f"Merged guest cart ({session_key}) into user's cart ({user.email})")
 
             elif session_key:
                 order, created = Order.objects.get_or_create(session_key=session_key, complete=False)
             else:
-                # If unauthenticated and no session key provided, generate a new one for the guest
                 new_session_key = str(uuid.uuid4())
                 order = Order.objects.create(session_key=new_session_key, complete=False)
-                # The frontend will pick up this new session key from the response in onSettled/onSuccess
 
-            # If no order could be found/created (should be rare with the logic above)
             if not order:
                 return Response({"detail": "Unable to find or create cart."}, status=status.HTTP_400_BAD_REQUEST)
 
-            # --- Update Order Items based on `order_items_input` payload ---
-            # This logic replaces the current cart items with the items sent in the payload.
-            # This is key for the "sync entire cart state" approach from the frontend.
-            
             # Get product IDs from the incoming payload
-            current_product_ids_in_payload = [item.get('product_id') for item in order_items_input if item.get('product_id') is not None]
+            current_product_ids_in_payload = [item.get('product_id') for item in items_payload if item.get('product_id') is not None]
             
             # Remove any existing items in the backend cart that are NOT in the incoming payload
-            # This handles deletions from the frontend cart.
             order.orderitem_set.exclude(product__id__in=current_product_ids_in_payload).delete()
 
-            for item_data in order_items_input:
+            for item_data in items_payload: # Use items_payload here
                 product_id = item_data.get('product_id')
                 quantity = item_data.get('quantity')
 
                 if not product_id or quantity is None or not isinstance(quantity, int) or quantity < 0:
                     print(f"Skipping invalid item data: {item_data}")
-                    continue # Skip invalid items, log for debugging
+                    continue
 
                 product = get_object_or_404(Product, id=product_id)
 
-                if quantity == 0: # If quantity is 0, explicitly delete the item (already handled by exclude, but good for clarity)
+                if quantity == 0:
                     order.orderitem_set.filter(product=product).delete()
                     continue
 
-                # Update or create the order item
                 OrderItem.objects.update_or_create(
                     order=order,
                     product=product,
                     defaults={'quantity': quantity}
                 )
             
-            order.refresh_from_db() # Recalculate properties like get_cart_total, get_cart_items after item modifications
+            order.refresh_from_db()
 
             serializer = self.get_serializer(order)
             response_data = serializer.data
-            # Always return the current session_key for guests for frontend persistence
             if not user.is_authenticated and order.session_key:
                 response_data['session_key'] = order.session_key
 
@@ -174,14 +157,35 @@ class OrderViewSet(
         if user.is_authenticated:
             customer, _ = Customer.objects.get_or_create(user=user)
             order = Order.objects.filter(customer=customer, complete=False).first()
+            # If authenticated user has no cart but a guest session key exists, attempt to take over/merge
+            if not order and session_key_from_header:
+                guest_order = Order.objects.filter(session_key=session_key_from_header, complete=False).first()
+                if guest_order:
+                    guest_order.customer = customer
+                    guest_order.session_key = None # Clear session key once assigned to user
+                    guest_order.save()
+                    order = guest_order
+                    print(f"Authenticated user {user.email} adopted guest cart: {session_key_from_header}")
+
         elif session_key_from_header:
             order = Order.objects.filter(session_key=session_key_from_header, complete=False).first()
         
         # If no active cart is found for current user/session, create a new guest cart
         if not order:
-            new_session_key = session_key_from_header if session_key_from_header else str(uuid.uuid4())
-            order = Order.objects.create(session_key=new_session_key, complete=False)
-            print(f"Created new guest cart for session: {new_session_key}")
+            # Only create a new guest cart if a session_key was provided or if no user is authenticated
+            if not user.is_authenticated:
+                new_session_key = session_key_from_header if session_key_from_header else str(uuid.uuid4())
+                order = Order.objects.create(session_key=new_session_key, complete=False)
+                print(f"Created new guest cart for session: {new_session_key}")
+            else: # Authenticated user with no cart and no guest session key, return a "null" cart response
+                 # Or you might want to create an empty cart for them here as well
+                 # For now, let's create it implicitly if the frontend tries to update it.
+                 # For `my_cart`, if no cart exists, returning a "default empty cart" is better than 404.
+                 # The frontend expects a BackendOrder | null. Let's return a structured empty one.
+                 # Reverting to the implicit creation as originally designed in `my_cart` if no order found.
+                 # The current logic *does* create an order if `not order`. This is correct.
+                 pass
+
 
         serializer = self.get_serializer(order)
         response_data = serializer.data
@@ -200,17 +204,16 @@ class OrderViewSet(
         Similar to `create` but targets an existing order.
         Handles both authenticated and unauthenticated users.
         """
-        instance = self.get_object() # This will get the specific order by ID from URL
+        instance = self.get_object()
         user = request.user
         session_key_from_header = request.headers.get('X-Session-Key')
 
-        if instance.complete: # Cannot update a completed order
+        if instance.complete:
             return Response(
                 {"detail": "Cannot update a completed order."},
-                status=status.HTTP_400_BAD_REQUEST # Changed to 400 as it's a client error trying to update a complete order
+                status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Permission check: ensure user owns the cart or session key matches
         if user.is_authenticated:
             if not instance.customer or instance.customer.user != user:
                 return Response({"detail": "You do not have permission to update this order."}, status=status.HTTP_403_FORBIDDEN)
@@ -221,15 +224,15 @@ class OrderViewSet(
             return Response({"detail": "Authentication credentials were not provided."}, status=status.HTTP_401_UNAUTHORIZED)
 
 
-        order_items_input = request.data.get('order_items_input', [])
-        if not isinstance(order_items_input, list):
-            return Response({"order_items_input": "Must be a list of items."}, status=status.HTTP_400_BAD_REQUEST)
+        # CRITICAL FIX: Change 'order_items_input' to 'items' to match frontend payload
+        items_payload = request.data.get('items', []) 
+        if not isinstance(items_payload, list):
+            return Response({"items": "Must be a list of items."}, status=status.HTTP_400_BAD_REQUEST)
 
         with transaction.atomic():
-            # Clear all existing items and re-add based on the new payload (full replacement logic)
             instance.orderitem_set.all().delete()
 
-            for item_data in order_items_input:
+            for item_data in items_payload: # Use items_payload here
                 product_id = item_data.get('product_id')
                 quantity = item_data.get('quantity')
 
@@ -242,24 +245,23 @@ class OrderViewSet(
                 if quantity > 0:
                     OrderItem.objects.create(order=instance, product=product, quantity=quantity)
             
-            instance.refresh_from_db() # Recalculate totals
+            instance.refresh_from_db()
 
         serializer = self.get_serializer(instance)
         response_data = serializer.data
         if not user.is_authenticated and instance.session_key:
-            response_data['session_key'] = instance.session_key # Return session key for guests
+            response_data['session_key'] = instance.session_key
 
         return Response(response_data, status=status.HTTP_200_OK)
 
 
-    # Action to mark an order as complete (checkout)
     @action(detail=True, methods=['post'], url_path='complete_order', permission_classes=[IsAuthenticated])
     def complete_order(self, request, pk=None):
         """
         Marks an order as complete (checkout).
         Only authenticated users can complete an order.
         """
-        order = self.get_object() # This fetches the order by PK from the URL
+        order = self.get_object()
 
         if not request.user.is_authenticated:
             return Response(
@@ -267,16 +269,14 @@ class OrderViewSet(
                 status=status.HTTP_401_UNAUTHORIZED
             )
         
-        # Ensure the authenticated user owns this cart or is taking ownership of a guest cart
         customer, _ = Customer.objects.get_or_create(user=request.user)
-        if order.customer and order.customer != customer: # If it's another user's cart
+        if order.customer and order.customer != customer:
             return Response({"detail": "You do not have permission to complete this order."}, status=status.HTTP_403_FORBIDDEN)
         
-        # If it's a guest cart and the user is now authenticated, assign it to them
         if not order.customer and order.session_key:
             order.customer = customer
-            order.session_key = None # Clear session key as it's now a user's cart
-            order.save() # Save to update customer and clear session_key before completing
+            order.session_key = None
+            order.save()
 
         if order.complete:
             return Response({"detail": "Order is already complete."}, status=status.HTTP_400_BAD_REQUEST)
@@ -284,7 +284,6 @@ class OrderViewSet(
         if not order.orderitem_set.exists():
             return Response({"detail": "Cannot complete an empty cart."}, status=status.HTTP_400_BAD_REQUEST)
         
-        # Check stock for all items before completing
         for item in order.orderitem_set.all():
             if item.product.stock < item.quantity:
                 return Response(
@@ -295,10 +294,9 @@ class OrderViewSet(
         with transaction.atomic():
             order.complete = True
             order.date_ordered = timezone.now()
-            order.transaction_id = str(uuid.uuid4()) # Generate a unique transaction ID
+            order.transaction_id = str(uuid.uuid4())
             order.save()
 
-            # Decrease product stock after successful order completion
             for item in order.orderitem_set.all():
                 item.product.stock -= item.quantity
                 item.product.save()
@@ -306,7 +304,6 @@ class OrderViewSet(
         serializer = self.get_serializer(order)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    # Override list method for authenticated users to see their complete order history
     def list(self, request, *args, **kwargs):
         """
         Retrieves the authenticated user's complete order history.
@@ -318,13 +315,12 @@ class OrderViewSet(
                 status=status.HTTP_401_UNAUTHORIZED
             )
         customer, _ = Customer.objects.get_or_create(user=request.user)
-        queryset = self.queryset.filter(customer=customer, complete=True) # Only complete orders for history
+        queryset = self.queryset.filter(customer=customer, complete=True)
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
-    # Override retrieve method to ensure users can only retrieve their own orders (or guest carts by session_key)
     def retrieve(self, request, *args, **kwargs):
-        instance = self.get_object() # This gets the specific order instance by PK
+        instance = self.get_object()
         user = request.user
         session_key = request.headers.get('X-Session-Key')
 
@@ -339,7 +335,6 @@ class OrderViewSet(
                     status=status.HTTP_403_FORBIDDEN
                 )
         elif session_key:
-            # Allow guest to retrieve their own incomplete cart via explicit ID if session_key matches
             if instance.session_key == session_key and not instance.complete:
                 serializer = self.get_serializer(instance)
                 return Response(serializer.data)
@@ -354,20 +349,17 @@ class OrderViewSet(
                 status=status.HTTP_401_UNAUTHORIZED
             )
 
-    # Override destroy to ensure users can only delete their own incomplete carts
-    # Completed orders should generally not be deletable via API
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
         user = request.user
         session_key = request.headers.get('X-Session-Key')
 
-        if instance.complete: # Cannot delete a completed order
+        if instance.complete:
             return Response(
                 {"detail": "Cannot delete a completed order."},
-                status=status.HTTP_400_BAD_REQUEST # Changed to 400
+                status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Permission check: ensure user owns the cart or session key matches
         if user.is_authenticated:
             if not instance.customer or instance.customer.user != user:
                 return Response({"detail": "You do not have permission to delete this order."}, status=status.HTTP_403_FORBIDDEN)

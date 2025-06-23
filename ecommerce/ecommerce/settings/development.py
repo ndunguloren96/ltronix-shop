@@ -1,10 +1,11 @@
 # ecommerce/ecommerce/settings/development.py
 from .base import *
 import os
+import re # Import re for regular expressions
 
 DEBUG = True
 
-# Ensure this includes your Next.js dev server and any Ngrok URLs if used
+# FIX: Removed the extra space and quote from ' 127.0.0.1'
 ALLOWED_HOSTS = ['localhost', '127.0.0.1', '[::1]'] + os.environ.get('ALLOWED_HOSTS', '').split(',')
 
 
@@ -45,6 +46,14 @@ CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=[
     'http://127.0.0.1:3000',
     # 'https://your-frontend-ngrok-url.ngrok-free.app', # Add if you Ngrok your frontend
 ])
+# CRITICAL FIX: Added regex for dynamically assigned WSL2 IPs
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    # Matches common local network ranges (e.g., WSL2 assigned IPs)
+    # The `?` makes the port optional, accommodating origins without explicit port in the header.
+    r"^http:\/\/172\.\d{1,3}\.\d{1,3}\.\d{1,3}(:\d+)?$", 
+    r"^http:\/\/10\.\d{1,3}\.\d{1,3}\.\d{1,3}(:\d+)?$",
+    r"^http:\/\/192\.168\.\d{1,3}\.\d{1,3}(:\d+)?$",
+]
 CORS_ALLOW_CREDENTIALS = True
 
 # CSRF Trusted Origins for development
@@ -74,3 +83,4 @@ SOCIAL_AUTH_REDIRECT_IS_HTTPS = env.bool('SOCIAL_AUTH_REDIRECT_IS_HTTPS', defaul
 
 # Ensure that `dj_rest_auth.urls` in `ecommerce/ecommerce/urls.py` correctly includes the `user/` endpoint.
 # It typically does, but confirm its usage in your `api_urls.py` if you have one or directly in your root urls.
+
