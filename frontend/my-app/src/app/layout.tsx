@@ -1,4 +1,4 @@
-// /var/www/ltronix-shop/frontend/my-app/src/app/layout.tsx
+// frontend/my-app/src/app/layout.tsx
 import './globals.css'; // Your global CSS imports
 import { Inter } from 'next/font/google'; // Assuming you use Inter font
 

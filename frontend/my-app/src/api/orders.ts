@@ -1,11 +1,11 @@
-// /var/www/ltronix-shop/frontend/my-app/src/api/orders.ts
+// frontend/my-app/src/api/orders.ts
 
 import { getSession } from 'next-auth/react';
-// The useCartStore import is not needed directly in the API utility, but okay if left.
-// import { useCartStore } from '@/store/useCartStore';
 
+// Define base URL for your Django API
 const DJANGO_API_BASE_URL = process.env.NEXT_PUBLIC_DJANGO_API_URL || 'http://127.0.0.1:8000/api/v1';
 
+// --- Type Definitions for Cart/Order Operations ---
 export interface ProductInCart {
   id: string;
   name: string;
@@ -15,13 +15,13 @@ export interface ProductInCart {
 }
 
 export interface OrderItemPayload {
-  id?: number; // Optional: ID if updating an existing OrderItem (from backend)
-  product_id: string; // The ID of the product
+  id?: number;
+  product_id: string;
   quantity: number;
 }
 
 export interface OrderPayload {
-  order_items_input: OrderItemPayload[]; // Backend expects this specific field name now
+  items: OrderItemPayload[];
   complete?: boolean;
   transaction_id?: string;
 }
@@ -29,9 +29,9 @@ export interface OrderPayload {
 export interface BackendOrderItem {
   id: number;
   product: {
-    id: string; // Product ID, kept as string from backend
+    id: string;
     name: string;
-    price: string; // Price from backend as string
+    price: string;
     image_url?: string;
   };
   quantity: number;
@@ -39,9 +39,9 @@ export interface BackendOrderItem {
 }
 
 export interface BackendOrder {
-  id: number | null; // Order ID (can be null for a newly created cart on frontend before backend assigns one)
-  customer: number | null; // Customer ID (null for guest)
-  session_key: string | null; // NEW: Session key for guest carts
+  id: number | null; // Can be null for newly created guest carts
+  customer: number | null;
+  session_key: string | null; // Important for guest carts
   date_ordered: string;
   complete: boolean;
   transaction_id: string | null;
@@ -51,31 +51,39 @@ export interface BackendOrder {
   items: BackendOrderItem[];
 }
 
-/**
- * Helper function to make authenticated or guest requests to Django backend.
- * It prioritizes authentication token, then falls back to X-Session-Key header for guests.
- * @param url The API endpoint URL.
- * @param options Request options (method, body, etc.).
- * @param sessionKey Optional session key for guest users.
- */
-async function fetchWithAuthOrSession(url: string, options?: RequestInit, sessionKey?: string | null) {
-  const session = await getSession(); // Get NextAuth session
+// --- Type definition for M-Pesa Transaction ---
+export interface BackendTransaction {
+  id: number;
+  order: number;
+  phone: string;
+  amount: string;
+  merchant_request_id: string | null;
+  checkout_request_id: string | null;
+  mpesa_receipt_number: string | null;
+  status: 'PENDING' | 'COMPLETED' | 'FAILED' | 'CANCELLED' | 'TIMEOUT';
+  result_code: string | null;
+  result_desc: string | null;
+  is_callback_received: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+
+// --- Helper for authenticated and guest API calls ---
+// This function is crucial for sending the X-Session-Key header for guest users.
+async function fetchWithSession(url: string, options?: RequestInit, guestSessionKey?: string | null) {
+  const session = await getSession();
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
     ...(options?.headers || {}),
   };
 
-  if (session?.accessToken) { // Use session.accessToken directly
-    // Authenticated user: send Bearer token
-    headers['Authorization'] = `Bearer ${session.accessToken}`;
-    console.log(`Sending authenticated request to: ${url}`);
-  } else if (sessionKey) {
-    // Guest user: send X-Session-Key header
-    headers['X-Session-Key'] = sessionKey;
-    console.log(`Sending guest request with session key to: ${url}`);
-  } else {
-    // Neither authenticated nor session key available (e.g., initial fetch for new guest)
-    console.log(`Sending unauthenticated/no-session-key request to: ${url}`);
+  // Prioritize Authorization header for authenticated users
+  if (session?.user?.accessToken) {
+    headers['Authorization'] = `Bearer ${session.user.accessToken}`;
+  } else if (guestSessionKey) {
+    // For unauthenticated users, use X-Session-Key
+    headers['X-Session-Key'] = guestSessionKey;
   }
 
   const response = await fetch(url, {
@@ -107,24 +115,22 @@ async function fetchWithAuthOrSession(url: string, options?: RequestInit, sessio
     throw new Error(`API Error: ${response.status} ${response.statusText} - ${errorDetail}`);
   }
 
-  if (response.status === 204) { // No Content
+  if (response.status === 204) {
     return null;
   }
 
   return response.json();
 }
 
+// --- API Functions for Cart (via Order endpoint) ---
+
 /**
- * Fetches the user's active shopping cart (authenticated or guest).
- * @param sessionKey Optional session key for guest users.
+ * Fetches the user's current active shopping cart.
+ * @param guestSessionKey Optional: The session key for guest users.
  */
-export async function fetchCartAPI(sessionKey?: string | null): Promise<BackendOrder | null> {
+export async function fetchCartAPI(guestSessionKey?: string | null): Promise<BackendOrder | null> {
   try {
-    const response = await fetchWithAuthOrSession(`${DJANGO_API_BASE_URL}/products/orders/my_cart/`, {}, sessionKey);
-    // Backend's my_cart endpoint should now return a cart object even if empty, not null if it exists
-    if (response && response.id === null && response.get_cart_items === 0) { // A new "empty" cart might have id: null
-      return response; // Return the empty cart object
-    }
+    const response = await fetchWithSession(`${DJANGO_API_BASE_URL}/products/orders/my_cart/`, {}, guestSessionKey);
     return response;
   } catch (error) {
     console.error("Error fetching cart:", error);
@@ -133,59 +139,55 @@ export async function fetchCartAPI(sessionKey?: string | null): Promise<BackendO
 }
 
 /**
- * Sends the current desired state of cart items to the backend.
- * The backend's OrderViewSet will either create a new cart, or update an existing one.
- * It expects 'order_items_input' as a list of {product_id, quantity, (optional) id}
- * @param cartItems The array of ProductInCart (frontend cart items) to sync.
- * @param sessionKey Optional session key for guest users.
+ * Adds a product to the cart or updates its quantity by sending the entire cart state.
+ * @param cartItems The current desired state of cart items.
+ * @param guestSessionKey Optional: The session key for guest users.
  * @returns The updated BackendOrder (cart).
  */
-export async function updateEntireCartAPI(cartItems: ProductInCart[], sessionKey?: string | null): Promise<BackendOrder> {
+export async function updateEntireCartAPI(cartItems: ProductInCart[], guestSessionKey?: string | null): Promise<BackendOrder> {
   const payload: OrderPayload = {
-    order_items_input: cartItems.map(item => ({
+    items: cartItems.map(item => ({
       product_id: item.id,
       quantity: item.quantity,
-      // If you were tracking backend order_item_id on the frontend, you'd include it here:
-      // id: item.backendOrderItemId // e.g., if you store this when fetching cart
     })),
   };
 
   const url = `${DJANGO_API_BASE_URL}/products/orders/`;
-  const response = await fetchWithAuthOrSession(url, {
-    method: 'POST', // POST is used to either create a new cart or update the existing one via custom logic in OrderViewSet's create method
+  const response = await fetchWithSession(url, {
+    method: 'POST',
     body: JSON.stringify(payload),
-  }, sessionKey); // Pass sessionKey to the helper
+  }, guestSessionKey); // Pass guestSessionKey here
   return response;
 }
 
 /**
- * Clears the entire cart by sending an empty list of items.
+ * Clears the entire cart on the backend.
  * @param cartId The ID of the cart (Order) to clear.
- * @param sessionKey Optional session key for guest users.
- * @returns The updated BackendOrder (empty cart).
+ * @param guestSessionKey Optional: The session key for guest users.
+ * @returns The updated BackendOrder (cleared cart).
  */
-export async function clearCartAPI(cartId: number, sessionKey?: string | null): Promise<BackendOrder> {
-  const payload: OrderPayload = {
-    order_items_input: [], // Send an empty array to clear the cart
-  };
-  const url = `${DJANGO_API_BASE_URL}/products/orders/${cartId}/`; // Target the specific cart
-  const response = await fetchWithAuthOrSession(url, {
-    method: 'PUT', // Use PUT to completely replace the cart's items
-    body: JSON.stringify(payload),
-  }, sessionKey); // Pass sessionKey to the helper
+export async function clearCartAPI(cartId: number, guestSessionKey?: string | null): Promise<BackendOrder> {
+  // Clearing cart is essentially updating with an empty items array.
+  // Using PUT on the specific order ID to explicitly clear it.
+  const url = `${DJANGO_API_BASE_URL}/products/orders/${cartId}/`;
+  const response = await fetchWithSession(url, {
+    method: 'PUT', // Use PUT to update the entire cart (clear it by sending no items)
+    body: JSON.stringify({ items: [] }), // Send an empty items array
+  }, guestSessionKey);
   return response;
 }
 
 /**
  * Marks an existing cart as complete, effectively checking out.
  * @param cartId The ID of the cart (Order) to complete.
+ * @param guestSessionKey Optional: The session key for guest users.
  * @returns The completed BackendOrder.
  */
-export async function checkoutCartAPI(cartId: number): Promise<BackendOrder> {
-  // Checkout always requires authentication as per your requirements
-  const response = await fetchWithAuthOrSession(`${DJANGO_API_BASE_URL}/products/orders/${cartId}/complete_order/`, { // Ensure correct action name
+export async function checkoutCartAPI(cartId: number, guestSessionKey?: string | null): Promise<BackendOrder> {
+  const url = `${DJANGO_API_BASE_URL}/products/orders/${cartId}/complete_order/`;
+  const response = await fetchWithSession(url, {
     method: 'POST',
-  });
+  }, guestSessionKey);
   return response;
 }
 
@@ -193,7 +195,47 @@ export async function checkoutCartAPI(cartId: number): Promise<BackendOrder> {
  * Fetches the order history for the authenticated user.
  */
 export async function fetchOrdersAPI(): Promise<BackendOrder[]> {
-  // Order history always requires authentication as per your requirements
-  const response = await fetchWithAuthOrSession(`${DJANGO_API_BASE_URL}/products/orders/`);
+  const url = `${DJANGO_API_BASE_URL}/products/orders/`;
+  const response = await fetchWithSession(url, {
+    method: 'GET',
+  });
   return response.filter((order: BackendOrder) => order.complete === true);
+}
+
+
+// --- API Functions for M-Pesa Integration ---
+
+/**
+ * Initiates an M-Pesa STK Push from the backend.
+ * @param orderId The ID of the order to be paid for.
+ * @param phoneNumber The M-Pesa phone number in 254XXXXXXXXX format.
+ * @param guestSessionKey Optional: The session key for guest users.
+ * @returns The initiated BackendTransaction details.
+ */
+export async function initiateStkPushAPI(payload: { orderId: number; phoneNumber: string }, guestSessionKey?: string | null): Promise<BackendTransaction> {
+  const url = `${DJANGO_API_BASE_URL}/payments/stk-push/`;
+  console.log("Initiating STK Push with payload:", payload);
+  const response = await fetchWithSession(url, {
+    method: 'POST',
+    body: JSON.stringify({
+      order_id: payload.orderId,
+      phone_number: payload.phoneNumber,
+    }),
+  }, guestSessionKey);
+  return response;
+}
+
+/**
+ * Fetches the status of an M-Pesa transaction from the backend.
+ * @param transactionId The ID of the transaction (from your Django Transaction model).
+ * @param guestSessionKey Optional: The session key for guest users.
+ * @returns The BackendTransaction with updated status.
+ */
+export async function fetchTransactionStatusAPI(transactionId: number, guestSessionKey?: string | null): Promise<BackendTransaction> {
+  const url = `${DJANGO_API_BASE_URL}/payments/status/?transaction_id=${transactionId}`;
+  console.log("Fetching transaction status for ID:", transactionId);
+  const response = await fetchWithSession(url, {
+    method: 'GET',
+  }, guestSessionKey);
+  return response;
 }

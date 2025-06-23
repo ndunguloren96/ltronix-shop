@@ -1,4 +1,4 @@
-// /var/www/ltronix-shop/frontend/my-app/src/app/products/page.tsx
+// frontend/my-app/src/app/products/page.tsx
 // This is a Server Component, indicated by the absence of 'use client'
 
 import React from 'react';

@@ -44,7 +44,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const guestSessionKey = useCartStore((state) => state.guestSessionKey);
   const setGuestSessionKey = useCartStore((state) => state.setGuestSessionKey);
 
-  const getLocalCartItems = useCartStore((state) => state.items);
+  // CORRECTED: This now directly extracts the items array.
+  const localCartItems = useCartStore((state) => state.items); 
   const setLocalCartItems = useCartStore((state) => state.setItems);
 
   const priceAsNumber = parseFloat(price);
@@ -142,17 +143,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
   const handleAddToCart = () => {
     if (status === 'unauthenticated' && !guestSessionKey) {
-        const { v4: uuidv4 } = require('uuid');
-        const newKey = uuidv4();
-        setGuestSessionKey(newKey);
-        toast({
-            title: 'Initializing Guest Session',
-            description: 'Creating a temporary session for your cart. Please try adding to cart again.',
-            status: 'info',
-            duration: 3000,
-            isClosable: true,
-        });
-        return;
+      toast({
+        title: 'Initializing Guest Session',
+        description: 'Attempting to establish your guest session. Please try adding to cart again.',
+        status: 'info',
+        duration: 3000,
+        isClosable: true,
+      });
     }
 
     const itemToAddOrUpdate: ProductInCart = {
@@ -163,7 +160,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       image_url: imageUrl,
     };
 
-    const currentLocalCartItems = getLocalCartItems();
+    // CORRECTED: Use `localCartItems` directly as it's already the array
+    const currentLocalCartItems = localCartItems; 
 
     const existingLocalItem = currentLocalCartItems.find(item => item.id === id);
 
