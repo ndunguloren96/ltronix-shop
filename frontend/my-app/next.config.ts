@@ -1,4 +1,3 @@
-// frontend/my-app/next.config.ts
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
@@ -49,6 +48,14 @@ const nextConfig: NextConfig = {
       //   pathname: '/**',
       // },
     ],
+  },
+  async rewrites() {
+    return [
+      {
+        source: '/api/v1/products/:path*',
+        destination: 'http://localhost:8000/api/v1/products/:path*', // Proxy to Django backend
+      },
+    ]
   },
 };
 

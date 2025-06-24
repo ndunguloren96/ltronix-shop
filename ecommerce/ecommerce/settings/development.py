@@ -41,6 +41,7 @@ REST_FRAMEWORK = {
 }
 
 # CORS settings for development
+CORS_ALLOW_ALL_ORIGINS = True  # TEMPORARY: For debugging CORS only.
 CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=[
     'http://localhost:3000',
     'http://127.0.0.1:3000',
@@ -55,6 +56,15 @@ CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^http:\/\/192\.168\.\d{1,3}\.\d{1,3}(:\d+)?$",
 ]
 CORS_ALLOW_CREDENTIALS = True
+# Explicitly allow standard HTTP methods for CORS
+CORS_ALLOW_METHODS = [
+    "DELETE",
+    "GET",
+    "OPTIONS",
+    "PATCH",
+    "POST",
+    "PUT",
+]
 
 # CSRF Trusted Origins for development
 CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[
