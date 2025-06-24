@@ -1,5 +1,3 @@
-// frontend/my-app/src/api/orders.ts
-
 import { getSession } from 'next-auth/react';
 
 // Define base URL for your Django API
@@ -86,9 +84,11 @@ async function fetchWithSession(url: string, options?: RequestInit, guestSession
     headers['X-Session-Key'] = guestSessionKey;
   }
 
+  // --- CRITICAL FIX: Always include credentials for session/cookie auth ---
   const response = await fetch(url, {
     ...options,
     headers,
+    credentials: 'include',
   });
 
   if (!response.ok) {
