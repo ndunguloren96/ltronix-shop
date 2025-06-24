@@ -1,4 +1,3 @@
-# ecommerce/ecommerce/settings/development.py
 from .base import *
 import os
 import re # Import re for regular expressions
@@ -7,7 +6,6 @@ DEBUG = True
 
 # FIX: Removed the extra space and quote from ' 127.0.0.1'
 ALLOWED_HOSTS = ['localhost', '127.0.0.1', '[::1]'] + os.environ.get('ALLOWED_HOSTS', '').split(',')
-
 
 DATABASES = {
     'default': env.db('DATABASE_URL', default=f"postgresql://{env('DATABASE_USER')}:{env('DATABASE_PASSWORD')}@{env('DATABASE_HOST')}:{env('DATABASE_PORT')}/{env('DATABASE_NAME')}")
@@ -42,21 +40,7 @@ REST_FRAMEWORK = {
 
 # CORS settings for development
 CORS_ALLOW_ALL_ORIGINS = True  # TEMPORARY: For debugging CORS only.
-CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=[
-    'http://localhost:3000',
-    'http://127.0.0.1:3000',
-    # 'https://your-frontend-ngrok-url.ngrok-free.app', # Add if you Ngrok your frontend
-])
-# CRITICAL FIX: Added regex for dynamically assigned WSL2 IPs
-CORS_ALLOWED_ORIGIN_REGEXES = [
-    # Matches common local network ranges (e.g., WSL2 assigned IPs)
-    # The `?` makes the port optional, accommodating origins without explicit port in the header.
-    r"^http:\/\/172\.\d{1,3}\.\d{1,3}\.\d{1,3}(:\d+)?$", 
-    r"^http:\/\/10\.\d{1,3}\.\d{1,3}\.\d{1,3}(:\d+)?$",
-    r"^http:\/\/192\.168\.\d{1,3}\.\d{1,3}(:\d+)?$",
-]
 CORS_ALLOW_CREDENTIALS = True
-# Explicitly allow standard HTTP methods for CORS
 CORS_ALLOW_METHODS = [
     "DELETE",
     "GET",
@@ -65,6 +49,17 @@ CORS_ALLOW_METHODS = [
     "POST",
     "PUT",
 ]
+# IMPORTANT: REMOVE or COMMENT OUT the following two lines to ensure CORS_ALLOW_ALL_ORIGINS works!
+# CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=[
+#     'http://localhost:3000',
+#     'http://127.0.0.1:3000',
+#     # 'https://your-frontend-ngrok-url.ngrok-free.app', # Add if you Ngrok your frontend
+# ])
+# CORS_ALLOWED_ORIGIN_REGEXES = [
+#     r"^http:\/\/172\.\d{1,3}\.\d{1,3}\.\d{1,3}(:\d+)?$", 
+#     r"^http:\/\/10\.\d{1,3}\.\d{1,3}\.\d{1,3}(:\d+)?$",
+#     r"^http:\/\/192\.168\.\d{1,3}\.\d{1,3}(:\d+)?$",
+# ]
 
 # CSRF Trusted Origins for development
 CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[
@@ -93,4 +88,3 @@ SOCIAL_AUTH_REDIRECT_IS_HTTPS = env.bool('SOCIAL_AUTH_REDIRECT_IS_HTTPS', defaul
 
 # Ensure that `dj_rest_auth.urls` in `ecommerce/ecommerce/urls.py` correctly includes the `user/` endpoint.
 # It typically does, but confirm its usage in your `api_urls.py` if you have one or directly in your root urls.
-
