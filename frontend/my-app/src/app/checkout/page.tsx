@@ -1,4 +1,3 @@
-// frontend/my-app/src/app/checkout/page.tsx
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -28,6 +27,7 @@ import {
   ModalBody,
   ModalFooter,
   useDisclosure,
+  Flex, // <-- ADDED: Fix for "Flex is not defined" error
 } from '@chakra-ui/react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
@@ -409,4 +409,3 @@ export default function CheckoutPage() {
     </Box>
   );
 }
-
