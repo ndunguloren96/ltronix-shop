@@ -1,4 +1,3 @@
-# ecommerce/ecommerce/settings/base.py
 """
 Base Django settings for ecommerce project.
 """
@@ -182,6 +181,8 @@ REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
+# ---- CORS CONFIGURATION ----
+from corsheaders.defaults import default_headers
 
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=['http://localhost:3000'])
@@ -195,6 +196,11 @@ CORS_ALLOW_METHODS = [
     "PUT",
 ]
 CORS_ALLOW_CREDENTIALS = True
+
+# --- CRITICAL FIX: Allow X-Session-Key header for guest carts ---
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    "x-session-key",
+]
 
 CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=['http://localhost:3000'])
 CSRF_COOKIE_HTTPONLY = True
@@ -314,4 +320,3 @@ MPESA_SHORTCODE = env('MPESA_SHORTCODE')
 MPESA_PASSKEY = env('MPESA_PASSKEY')
 MPESA_CALLBACK_URL = env('MPESA_CALLBACK_URL') 
 MPESA_ENV = env('MPESA_ENV', default='sandbox') 
-
