@@ -371,35 +371,20 @@ class MyCartView(APIView):
         session_key_from_header = request.headers.get('X-Session-Key')
 
         order = None
-        customer = None
-
         if user.is_authenticated:
             customer, _ = Customer.objects.get_or_create(user=user)
             order = Order.objects.filter(customer=customer, complete=False).first()
-            if not order and session_key_from_header:
-                guest_order = Order.objects.filter(session_key=session_key_from_header, complete=False).first()
-                if guest_order:
-                    guest_order.customer = customer
-                    guest_order.session_key = None
-                    guest_order.save()
-                    order = guest_order
-                    print(f"Authenticated user {user.email} adopted guest cart: {session_key_from_header}")
-
-        elif session_key_from_header:
-            order = Order.objects.filter(session_key=session_key_from_header, complete=False).first()
-        
-        if not order:
-            if not user.is_authenticated:
-                new_session_key = session_key_from_header if session_key_from_header else str(uuid.uuid4())
-                order = Order.objects.create(session_key=new_session_key, complete=False)
-                print(f"Created new guest cart for session: {new_session_key}")
-            else:
-                pass
+        elif session_key:
+            order = Order.objects.filter(session_key=session_key, complete=False).first()
+        else:
+            # Create a session for the guest if it does not exist
+            if not request.session.session_key:
+                request.session.create()
+            session_key = request.session.session_key
+            order = Order.objects.create(session_key=session_key, complete=False)
 
         serializer = OrderSerializer(order)
         response_data = serializer.data
-
-        if not user.is_authenticated and order.session_key:
-            response_data['session_key'] = order.session_key
-
-        return Response(response_data, status=status.HTTP_200_OK)
+        if not user.is_authenticated:
+            response_data['session_key'] = session_key
+        return Response(response_data)
