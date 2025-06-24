@@ -1,4 +1,3 @@
-// frontend/my-app/src/app/cart/page.tsx
 'use client';
 
 import {
@@ -76,14 +75,12 @@ export default function CartPage() {
   } = useQuery<BackendOrder | null, Error>({
     queryKey: ['cart', status, currentSessionKey], // Query key dependent on auth status and session key
     queryFn: () => {
-      // Only fetch if not in loading auth state and either authenticated or a guest session key exists
       if (status === 'authenticated') {
         return fetchCartAPI();
       }
       if (status === 'unauthenticated' && currentSessionKey) {
         return fetchCartAPI(currentSessionKey);
       }
-      // If unauthenticated and no session key, resolve to null (new guest, cart doesn't exist yet on backend)
       return Promise.resolve(null);
     },
     enabled: status !== 'loading', // Only run query once auth status is determined
@@ -110,21 +107,19 @@ export default function CartPage() {
         console.log('Backend returned new guest session key:', backendCart.session_key);
       }
     } else if (!backendCart && status !== 'loading' && (status === 'authenticated' || (status === 'unauthenticated' && !!currentSessionKey))) {
-      // If backend reports no cart, clear local cart (but not if just waiting for initial guest session key)
       setLocalCartItems([]);
     }
   }, [backendCart, status, setLocalCartItems, guestSessionKey, setGuestSessionKey, currentSessionKey]);
 
   const updateCartMutation = useMutation<BackendOrder, Error, ProductInCart[]>({
-    mutationFn: (items) => updateEntireCartAPI(items), // No longer pass sessionKey here, it's handled in fetchAuthenticated
+    mutationFn: (items) => updateEntireCartAPI(items),
     onMutate: async (newFrontendCartItems: ProductInCart[]) => {
-      // Optimistic update: cancel existing queries, then set new data
       await queryClient.cancelQueries({ queryKey: ['cart', status, currentSessionKey] });
       const previousCart = queryClient.getQueryData<BackendOrder>(['cart', status, currentSessionKey]);
 
       queryClient.setQueryData<BackendOrder>(['cart', status, currentSessionKey], (oldCart) => {
         const updatedBackendItems: BackendOrderItem[] = newFrontendCartItems.map(item => ({
-          id: oldCart?.items.find(bi => bi.product.id === item.id)?.id || Math.random(), // Use existing ID if possible
+          id: oldCart?.items.find(bi => bi.product.id === item.id)?.id || Math.random(),
           product: { id: item.id, name: item.name, price: item.price.toFixed(2), image_url: item.image_url },
           quantity: item.quantity,
           get_total: (item.price * item.quantity).toFixed(2),
@@ -138,9 +133,8 @@ export default function CartPage() {
             get_cart_total: newFrontendCartItems.reduce((acc, item) => acc + item.price * item.quantity, 0).toFixed(2),
           };
         }
-        // Fallback for initial cart if no oldCart exists (should ideally come from backend fetch)
         return {
-            id: null, // Temporary, will be replaced by backend ID
+            id: null,
             customer: session?.user?.id ? parseInt(session.user.id) : null,
             date_ordered: new Date().toISOString(),
             complete: false,
@@ -149,13 +143,12 @@ export default function CartPage() {
             get_cart_items: newFrontendCartItems.reduce((acc, item) => acc + item.quantity, 0),
             shipping: false,
             items: updatedBackendItems,
-            session_key: currentSessionKey, // Ensure session key is passed for guest state
-        } as BackendOrder; // Cast as BackendOrder
+            session_key: currentSessionKey,
+        } as BackendOrder;
       });
 
-      setLocalCartItems(newFrontendCartItems); // Update local Zustand state immediately
-
-      return { previousCart }; // Context for rollback
+      setLocalCartItems(newFrontendCartItems);
+      return { previousCart };
     },
     onError: (err, newFrontendCartItems, context) => {
       console.error("Failed to update cart on backend:", err);
@@ -166,7 +159,6 @@ export default function CartPage() {
         duration: 5000,
         isClosable: true,
       });
-      // Rollback to previous state
       queryClient.setQueryData(['cart', status, currentSessionKey], context?.previousCart);
       if (context?.previousCart) {
           setLocalCartItems(
@@ -182,8 +174,7 @@ export default function CartPage() {
           setLocalCartItems([]);
       }
     },
-    onSettled: async (data, error, variables, context) => {
-      // Invalidate queries to refetch the true state from the backend
+    onSettled: async () => {
       queryClient.invalidateQueries({ queryKey: ['cart', status, currentSessionKey] });
     },
     onSuccess: (data) => {
@@ -194,7 +185,6 @@ export default function CartPage() {
         duration: 2000,
         isClosable: true,
       });
-      // Ensure local state is perfectly synced with backend after successful mutation
       setLocalCartItems(data.items.map(backendItem => ({
         id: backendItem.product.id,
         name: backendItem.product.name,
@@ -202,7 +192,6 @@ export default function CartPage() {
         quantity: backendItem.quantity,
         image_url: backendItem.product.image_url,
       })));
-      // If the backend returned a session_key, update it in local storage (e.g., first guest item added)
       if (data.session_key && !guestSessionKey && status === 'unauthenticated') {
         setGuestSessionKey(data.session_key);
         console.log("Backend returned new guest session key (from mutation):", data.session_key);
@@ -211,7 +200,7 @@ export default function CartPage() {
   });
 
   const clearCartMutation = useMutation<BackendOrder, Error, number>({
-    mutationFn: (cartId) => clearCartAPI(cartId), // No longer pass sessionKey here
+    mutationFn: (cartId) => clearCartAPI(cartId),
     onMutate: async (cartId) => {
       await queryClient.cancelQueries({ queryKey: ['cart', status, currentSessionKey] });
       const previousCart = queryClient.getQueryData<BackendOrder>(['cart', status, currentSessionKey]);
@@ -223,7 +212,7 @@ export default function CartPage() {
         return null;
       });
       setLocalCartItems([]);
-      setGuestSessionKey(null); // Clear guest session key as cart is cleared
+      setGuestSessionKey(null);
 
       return { previousCart };
     },
@@ -266,7 +255,7 @@ export default function CartPage() {
 
   // The checkout logic now redirects to the dedicated checkout page
   const handleProceedToCheckout = () => {
-    if (!cart || cart.get_cart_items === 0) {
+    if (localCartItems.length === 0) {
       toast({
         title: 'Cart is Empty',
         description: 'Please add items to your cart before proceeding to checkout.',
@@ -277,7 +266,7 @@ export default function CartPage() {
       });
       return;
     }
-    router.push('/checkout'); // Redirect to the new checkout page
+    router.push('/checkout');
   };
 
   const handleRemoveItem = (id: string) => {
@@ -304,10 +293,8 @@ export default function CartPage() {
     if (backendCart?.id) {
       clearCartMutation.mutate(backendCart.id);
     } else {
-      // If there's no backend cart ID (e.g., newly initialized guest cart not yet synced),
-      // just clear local state. The next add-to-cart will create a new backend cart.
       setLocalCartItems([]);
-      setGuestSessionKey(null); // Clear guest session key
+      setGuestSessionKey(null);
       toast({
         title: 'Cart Cleared',
         description: 'Your local cart has been cleared.',
@@ -318,7 +305,6 @@ export default function CartPage() {
       });
     }
   };
-
 
   if (status === 'loading' || isLoading) {
     return (
@@ -333,7 +319,7 @@ export default function CartPage() {
     );
   }
 
-  const itemsToRender = localCartItems; // Display local cart items
+  const itemsToRender = localCartItems;
 
   return (
     <Box p={8} maxWidth="container.xl" mx="auto" minH="80vh">
@@ -492,8 +478,8 @@ export default function CartPage() {
               colorScheme="green"
               size="lg"
               width="full"
-              onClick={handleProceedToCheckout} // Updated to link to checkout page
-              isDisabled={itemsToRender.length === 0} // Disable if cart is empty
+              onClick={handleProceedToCheckout}
+              isDisabled={itemsToRender.length === 0}
               mt={4}
             >
               Proceed to Checkout
@@ -513,4 +499,3 @@ export default function CartPage() {
     </Box>
   );
 }
-
