@@ -1,5 +1,3 @@
-# ecommerce/store/api_views.py
-
 from rest_framework import viewsets, mixins, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -80,6 +78,7 @@ class OrderViewSet(
         with transaction.atomic():
             order = None
             customer = None
+            created = False  # Always define this variable
 
             if user.is_authenticated:
                 customer, _ = Customer.objects.get_or_create(user=user)
@@ -107,6 +106,7 @@ class OrderViewSet(
             else:
                 new_session_key = str(uuid.uuid4())
                 order = Order.objects.create(session_key=new_session_key, complete=False)
+                created = True
 
             if not order:
                 return Response({"detail": "Unable to find or create cart."}, status=status.HTTP_400_BAD_REQUEST)
@@ -143,7 +143,8 @@ class OrderViewSet(
             if not user.is_authenticated and order.session_key:
                 response_data['session_key'] = order.session_key
 
-            return Response(response_data, status=status.HTTP_200_OK if not created else status.HTTP_201_CREATED)
+            # Always use "created" (never uninitialized)
+            return Response(response_data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
 
     @action(detail=False, methods=['get'], permission_classes=[AllowAny])
     def my_cart(self, request):
@@ -374,8 +375,8 @@ class MyCartView(APIView):
         if user.is_authenticated:
             customer, _ = Customer.objects.get_or_create(user=user)
             order = Order.objects.filter(customer=customer, complete=False).first()
-        elif session_key:
-            order = Order.objects.filter(session_key=session_key, complete=False).first()
+        elif session_key_from_header:
+            order = Order.objects.filter(session_key=session_key_from_header, complete=False).first()
         else:
             # Create a session for the guest if it does not exist
             if not request.session.session_key:
@@ -385,6 +386,6 @@ class MyCartView(APIView):
 
         serializer = OrderSerializer(order)
         response_data = serializer.data
-        if not user.is_authenticated:
-            response_data['session_key'] = session_key
+        if not user.is_authenticated and hasattr(order, "session_key"):
+            response_data['session_key'] = order.session_key
         return Response(response_data)
