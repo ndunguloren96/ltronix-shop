@@ -1,4 +1,3 @@
-// src/app/api/auth/[...nextauth]/route.ts
 import NextAuth from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import GoogleProvider from 'next-auth/providers/google';
@@ -163,7 +162,14 @@ export const authOptions = {
               console.warn('Django token conversion successful but no access_token or refresh_token found:', djangoTokenData);
             }
           } else {
-            const errorData = await res.json();
+            // --- FIX: handle non-JSON error responses (like HTML error pages) gracefully ---
+            let errorData;
+            const text = await res.text();
+            try {
+              errorData = JSON.parse(text);
+            } catch {
+              errorData = text;
+            }
             console.error('Django token conversion failed (Status:', res.status, '):', errorData);
             // This is where "invalid_client" or "unauthorized" errors from Django would appear.
           }
@@ -227,4 +233,3 @@ export const authOptions = {
 // Export GET and POST handlers for Next.js API Routes
 export const GET = NextAuth(authOptions);
 export const POST = NextAuth(authOptions);
-
