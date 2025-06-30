@@ -1,19 +1,12 @@
 # ecommerce/users/views.py
+
 from rest_framework import generics, status
 from rest_framework.response import Response
-from allauth.account.views import confirm_email as allauth_confirm_email
-from django.urls import reverse
-from django.shortcuts import redirect
-from django.views.decorators.csrf import csrf_exempt
-from django.utils.decorators import method_decorator
+# We no longer need allauth_confirm_email or Django redirect/CSRF decorators here
+# as the email confirmation is managed by allauth's internal flow or a separate DRF endpoint if you create one.
 
-# Make sure to import SocialLoginView if you are using api_urls.py as primary.
-# However, if it's in ecommerce/ecommerce/urls.py, then it's already handled there.
-# from dj_rest_auth.registration.views import SocialLoginView
-# from allauth.socialaccount.providers.google.views import OAuth2Adapter, GoogleOAuth2Adapter
-
-
-from .serializers import CustomRegisterSerializer
+# Make sure to import your custom serializer
+from .serializers import CustomRegisterSerializer, UserDetailsSerializer # Ensure UserDetailsSerializer is imported if used elsewhere
 
 class CustomRegisterView(generics.CreateAPIView):
     """
@@ -28,39 +21,22 @@ class CustomRegisterView(generics.CreateAPIView):
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        user = self.perform_create(serializer)
+        
+        # The serializer's save method now handles user creation and allauth integration
+        user = serializer.save(self.request) 
+        
         headers = self.get_success_headers(serializer.data)
-        # You might want to return a more specific message for email verification
+        
+        # Return a clear success message. Allauth handles email verification in the background.
         return Response(
-            {"detail": "Registration successful. Please check your email for verification."},
+            {"detail": "Registration successful. Please check your email for verification if email verification is enabled.",
+             "user_id": user.id,
+             "email": user.email}, # Provide some user info for the frontend
             status=status.HTTP_201_CREATED,
             headers=headers
         )
 
-    def perform_create(self, serializer):
-        # The serializer's save method handles user creation and allauth integration
-        return serializer.save(self.request)
+    # The perform_create method is effectively replaced by serializer.save(self.request)
+    # in the create method, so you can remove it or keep it simple if other logic needs it.
+    # For now, it's integrated directly into `create`.
 
-# You might want a custom view for email confirmation if you're not using dj-rest-auth's default
-# For now, we'll assume allauth handles the confirmation URL directly or via a simple redirect.
-# If you need a DRF endpoint to confirm email, you'd build it here.
-# Example:
-# @method_decorator(csrf_exempt, name='dispatch') # Only if you need to disable CSRF for this specific view (not recommended for production)
-# class CustomConfirmEmailView(APIView):
-#     permission_classes = ()
-#
-#     def get(self, request, key, *args, **kwargs):
-#         try:
-#             email_confirmation = EmailConfirmationHMAC.from_key(key)
-#             email_confirmation.confirm(request)
-#             return Response({"detail": "Email confirmed successfully."}, status=status.HTTP_200_OK)
-#         except EmailConfirmationHMAC.DoesNotExist:
-#             return Response({"detail": "Invalid or expired confirmation link."}, status=status.HTTP_400_BAD_REQUEST)
-#         except Exception as e:
-#             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-
-# You generally don't need to define explicit social login views here unless
-# you're completely bypassing dj-rest-auth's SocialLoginView and allauth's adapters.
-# dj-rest-auth's SocialLoginView (which you've included in urls.py) is designed
-# to work with allauth's social adapters directly.

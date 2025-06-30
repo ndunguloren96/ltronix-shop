@@ -17,62 +17,252 @@ import {
   NumberInputStepper,
   NumberIncrementStepper,
   NumberDecrementStepper,
+  Spinner,
+  Center,
+  Alert, AlertIcon, AlertDescription,
+  Link as ChakraLink,
 } from '@chakra-ui/react';
-import React from 'react';
-import { useCartStore } from '@/store/useCartStore'; // Import your cart Zustand store
+import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useSession } from 'next-auth/react';
+import Link from 'next/link'; // For Next.js Link component
+
+import {
+  fetchCartAPI,
+  updateEntireCartAPI,
+  clearCartAPI,
+  BackendOrder,
+  ProductInCart,
+  BackendOrderItem,
+} from '@/api/orders';
+import { useCartStore } from '@/store/useCartStore';
 
 export default function CartPage() {
   const toast = useToast();
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const { data: session, status } = useSession();
 
-  // Get cart state and actions from your Zustand store
-  const cartItems = useCartStore((state) => state.items);
-  const removeItem = useCartStore((state) => state.removeItem);
-  const updateItemQuantity = useCartStore((state) => state.updateItemQuantity);
-  const clearCart = useCartStore((state) => state.clearCart);
-  const getTotalItems = useCartStore((state) => state.getTotalItems);
-  const getTotalPrice = useCartStore((state) => state.getTotalPrice);
+  const localCartItems = useCartStore((state) => state.items);
+  const setLocalCartItems = useCartStore((state) => state.setItems);
+  const getLocalTotalItems = useCartStore((state) => state.getTotalItems);
+  const getLocalTotalPrice = useCartStore((state) => state.getTotalPrice);
+  const guestSessionKey = useCartStore((state) => state.guestSessionKey);
+  const setGuestSessionKey = useCartStore((state) => state.setGuestSessionKey);
 
-  const handleRemoveItem = (id: number) => {
-    removeItem(id);
-    toast({
-      title: 'Item Removed.',
-      description: 'The item has been removed from your cart.',
-      status: 'info',
-      duration: 2000,
-      isClosable: true,
-      position: 'top-right',
-    });
-  };
-
-  const handleQuantityChange = (id: number, value: string) => {
-    const newQuantity = parseInt(value, 10);
-    if (!isNaN(newQuantity) && newQuantity >= 1) {
-      updateItemQuantity(id, newQuantity);
-    } else if (newQuantity === 0) {
-      // If quantity becomes 0, remove the item
-      handleRemoveItem(id);
+  /**
+   * CRITICAL: Always reset cart state from backend after login/signup or session change.
+   * This ensures that after a user logs in or signs up, or the session status changes,
+   * the Zustand cart is always synced with the backend's canonical cart state.
+   */
+  useEffect(() => {
+    if (status !== 'loading') {
+      const syncCartWithBackend = async () => {
+        try {
+          let cart: BackendOrder | null = null;
+          if (status === 'authenticated') {
+            cart = await fetchCartAPI();
+            setGuestSessionKey(null); // Clear guest session key after login
+          } else if (status === 'unauthenticated' && guestSessionKey) {
+            cart = await fetchCartAPI(guestSessionKey);
+          }
+          if (cart && cart.items) {
+            setLocalCartItems(
+              cart.items.map((item) => ({
+                id: item.product.id,
+                name: item.product.name,
+                price: parseFloat(item.product.price),
+                quantity: item.quantity,
+                image_url: item.product.image_url,
+              }))
+            );
+          } else {
+            setLocalCartItems([]);
+          }
+        } catch (error) {
+          // Don't block UI, just log error
+          console.error('Could not sync Zustand cart with backend after session change:', error);
+        }
+      };
+      syncCartWithBackend();
     }
-  };
+    // Only re-run if session status or guestSessionKey changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, guestSessionKey]);
 
-  const handleClearCart = () => {
-    clearCart();
-    toast({
-      title: 'Cart Cleared.',
-      description: 'All items have been removed from your cart.',
-      status: 'warning',
-      duration: 2000,
-      isClosable: true,
-      position: 'top-right',
-    });
-  };
+  // This effect ensures a guest session key is always available for unauthenticated users.
+  // It should ideally be handled earlier in a layout or root provider, but is kept here for robustness.
+  useEffect(() => {
+    if (status === 'unauthenticated' && !guestSessionKey) {
+      const { v4: uuidv4 } = require('uuid');
+      const newKey = uuidv4();
+      setGuestSessionKey(newKey);
+      console.log('Generated new guest session key on cart page:', newKey);
+    }
+  }, [status, guestSessionKey, setGuestSessionKey]);
 
-  const handleCheckout = () => {
-    if (cartItems.length === 0) {
+  // Determine the session key to use for API calls
+  const currentSessionKey = status === 'unauthenticated' ? guestSessionKey : null;
+
+  const {
+    data: backendCart,
+    isLoading,
+    isError,
+    error,
+    isFetching,
+  } = useQuery<BackendOrder | null, Error>({
+    queryKey: ['cart', status, currentSessionKey],
+    queryFn: () => {
+      if (status === 'authenticated') {
+        return fetchCartAPI();
+      }
+      if (status === 'unauthenticated' && currentSessionKey) {
+        return fetchCartAPI(currentSessionKey);
+      }
+      return Promise.resolve(null);
+    },
+    enabled: status !== 'loading',
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+  });
+
+  /**
+   * CRITICAL: Whenever backendCart changes, always set Zustand localCartItems to match.
+   * This ensures the cart UI always reflects the backend's true state after login, signup,
+   * or any backend update.
+   */
+  useEffect(() => {
+    if (backendCart && status !== 'loading') {
+      setLocalCartItems(
+        backendCart.items.map((item) => ({
+          id: item.product.id,
+          name: item.product.name,
+          price: parseFloat(item.product.price),
+          quantity: item.quantity,
+          image_url: item.product.image_url,
+        }))
+      );
+      // If backend returned a session key for an unauthenticated user, update local store
+      if (backendCart.session_key && !guestSessionKey && status === 'unauthenticated') {
+        setGuestSessionKey(backendCart.session_key);
+        console.log('Backend returned new guest session key:', backendCart.session_key);
+      }
+    } else if (!backendCart && status !== 'loading' && (status === 'authenticated' || (status === 'unauthenticated' && !!currentSessionKey))) {
+      setLocalCartItems([]);
+    }
+  }, [backendCart, status, setLocalCartItems, guestSessionKey, setGuestSessionKey, currentSessionKey]);
+
+  /**
+   * CRITICAL: Always update Zustand from backend response after mutation.
+   * This prevents UI from showing stale or unmerged cart data after removing, clearing, or updating items.
+   */
+  const updateCartMutation = useMutation<BackendOrder, Error, ProductInCart[]>({
+    mutationFn: (items) => updateEntireCartAPI(items, currentSessionKey),
+    onMutate: async (newFrontendCartItems: ProductInCart[]) => {
+      await queryClient.cancelQueries({ queryKey: ['cart', status, currentSessionKey] });
+      const previousCart = queryClient.getQueryData<BackendOrder>(['cart', status, currentSessionKey]);
+      // Optimistic update
+      setLocalCartItems(newFrontendCartItems);
+      return { previousCart };
+    },
+    onError: (err, newFrontendCartItems, context) => {
+      console.error("Failed to update cart on backend:", err);
+      toast({
+        title: 'Error Updating Cart',
+        description: err.message || 'Failed to update cart on server.',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+      if (context?.previousCart) {
+        setLocalCartItems(
+          context.previousCart.items.map((bi) => ({
+            id: bi.product.id,
+            name: bi.product.name,
+            price: parseFloat(bi.product.price),
+            quantity: bi.quantity,
+            image_url: bi.product.image_url,
+          }))
+        );
+      } else {
+        setLocalCartItems([]);
+      }
+    },
+    onSuccess: (data) => {
+      // Always update Zustand from backend's canonical cart
+      setLocalCartItems(
+        data.items.map((backendItem) => ({
+          id: backendItem.product.id,
+          name: backendItem.product.name,
+          price: parseFloat(backendItem.product.price),
+          quantity: backendItem.quantity,
+          image_url: backendItem.product.image_url,
+        }))
+      );
+      // If the backend returned a session_key, update it in local storage (e.g., first guest item added)
+      if (data.session_key && !guestSessionKey && status === 'unauthenticated') {
+        setGuestSessionKey(data.session_key);
+        console.log("Backend returned new guest session key (from mutation):", data.session_key);
+      }
+      toast({
+        title: 'Cart Updated',
+        description: 'Your cart has been synchronized.',
+        status: 'success',
+        duration: 2000,
+        isClosable: true,
+      });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['cart', status, currentSessionKey] });
+    },
+  });
+
+  const clearCartMutation = useMutation<BackendOrder, Error, number>({
+    mutationFn: (cartId) => clearCartAPI(cartId, currentSessionKey),
+    onMutate: async (cartId) => {
+      await queryClient.cancelQueries({ queryKey: ['cart', status, currentSessionKey] });
+      // Optimistic update
+      setLocalCartItems([]);
+      setGuestSessionKey(null);
+      return {};
+    },
+    onError: (err, cartId, context) => {
+      console.error("Failed to clear cart on backend:", err);
+      toast({
+        title: 'Error Clearing Cart',
+        description: err.message || 'Failed to clear cart on server.',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+      // No rollback needed for clear
+    },
+    onSuccess: (data) => {
+      // Always update Zustand from backend cleared cart
+      setLocalCartItems([]);
+      setGuestSessionKey(null);
+      toast({
+        title: 'Cart Cleared',
+        description: 'All items have been removed from your cart.',
+        status: 'warning',
+        duration: 2000,
+        isClosable: true,
+        position: 'top-right',
+      });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['cart', status, currentSessionKey] });
+    },
+  });
+
+  // The checkout logic now redirects to the dedicated checkout page
+  const handleProceedToCheckout = () => {
+    if (localCartItems.length === 0) {
       toast({
         title: 'Cart is Empty',
-        description: 'Please add items to your cart before checking out.',
+        description: 'Please add items to your cart before proceeding to checkout.',
         status: 'warning',
         duration: 3000,
         isClosable: true,
@@ -80,19 +270,60 @@ export default function CartPage() {
       });
       return;
     }
-    // Implement your checkout logic here
-    // For now, we'll just show a toast and navigate
-    toast({
-      title: 'Proceeding to Checkout',
-      description: 'Redirecting you to the checkout page...',
-      status: 'success',
-      duration: 3000,
-      isClosable: true,
-      position: 'top-right',
-    });
-    // Example: Navigate to a checkout page (you would create this next)
     router.push('/checkout');
   };
+
+  const handleRemoveItem = (id: string) => {
+    const updatedItems = localCartItems.filter((item) => item.id !== id);
+    updateCartMutation.mutate(updatedItems);
+  };
+
+  const handleQuantityChange = (id: string, value: string) => {
+    const newQuantity = parseInt(value, 10);
+    if (!isNaN(newQuantity) && newQuantity >= 0) {
+      let updatedItems: ProductInCart[];
+      if (newQuantity === 0) {
+        updatedItems = localCartItems.filter(item => item.id !== id);
+      } else {
+        updatedItems = localCartItems.map(item =>
+          item.id === id ? { ...item, quantity: newQuantity } : item
+        );
+      }
+      updateCartMutation.mutate(updatedItems);
+    }
+  };
+
+  const handleClearCart = () => {
+    if (backendCart?.id) {
+      clearCartMutation.mutate(backendCart.id);
+    } else {
+      setLocalCartItems([]);
+      setGuestSessionKey(null);
+      toast({
+        title: 'Cart Cleared',
+        description: 'Your local cart has been cleared.',
+        status: 'info',
+        duration: 2000,
+        isClosable: true,
+        position: 'top-right',
+      });
+    }
+  };
+
+  if (status === 'loading' || isLoading) {
+    return (
+      <Center minH="80vh">
+        <VStack spacing={4}>
+          <Spinner size="xl" />
+          <Text fontSize="xl">
+            {status === 'loading' ? 'Authenticating...' : 'Loading your cart...'}
+          </Text>
+        </VStack>
+      </Center>
+    );
+  }
+
+  const itemsToRender = localCartItems;
 
   return (
     <Box p={8} maxWidth="container.xl" mx="auto" minH="80vh">
@@ -100,7 +331,41 @@ export default function CartPage() {
         Your Shopping Cart
       </Heading>
 
-      {cartItems.length === 0 ? (
+      {status === 'unauthenticated' && (
+        <Alert status="info" mb={6} borderRadius="md">
+          <AlertIcon />
+          <AlertDescription>
+            You are currently browsing as a guest. Your cart is saved locally.
+            {' '}
+            <Link href="/auth/login" passHref>
+              <ChakraLink color="blue.600" fontWeight="bold">Login</ChakraLink>
+            </Link>
+            {' '}or{' '}
+            <Link href="/auth/signup" passHref>
+              <ChakraLink color="blue.600" fontWeight="bold">Sign Up</ChakraLink>
+            </Link>
+            {' '}to permanently save your cart and access order history.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {isError && (
+        <Alert status="error" flexDirection="column" alignItems="center" justifyContent="center" textAlign="center" height="200px" borderRadius="lg" boxShadow="md" mb={6}>
+          <AlertIcon boxSize="40px" mr={0} />
+          <Heading size="md" mt={4} mb={1}>Failed to load cart</Heading>
+          <AlertDescription maxWidth="sm">
+            {error?.message || 'An unexpected error occurred while fetching your cart.'}
+            <br />
+            Please ensure your Django backend is running and reachable.
+            <br />
+            <Button onClick={() => queryClient.invalidateQueries({ queryKey: ['cart', status, currentSessionKey] })} mt={4} colorScheme="brand">
+              Try Again
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {itemsToRender.length === 0 && !isLoading && !isFetching && (
         <VStack spacing={4} textAlign="center" py={10}>
           <Text fontSize="xl" color="gray.600">
             Your cart is currently empty.
@@ -109,11 +374,12 @@ export default function CartPage() {
             Start Shopping
           </Button>
         </VStack>
-      ) : (
+      )}
+
+      {itemsToRender.length > 0 && (
         <Flex direction={{ base: 'column', lg: 'row' }} gap={10}>
-          {/* Cart Items List */}
           <VStack spacing={6} align="stretch" flex={2}>
-            {cartItems.map((item) => (
+            {itemsToRender.map((item) => (
               <Box
                 key={item.id}
                 p={4}
@@ -124,30 +390,30 @@ export default function CartPage() {
               >
                 <HStack spacing={4} align="center">
                   <Image
-                    src={`/images/products/${item.id}.jpg`} // Assuming your product images are named by ID
+                    src={item.image_url || "https://placehold.co/100x100?text=No+Image"}
                     alt={item.name}
                     boxSize="100px"
                     objectFit="cover"
                     borderRadius="md"
-                    fallbackSrc="https://via.placeholder.com/100?text=No+Image"
                   />
                   <Box flex={1}>
                     <Text fontWeight="bold" fontSize="lg">
                       {item.name}
                     </Text>
-                    <Text color="gray.600">Ksh {item.price.toFixed(2)}</Text> {/* Display price in KES */}
+                    <Text color="gray.600">Ksh {item.price.toFixed(2)}</Text>
                   </Box>
                   <HStack>
                     <Text>Qty:</Text>
                     <NumberInput
                       maxW="100px"
-                      defaultValue={item.quantity}
-                      min={1}
-                      onChange={(valueAsString, valueAsNumber) =>
+                      value={item.quantity}
+                      min={0}
+                      onChange={(valueAsString) =>
                         handleQuantityChange(item.id, valueAsString)
                       }
                       keepWithinRange={false}
                       clampValueOnBlur={false}
+                      isDisabled={updateCartMutation.isPending}
                     >
                       <NumberInputField />
                       <NumberInputStepper>
@@ -164,6 +430,8 @@ export default function CartPage() {
                     colorScheme="red"
                     variant="ghost"
                     onClick={() => handleRemoveItem(item.id)}
+                    isLoading={updateCartMutation.isPending}
+                    isDisabled={updateCartMutation.isPending}
                   >
                     Remove
                   </Button>
@@ -176,12 +444,13 @@ export default function CartPage() {
               onClick={handleClearCart}
               mt={4}
               alignSelf="flex-end"
+              isLoading={clearCartMutation.isPending}
+              isDisabled={clearCartMutation.isPending || itemsToRender.length === 0}
             >
               Clear Cart
             </Button>
           </VStack>
 
-          {/* Order Summary */}
           <Box
             flex={1}
             p={6}
@@ -189,9 +458,9 @@ export default function CartPage() {
             borderRadius="lg"
             boxShadow="md"
             bg="white"
-            position={{ lg: 'sticky' }} // Make it sticky on larger screens
-            top="4" // Distance from top when sticky
-            alignSelf="flex-start" // Align to the start of the flex container
+            position={{ lg: 'sticky' }}
+            top="4"
+            alignSelf="flex-start"
           >
             <Heading as="h2" size="md" mb={4}>
               Order Summary
@@ -199,17 +468,24 @@ export default function CartPage() {
             <Divider mb={4} />
             <Flex justifyContent="space-between" mb={2}>
               <Text>Total Items:</Text>
-              <Text fontWeight="semibold">{getTotalItems()}</Text>
+              <Text fontWeight="semibold">{getLocalTotalItems()}</Text>
             </Flex>
             <Flex justifyContent="space-between" mb={4}>
               <Text fontSize="lg" fontWeight="bold">
                 Subtotal:
               </Text>
               <Text fontSize="lg" fontWeight="bold" color="brand.600">
-                Ksh {getTotalPrice().toFixed(2)}
+                Ksh {getLocalTotalPrice().toFixed(2)}
               </Text>
             </Flex>
-            <Button colorScheme="green" size="lg" width="full" onClick={handleCheckout}>
+            <Button
+              colorScheme="green"
+              size="lg"
+              width="full"
+              onClick={handleProceedToCheckout}
+              isDisabled={itemsToRender.length === 0}
+              mt={4}
+            >
               Proceed to Checkout
             </Button>
             <Button

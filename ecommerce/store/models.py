@@ -52,7 +52,7 @@ class Product(models.Model):
     rating = models.DecimalField(_('rating'), max_digits=3, decimal_places=2, default=0.00,
                                  help_text=_("Average product rating out of 5.00"))
     reviews_count = models.PositiveIntegerField(_('reviews count'), default=0,
-                                                help_text=_("Total number of reviews for this product"))
+                                                 help_text=_("Total number of reviews for this product"))
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -73,10 +73,14 @@ class Product(models.Model):
         return ''
 
 class Order(models.Model):
+    # This represents both a shopping cart (complete=False) and a placed order (complete=True)
     customer = models.ForeignKey(Customer, on_delete=models.SET_NULL, null=True, blank=True)
     date_ordered = models.DateTimeField(auto_now_add=True)
-    complete = models.BooleanField(default=False)
+    complete = models.BooleanField(default=False) # False means it's a cart, True means it's a completed order
     transaction_id = models.CharField(max_length=100, null=True)
+    
+    # NEW FIELD for guest carts
+    session_key = models.CharField(max_length=255, null=True, blank=True, unique=True) # Unique ID for guest carts
 
     class Meta:
         verbose_name = _('Order')
@@ -108,6 +112,7 @@ class Order(models.Model):
         return total
 
 class OrderItem(models.Model):
+    # Represents an item within an Order (cart item or line item in a completed order)
     product = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True)
     order = models.ForeignKey(Order, on_delete=models.SET_NULL, null=True)
     quantity = models.IntegerField(default=0, null=True, blank=True)

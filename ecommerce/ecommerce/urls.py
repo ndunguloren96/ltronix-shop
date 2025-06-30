@@ -1,32 +1,39 @@
 # ecommerce/ecommerce/urls.py
 from django.contrib import admin
 from django.urls import path, include
-from django.conf import settings
 from django.conf.urls.static import static
-from payment.views import mpesa_stk_push_callback
-from users.views import CustomRegisterView
+from django.conf import settings
+
+# Import the specific callback function from payment.views
+from payment.views import mpesa_stk_push_callback 
+
+# Import your custom register view
+from users.views import CustomRegisterView # <-- NEW CRITICAL IMPORT
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('store.urls')),
-    path('payment/', include('payment.urls')),
-    path('mpesa/stk_push_callback/', mpesa_stk_push_callback, name='mpesa_callback_root'),
+    path('api/v1/products/', include('store.api_urls')), # Your product and order APIs
+    
+    # API endpoints for payment (using api_urls for DRF views)
+    path('api/v1/payments/', include('payment.api_urls')), 
 
-    # ─── Consolidated API v1 ───────────────────────────────────────────────────────
-    path('api/v1/', include([
-        # Public store endpoints
-        path('', include('store.api_urls')),  # products, orders, etc.
+    # Direct URL for M-Pesa STK Push Confirmation Callback (webhook)
+    path('mpesa/stk_push_callback/', mpesa_stk_push_callback, name='mpesa_stk_push_callback'),
 
-        # Authentication via dj-rest-auth
-        path('auth/', include('dj_rest_auth.urls')),               # login, logout, password
-        path('auth/signup/', CustomRegisterView.as_view(), name='rest_register'),
-        
-        # Social‑token conversion endpoint (drf-social-oauth2)
-        path('auth/', include('drf_social_oauth2.urls', namespace='drf_social_oauth2')),
+    # For dj-rest-auth authentication endpoints (login, logout, user details, password change/reset)
+    # This still includes the /auth/user/ endpoint which uses USER_DETAILS_SERIALIZER
+    path('api/v1/auth/', include('dj_rest_auth.urls')), 
+    
+    # --- CRITICAL FIX: CUSTOM REGISTRATION ROUTE ---
+    # Replace the problematic 'dj_rest_auth.registration.urls' include
+    # with a direct path to your custom registration view.
+    # This ensures dj_rest_auth.registration.serializers.RegisterSerializer is NEVER loaded by this path.
+    path('api/v1/auth/registration/', CustomRegisterView.as_view(), name='rest_register'), # <-- UPDATED LINE
 
-        # Payment API
-        path('payments/', include('payment.api_urls')),
-    ])),
+    # If you're using drf-social-oauth2
+    path('api/v1/auth/social/', include('drf_social_oauth2.urls', namespace='drf')), 
 ]
 
-urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# Serve media files in development
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

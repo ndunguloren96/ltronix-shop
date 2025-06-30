@@ -1,4 +1,3 @@
-# ecommerce/ecommerce/settings/base.py
 """
 Base Django settings for ecommerce project.
 """
@@ -7,6 +6,7 @@ from pathlib import Path
 import os
 from environ import Env
 from django.utils import timezone # Import timezone for default values in migrations
+from datetime import timedelta # Import timedelta for JWT settings
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     'dj_rest_auth.registration',
     'rest_framework',
     'rest_framework.authtoken',
+    'rest_framework_simplejwt', 
 
     # OAuth2 and social login integration
     'oauth2_provider', # Django OAuth Toolkit
@@ -58,9 +59,9 @@ INSTALLED_APPS = [
     'drf_social_oauth2', # drf-social-oauth2
 
     # Your custom apps
-    "store.apps.StoreConfig", # Ensure this is correct if your app is named 'store'
+    "store.apps.StoreConfig", 
     "payment",
-    "django_daraja",
+    "django_daraja", 
     "users", # Your custom user app
 
     # CORS Headers
@@ -72,15 +73,15 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware', # For serving static files in production
+    'whitenoise.middleware.WhiteNoiseMiddleware', 
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'corsheaders.middleware.CorsMiddleware', # Must be placed high up
+    'corsheaders.middleware.CorsMiddleware', 
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'allauth.account.middleware.AccountMiddleware', # For django-allauth
+    'allauth.account.middleware.AccountMiddleware', 
 ]
 
 ROOT_URLCONF = 'ecommerce.urls'
@@ -88,16 +89,16 @@ ROOT_URLCONF = 'ecommerce.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR, 'templates')], # Add a templates directory if you have custom templates
+        'DIRS': [os.path.join(BASE_DIR, 'templates')], 
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.debug',
-                'django.template.context_processors.request', # Required for allauth
+                'django.template.context_processors.request', 
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
-                'social_django.context_processors.backends', # For social_django
-                'social_django.context_processors.login_redirect', # For social_django
+                'social_django.context_processors.backends', 
+                'social_django.context_processors.login_redirect', 
             ],
         },
     },
@@ -109,13 +110,11 @@ WSGI_APPLICATION = 'ecommerce.wsgi.application'
 # Database
 # Defined in development.py and production.py
 DATABASES = {
-    'default': env.db('DATABASE_URL', default='sqlite:///db.sqlite3') # Default to SQLite for safety
+    'default': env.db('DATABASE_URL', default='sqlite:///db.sqlite3') 
 }
 
 
 # Password validation
-# https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
-
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
@@ -123,7 +122,7 @@ AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
         'OPTIONS': {
-            'min_length': 8, # Ensure minimum password length is 8
+            'min_length': 8, 
         }
     },
     {
@@ -136,7 +135,6 @@ AUTH_PASSWORD_VALIDATORS = [
 
 
 # Internationalization
-# https://docs.djangoproject.com/en/4.2/topics/i18n/
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'Africa/Nairobi'
 USE_I18N = True
@@ -151,16 +149,17 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'users.User'
 
 
-# ‹FIX› ─── DRF: enable token, session, OAuth2 & social auth ───────────────────────
+# DRF: enable token, session, OAuth2 & social auth
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework.authentication.SessionAuthentication',
-        'rest_framework.authentication.TokenAuthentication',
+        'rest_framework.authentication.TokenAuthentication', 
+        'dj_rest_auth.jwt_auth.JWTCookieAuthentication', 
         'oauth2_provider.contrib.rest_framework.OAuth2Authentication',
         'rest_framework_social_oauth2.authentication.SocialAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.IsAuthenticated',
+        'rest_framework.permissions.AllowAny', 
     ),
     'DEFAULT_RENDERER_CLASSES': (
         'rest_framework.renderers.JSONRenderer',
@@ -181,12 +180,27 @@ REST_FRAMEWORK = {
     },
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
-# ‹END FIX›
 
+# ---- CORS CONFIGURATION ----
+from corsheaders.defaults import default_headers
 
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=['http://localhost:3000'])
+# Explicitly allow standard HTTP methods for CORS
+CORS_ALLOW_METHODS = [
+    "DELETE",
+    "GET",
+    "OPTIONS",
+    "PATCH",
+    "POST",
+    "PUT",
+]
 CORS_ALLOW_CREDENTIALS = True
+
+# --- CRITICAL FIX: Allow X-Session-Key header for guest carts ---
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    "x-session-key",
+]
 
 CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=['http://localhost:3000'])
 CSRF_COOKIE_HTTPONLY = True
@@ -202,18 +216,25 @@ AUTHENTICATION_BACKENDS = (
     'drf_social_oauth2.backends.DjangoOAuth2',
 )
 
-
+# --- AllAuth configuration (Crucial for email-based login) ---
+ACCOUNT_AUTHENTICATION_METHOD = 'email' # Authenticate using email
+ACCOUNT_EMAIL_REQUIRED = True # Email is a required field
+ACCOUNT_USERNAME_REQUIRED = False # Disable username field
+ACCOUNT_SIGNUP_PASSWORD_ENTER_TWICE = True # Require password confirmation on signup
+ACCOUNT_SESSION_REMEMBER = True # Keep user logged in across browser sessions
 ACCOUNT_UNIQUE_EMAIL = True
-ACCOUNT_EMAIL_VERIFICATION = 'optional'
+ACCOUNT_EMAIL_VERIFICATION = 'optional' # Changed from 'mandatory' for simpler dev setup
 ACCOUNT_CONFIRM_EMAIL_ON_GET = True
 ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
 ACCOUNT_LOGOUT_ON_PASSWORD_CHANGE = True
 ACCOUNT_EMAIL_SUBJECT_PREFIX = '[Ltronix-Shop]'
-ACCOUNT_LOGIN_METHODS = ['email']
-ACCOUNT_SIGNUP_FIELDS = ['email']
+ACCOUNT_LOGIN_METHODS = ['email'] # Redundant with ACCOUNT_AUTHENTICATION_METHOD but good for clarity
+ACCOUNT_SIGNUP_FIELDS = ['email'] # Specify fields for signup
 ACCOUNT_RATE_LIMITS = {'login_failed': '5/5m'}
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
+# --- End AllAuth configuration ---
+
 
 EMAIL_BACKEND = env('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')
 DEFAULT_FROM_EMAIL = 'noreply@ltronix-shop.com'
@@ -224,11 +245,13 @@ EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS', default=False)
 EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='')
 EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')
 
-# ‹FIX› ─── dj-rest-auth: restore token model so /auth/login/ returns “key” ───────────
+# dj-rest-auth settings for JWT (if you uncommented JWT in base.py)
 REST_AUTH = {
-    'USE_JWT': False,               # We’ll rely on simple TokenAuthentication
+    'USE_JWT': True, 
     'SESSION_LOGIN': True,
-    # 'TOKEN_MODEL': None,         # ← remove this override so default Token model is used
+    'TOKEN_MODEL': None, 
+    'JWT_AUTH_COOKIE': 'my-app-jwt-access', 
+    'JWT_AUTH_REFRESH_COOKIE': 'my-app-jwt-refresh', 
     'USER_DETAILS_SERIALIZER': 'users.serializers.UserDetailsSerializer',
     'REGISTER_SERIALIZER': 'users.serializers.CustomRegisterSerializer',
     'PASSWORD_RESET_USE_SITECONTROL': True,
@@ -238,7 +261,38 @@ REST_AUTH = {
     ),
     'OLD_PASSWORD_FIELD_ENABLED': True,
 }
-# ‹END FIX›
+
+# SIMPLE_JWT settings (must be configured if USE_JWT is True in REST_AUTH)
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5), 
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1), 
+    'ROTATE_REFRESH_TOKENS': True, 
+    'BLACKLIST_AFTER_ROTATION': True, 
+    'UPDATE_LAST_LOGIN': False, # Corrected: Removed leading extra quote
+
+    'ALGORITHM': 'HS256',
+    'SIGNING_KEY': SECRET_KEY,
+    'VERIFYING_KEY': None,
+    'AUDIENCE': None,
+    'ISSUER': None,
+    'JWK_URL': None,
+    'LEEWAY': 0,
+
+    'AUTH_HEADER_TYPES': ('Bearer',), 
+    'AUTH_HEADER_NAME': 'HTTP_AUTHORIZATION',
+    'USER_ID_FIELD': 'id',
+    'USER_ID_CLAIM': 'user_id',
+    'USER_AUTHENTICATION_RULE': 'rest_framework_simplejwt.authentication.default_user_authentication_rule',
+
+    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
+    'TOKEN_TYPE_CLAIM': 'token_type',
+    'JTI_CLAIM': 'jti',
+
+    'SLIDING_TOKEN_REFRESH_EXP_CLAIM': 'refresh_exp',
+    'SLIDING_TOKEN_LIFETIME': timedelta(minutes=5),
+    'SLIDING_TOKEN_REFRESH_LIFETIME': timedelta(days=1),
+}
+
 
 SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = env('SOCIAL_AUTH_GOOGLE_OAUTH2_KEY')
 SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = env('SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET')
@@ -258,3 +312,11 @@ OAUTH2_PROVIDER = {
         'email': 'User email address',
     }
 }
+
+# django-daraja settings (Crucial for M-Pesa integration)
+MPESA_CONSUMER_KEY = env('MPESA_CONSUMER_KEY')
+MPESA_CONSUMER_SECRET = env('MPESA_CONSUMER_SECRET')
+MPESA_SHORTCODE = env('MPESA_SHORTCODE')
+MPESA_PASSKEY = env('MPESA_PASSKEY')
+MPESA_CALLBACK_URL = env('MPESA_CALLBACK_URL') 
+MPESA_ENV = env('MPESA_ENV', default='sandbox') 
