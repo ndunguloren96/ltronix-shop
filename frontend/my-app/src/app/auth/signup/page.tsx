@@ -58,38 +58,12 @@ export default function SignupPage() {
       if (signupRes.ok) {
         toast({
           title: 'Signup Successful',
-          description: 'Your account has been created. Attempting to log you in...',
+          description: 'Your account has been created. Please log in.',
           status: 'success',
           duration: 3000,
           isClosable: true,
         });
-
-        const signInResult = await signIn('credentials', {
-          redirect: false,
-          email,
-          password,
-        });
-
-        if (signInResult?.error) {
-          console.error('Auto-login after signup failed:', signInResult.error);
-          toast({
-            title: 'Auto-Login Failed',
-            description: 'Your account was created, but automatic login failed. Please try logging in manually.',
-            status: 'warning',
-            duration: 5000,
-            isClosable: true,
-          });
-          router.push('/auth/login');
-        } else if (signInResult?.ok) {
-          toast({
-            title: 'Login Successful',
-            description: 'You have been successfully logged in.',
-            status: 'success',
-            duration: 3000,
-            isClosable: true,
-          });
-          router.push('/');
-        }
+        router.push('/auth/login');
       } else {
         const errorData = await signupRes.json();
         console.error('Django signup failed (Status:', signupRes.status, '):', errorData);
