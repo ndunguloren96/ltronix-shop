@@ -1,62 +1,70 @@
 import type { NextConfig } from "next";
+import withBundleAnalyzer from "@next/bundle-analyzer";
 
-const nextConfig: NextConfig = {
+// Enable bundle analyzer with ANALYZE=true npm run build
+const bundleAnalyzer = withBundleAnalyzer({
+  enabled: process.env.ANALYZE === "true",
+});
+
+const nextConfig: NextConfig = bundleAnalyzer({
   images: {
-    // Replaced 'domains' with 'remotePatterns' to address deprecation warning
+    // remotePatterns for optimized image domains
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'placehold.co', // For external placeholder images
+        hostname: 'placehold.co',
         port: '',
         pathname: '/**',
       },
       {
         protocol: 'http',
-        hostname: 'localhost', // For local Django development server
-        port: '8000', // Specify the port Django runs on
-        pathname: '/media/**', // Allow images from Django's media URL
+        hostname: 'localhost',
+        port: '8000',
+        pathname: '/media/**',
       },
       {
         protocol: 'http',
-        hostname: '127.0.0.1', // Another local IP
-        port: '8000', // Specify the port Django runs on
-        pathname: '/media/**', // Allow images from Django's media URL
+        hostname: '127.0.0.1',
+        port: '8000',
+        pathname: '/media/**',
       },
       {
-        protocol: 'https', // Assuming your ngrok URL is HTTPS
-        hostname: 'man-fond-tortoise.ngrok-free.app', // Your Ngrok domain for Django
+        protocol: 'https',
+        hostname: 'man-fond-tortoise.ngrok-free.app',
         port: '',
-        pathname: '/media/**', // Allow images from Django's media URL
+        pathname: '/media/**',
       },
-      // Add your production Django media/CDN domain(s) here when deployed
-      // {
-      //   protocol: 'https',
-      //   hostname: 'your-production-backend-domain.com',
-      //   port: '',
-      //   pathname: '/media/**',
-      // },
-      // {
-      //   protocol: 'https',
-      //   hostname: 'cdn.your-domain.com',
-      //   port: '',
-      //   pathname: '/**',
-      // },
-      // {
-      //   protocol: 'https',
-      //   hostname: 's3.amazonaws.com', // Example if you use S3 for image hosting directly
-      //   port: '',
-      //   pathname: '/**',
-      // },
+      // Add more production/CDN domains as needed
     ],
   },
+  // Speed up dev and build by ignoring type errors (optional: set to false if you want strict builds)
+  typescript: {
+    ignoreBuildErrors: false
+  },
+  // SWC minification is on by default in Next.js 13+
+  swcMinify: true,
   async rewrites() {
     return [
       {
         source: '/api/v1/products/:path*',
-        destination: 'http://localhost:8000/api/v1/products/:path*', // Proxy to Django backend
+        destination: 'http://localhost:8000/api/v1/products/:path*',
       },
     ]
   },
-};
+  // Enable experimental features if needed (appDir, etc)
+  experimental: {
+    appDir: true
+  },
+  webpack(config, { isServer }) {
+    // Suppress OpenTelemetry/Sentry dynamic require warnings
+    config.ignoreWarnings = [
+      ...(config.ignoreWarnings || []),
+      {
+        message: /Critical dependency: the request of a dependency is an expression/,
+      },
+    ];
+    return config;
+  },
+});
 
 export default nextConfig;
