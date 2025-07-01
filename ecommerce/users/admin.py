@@ -2,7 +2,9 @@
 
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
+
 from .models import User  # Import your custom User model
+
 
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
@@ -16,16 +18,37 @@ class CustomUserAdmin(UserAdmin):
 
     # Example: Minimal configuration for email-only login
     fieldsets = (
-        (None, {'fields': ('email', 'password')}),
-        ('Personal info', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}), # Include other default fields you might want
+        (None, {"fields": ("email", "password")}),
+        (
+            "Personal info",
+            {
+                "fields": (
+                    "is_active",
+                    "is_staff",
+                    "is_superuser",
+                    "groups",
+                    "user_permissions",
+                )
+            },
+        ),  # Include other default fields you might want
     )
     add_fieldsets = (
-        (None, {
-            'classes': ('wide',),
-            'fields': ('email', 'password', 're_password'), # re_password is for creation only
-        }),
+        (
+            None,
+            {
+                "classes": ("wide",),
+                "fields": (
+                    "email",
+                    "password",
+                    "re_password",
+                ),  # re_password is for creation only
+            },
+        ),
     )
-    list_display = ('email', 'is_staff', 'is_active')
-    search_fields = ('email',)
-    ordering = ('email',)
-    filter_horizontal = ('groups', 'user_permissions',) # Needed if you use these
+    list_display = ("email", "is_staff", "is_active")
+    search_fields = ("email",)
+    ordering = ("email",)
+    filter_horizontal = (
+        "groups",
+        "user_permissions",
+    )  # Needed if you use these

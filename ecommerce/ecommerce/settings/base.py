@@ -3,13 +3,13 @@ Base Django settings for ecommerce project.
 Optimized for performance, maintainability, and fast startup.
 """
 
-from pathlib import Path
 import os
-from environ import Env
 from datetime import timedelta
+from pathlib import Path
 
 # --- Sentry Integration (for observability) ---
 import sentry_sdk
+from environ import Env
 from sentry_sdk.integrations.django import DjangoIntegration
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -18,10 +18,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Initialize django-environ
 env = Env()
 # Read environment variables from .env file.
-env.read_env(os.path.join(BASE_DIR.parent, '.env'))
+env.read_env(os.path.join(BASE_DIR.parent, ".env"))
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = env('DJANGO_SECRET_KEY')
+SECRET_KEY = env("DJANGO_SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False  # Overridden by development.py/production.py
@@ -38,7 +38,6 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django.contrib.sites",
-
     # Third-party: Auth, REST, CORS, Docs, Email
     "allauth",
     "allauth.account",
@@ -55,7 +54,6 @@ INSTALLED_APPS = [
     "corsheaders",
     "drf_spectacular",
     "anymail",
-
     # Your custom apps
     "store.apps.StoreConfig",
     "payment",
@@ -99,14 +97,17 @@ TEMPLATES = [
 WSGI_APPLICATION = "ecommerce.wsgi.application"
 
 # Database (override DATABASE_URL in development.py/production.py)
-DATABASES = {
-    "default": env.db("DATABASE_URL", default="sqlite:///db.sqlite3")
-}
+DATABASES = {"default": env.db("DATABASE_URL", default="sqlite:///db.sqlite3")}
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
-    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
-    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator", "OPTIONS": {"min_length": 8}},
+    {
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"
+    },
+    {
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {"min_length": 8},
+    },
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
@@ -159,7 +160,9 @@ REST_FRAMEWORK = {
 from corsheaders.defaults import default_headers
 
 CORS_ALLOW_ALL_ORIGINS = False
-CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=["http://localhost:3000"])
+CORS_ALLOWED_ORIGINS = env.list(
+    "CORS_ALLOWED_ORIGINS", default=["http://localhost:3000"]
+)
 CORS_ALLOW_METHODS = [
     "DELETE",
     "GET",
@@ -171,7 +174,9 @@ CORS_ALLOW_METHODS = [
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_HEADERS = list(default_headers) + ["x-session-key"]
 
-CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=["http://localhost:3000"])
+CSRF_TRUSTED_ORIGINS = env.list(
+    "CSRF_TRUSTED_ORIGINS", default=["http://localhost:3000"]
+)
 CSRF_COOKIE_HTTPONLY = True
 CSRF_COOKIE_SECURE = False
 CSRF_COOKIE_SAMESITE = "Lax"
@@ -207,7 +212,9 @@ LOGOUT_REDIRECT_URL = "/"
 ANYMAIL = {
     "SENDGRID_API_KEY": env("SENDGRID_API_KEY", default=""),
 }
-EMAIL_BACKEND = env("EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend")
+EMAIL_BACKEND = env(
+    "EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend"
+)
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="noreply@ltronix-shop.com")
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
 EMAIL_HOST = env("EMAIL_HOST", default="localhost")
@@ -228,7 +235,7 @@ REST_AUTH = {
     "PASSWORD_RESET_USE_SITECONTROL": True,
     "PASSWORD_RESET_CONFIRM_URL": env(
         "DJANGO_PASSWORD_RESET_CONFIRM_URL",
-        default="http://localhost:3000/auth/password-reset-confirm/{uid}/{token}"
+        default="http://localhost:3000/auth/password-reset-confirm/{uid}/{token}",
     ),
     "OLD_PASSWORD_FIELD_ENABLED": True,
 }
@@ -261,7 +268,7 @@ SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = env("SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET")
 SOCIAL_AUTH_GOOGLE_OAUTH2_SCOPE = ["openid", "email", "profile"]
 SOCIAL_AUTH_GOOGLE_OAUTH2_REDIRECT_URI = env(
     "SOCIAL_AUTH_GOOGLE_OAUTH2_REDIRECT_URI",
-    default="http://127.0.0.1:8000/api/v1/auth/convert-token/"
+    default="http://127.0.0.1:8000/api/v1/auth/convert-token/",
 )
 SOCIAL_AUTH_REDIRECT_IS_HTTPS = env.bool("SOCIAL_AUTH_REDIRECT_IS_HTTPS", default=False)
 

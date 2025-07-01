@@ -1,10 +1,12 @@
 import logging
+
+from anymail.exceptions import AnymailError
+from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
-from django.conf import settings
-from anymail.exceptions import AnymailError
 
 logger = logging.getLogger("anymail")
+
 
 def send_order_confirmation_email(order, to_email):
     """
@@ -30,6 +32,7 @@ def send_order_confirmation_email(order, to_email):
     except Exception as e:
         logger.error(f"General error sending order confirmation: {e}")
         return False
+
 
 def send_payment_receipt_email(order, to_email):
     """

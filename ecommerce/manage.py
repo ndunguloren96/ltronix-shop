@@ -5,8 +5,13 @@ import sys
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent
-VENV_PATH = BASE_DIR.parent / '.venv'
-SITE_PACKAGES_PATH = VENV_PATH / 'lib' / f'python{sys.version_info.major}.{sys.version_info.minor}' / 'site-packages'
+VENV_PATH = BASE_DIR.parent / ".venv"
+SITE_PACKAGES_PATH = (
+    VENV_PATH
+    / "lib"
+    / f"python{sys.version_info.major}.{sys.version_info.minor}"
+    / "site-packages"
+)
 
 if str(SITE_PACKAGES_PATH) not in sys.path:
     sys.path.insert(0, str(SITE_PACKAGES_PATH))
@@ -17,7 +22,7 @@ def main():
     # --- CHANGE THIS LINE ---
     # Original: os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'ecommerce.settings')
     # Change to explicitly load the development settings file
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'ecommerce.settings.development')
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "ecommerce.settings.development")
     # --- END CHANGE ---
 
     try:
@@ -31,5 +36,5 @@ def main():
     execute_from_command_line(sys.argv)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

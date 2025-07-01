@@ -3,12 +3,13 @@
 # It can also host traditional Django views if you need any, but for API purposes, api_views.py is used.
 
 import logging
+
 from django.http import HttpResponse
-from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
 
 # Import the MpesaConfirmationAPIView directly to expose it at a non-API URL for callbacks
-from .api_views import MpesaConfirmationAPIView 
+from .api_views import MpesaConfirmationAPIView
 
 logger = logging.getLogger(__name__)
 
@@ -23,4 +24,3 @@ mpesa_stk_push_callback = MpesaConfirmationAPIView.as_view()
 # For example:
 # def some_other_page_view(request):
 #    return HttpResponse("This is a non-API view in payment app.")
-

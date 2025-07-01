@@ -6,17 +6,21 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('auth', '0012_alter_user_first_name_max_length'),
-        ('users', '0001_squashed_0003_alter_user_date_joined'),
+        ("auth", "0012_alter_user_first_name_max_length"),
+        ("users", "0001_squashed_0003_alter_user_date_joined"),
     ]
 
     operations = [
         migrations.AddIndex(
-            model_name='user',
-            index=models.Index(fields=['first_name'], name='users_user_first_n_0186c7_idx'),
+            model_name="user",
+            index=models.Index(
+                fields=["first_name"], name="users_user_first_n_0186c7_idx"
+            ),
         ),
         migrations.AddIndex(
-            model_name='user',
-            index=models.Index(fields=['last_name'], name='users_user_last_na_4e2935_idx'),
+            model_name="user",
+            index=models.Index(
+                fields=["last_name"], name="users_user_last_na_4e2935_idx"
+            ),
         ),
     ]

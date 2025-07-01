@@ -6,21 +6,23 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('payment', '0001_squashed_0003_alter_transaction_options_and_more'),
-        ('store', '0006_alter_product_created_at_and_more'),
+        ("payment", "0001_squashed_0003_alter_transaction_options_and_more"),
+        ("store", "0006_alter_product_created_at_and_more"),
     ]
 
     operations = [
         migrations.AddIndex(
-            model_name='transaction',
-            index=models.Index(fields=['phone'], name='payment_tra_phone_e7401d_idx'),
+            model_name="transaction",
+            index=models.Index(fields=["phone"], name="payment_tra_phone_e7401d_idx"),
         ),
         migrations.AddIndex(
-            model_name='transaction',
-            index=models.Index(fields=['status'], name='payment_tra_status_373de7_idx'),
+            model_name="transaction",
+            index=models.Index(fields=["status"], name="payment_tra_status_373de7_idx"),
         ),
         migrations.AddIndex(
-            model_name='transaction',
-            index=models.Index(fields=['-created_at'], name='payment_tra_created_7fbad7_idx'),
+            model_name="transaction",
+            index=models.Index(
+                fields=["-created_at"], name="payment_tra_created_7fbad7_idx"
+            ),
         ),
     ]

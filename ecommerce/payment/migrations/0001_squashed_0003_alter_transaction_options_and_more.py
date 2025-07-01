@@ -6,37 +6,136 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
 
-    replaces = [('payment', '0001_initial'), ('payment', '0002_initial'), ('payment', '0003_alter_transaction_options_and_more')]
+    replaces = [
+        ("payment", "0001_initial"),
+        ("payment", "0002_initial"),
+        ("payment", "0003_alter_transaction_options_and_more"),
+    ]
 
     initial = True
 
     dependencies = [
-        ('store', '0001_initial'),
-        ('store', '0005_order_session_key'),
+        ("store", "0001_initial"),
+        ("store", "0005_order_session_key"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Transaction',
+            name="Transaction",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('phone', models.CharField(max_length=20, verbose_name='Phone Number')),
-                ('amount', models.DecimalField(decimal_places=2, max_digits=10, verbose_name='Amount')),
-                ('merchant_request_id', models.CharField(blank=True, help_text='Unique ID from M-Pesa for the request', max_length=255, null=True, unique=True, verbose_name='Merchant Request ID')),
-                ('checkout_request_id', models.CharField(blank=True, help_text='Unique ID from M-Pesa for the checkout process', max_length=255, null=True, unique=True, verbose_name='Checkout Request ID')),
-                ('status', models.CharField(choices=[('PENDING', 'Pending'), ('COMPLETED', 'Completed'), ('FAILED', 'Failed'), ('CANCELLED', 'Cancelled'), ('TIMEOUT', 'Timeout')], default='PENDING', max_length=20, verbose_name='Transaction Status')),
-                ('created_at', models.DateTimeField(auto_now_add=True, verbose_name='Created At')),
-                ('updated_at', models.DateTimeField(auto_now=True, verbose_name='Updated At')),
-                ('order', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='store.order', verbose_name='Associated Order')),
-                ('is_callback_received', models.BooleanField(default=False, help_text='True if M-Pesa confirmation callback was received', verbose_name='Callback Received')),
-                ('mpesa_receipt_number', models.CharField(blank=True, help_text='The M-Pesa transaction ID (e.g., KES... )', max_length=100, null=True, verbose_name='M-Pesa Receipt Number')),
-                ('result_code', models.CharField(blank=True, help_text='Result code from M-Pesa callback (0 for success)', max_length=10, null=True, verbose_name='Result Code')),
-                ('result_desc', models.TextField(blank=True, help_text='Detailed description from M-Pesa callback', null=True, verbose_name='Result Description')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("phone", models.CharField(max_length=20, verbose_name="Phone Number")),
+                (
+                    "amount",
+                    models.DecimalField(
+                        decimal_places=2, max_digits=10, verbose_name="Amount"
+                    ),
+                ),
+                (
+                    "merchant_request_id",
+                    models.CharField(
+                        blank=True,
+                        help_text="Unique ID from M-Pesa for the request",
+                        max_length=255,
+                        null=True,
+                        unique=True,
+                        verbose_name="Merchant Request ID",
+                    ),
+                ),
+                (
+                    "checkout_request_id",
+                    models.CharField(
+                        blank=True,
+                        help_text="Unique ID from M-Pesa for the checkout process",
+                        max_length=255,
+                        null=True,
+                        unique=True,
+                        verbose_name="Checkout Request ID",
+                    ),
+                ),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[
+                            ("PENDING", "Pending"),
+                            ("COMPLETED", "Completed"),
+                            ("FAILED", "Failed"),
+                            ("CANCELLED", "Cancelled"),
+                            ("TIMEOUT", "Timeout"),
+                        ],
+                        default="PENDING",
+                        max_length=20,
+                        verbose_name="Transaction Status",
+                    ),
+                ),
+                (
+                    "created_at",
+                    models.DateTimeField(auto_now_add=True, verbose_name="Created At"),
+                ),
+                (
+                    "updated_at",
+                    models.DateTimeField(auto_now=True, verbose_name="Updated At"),
+                ),
+                (
+                    "order",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        to="store.order",
+                        verbose_name="Associated Order",
+                    ),
+                ),
+                (
+                    "is_callback_received",
+                    models.BooleanField(
+                        default=False,
+                        help_text="True if M-Pesa confirmation callback was received",
+                        verbose_name="Callback Received",
+                    ),
+                ),
+                (
+                    "mpesa_receipt_number",
+                    models.CharField(
+                        blank=True,
+                        help_text="The M-Pesa transaction ID (e.g., KES... )",
+                        max_length=100,
+                        null=True,
+                        verbose_name="M-Pesa Receipt Number",
+                    ),
+                ),
+                (
+                    "result_code",
+                    models.CharField(
+                        blank=True,
+                        help_text="Result code from M-Pesa callback (0 for success)",
+                        max_length=10,
+                        null=True,
+                        verbose_name="Result Code",
+                    ),
+                ),
+                (
+                    "result_desc",
+                    models.TextField(
+                        blank=True,
+                        help_text="Detailed description from M-Pesa callback",
+                        null=True,
+                        verbose_name="Result Description",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['-created_at'],
-                'verbose_name': 'M-Pesa Transaction',
-                'verbose_name_plural': 'M-Pesa Transactions',
+                "ordering": ["-created_at"],
+                "verbose_name": "M-Pesa Transaction",
+                "verbose_name_plural": "M-Pesa Transactions",
             },
         ),
     ]
