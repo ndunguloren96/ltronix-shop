@@ -1,44 +1,67 @@
-// frontend/my-app/src/app/layout.tsx
-import './globals.css'; // Your global CSS imports
-import { Inter } from 'next/font/google'; // Assuming you use Inter font
+import './globals.css';
+import { Inter } from 'next/font/google';
 
-// Import your combined AppProviders (note the name change from 'Providers' to 'AppProviders')
+// AppProviders wraps all context providers
 import { AppProviders } from './providers';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
-// -------------------------------------------------------------------
 
-import { getServerSession } from 'next-auth'; // Import getServerSession for NextAuth.js
-import { authOptions } from './api/auth/[...nextauth]/route'; // Import authOptions from your NextAuth config
+import { getServerSession } from 'next-auth';
+import { authOptions } from './api/auth/[...nextauth]/route';
+
+// --- Sentry & Datadog RUM instrumentation ---
+import * as Sentry from '@sentry/nextjs';
+import { datadogRum } from '@datadog/browser-rum';
+
+// Sentry setup (SSR-safe)
+if (typeof window === 'undefined') {
+  Sentry.init({
+    dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
+    environment: process.env.NEXT_PUBLIC_ENV,
+    tracesSampleRate: 0.5,
+    release: process.env.NEXT_PUBLIC_RELEASE_VERSION || 'dev',
+  });
+}
+
+// Datadog RUM setup (client only)
+if (typeof window !== 'undefined' && window.DD_RUM === undefined) {
+  datadogRum.init({
+    applicationId: process.env.NEXT_PUBLIC_DATADOG_APP_ID,
+    clientToken: process.env.NEXT_PUBLIC_DATADOG_CLIENT_TOKEN,
+    site: process.env.NEXT_PUBLIC_DATADOG_SITE,
+    service: 'ltronix-shop-frontend',
+    env: process.env.NEXT_PUBLIC_ENV,
+    version: process.env.NEXT_PUBLIC_RELEASE_VERSION || 'dev',
+    sampleRate: 100,
+    trackInteractions: true,
+    defaultPrivacyLevel: 'mask-user-input',
+  });
+  datadogRum.startSessionReplayRecording();
+}
 
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata = {
-  title: 'Ltronix Shop', // Your actual site title
-  description: 'Your one-stop shop for electronics', // Your actual site description
+  title: 'Ltronix Shop',
+  description: 'Your one-stop shop for electronics',
 };
 
-// This is a Server Component, so we fetch the session here
 export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  // Fetch session on the server side using getServerSession
   const session = await getServerSession(authOptions);
 
   return (
     <html lang="en">
       <body className={inter.className}>
-        {/* AppProviders wraps the entire application */}
-        {/* We pass the fetched session to SessionProvider, which is nested inside AppProviders */}
         <AppProviders session={session}>
-          <Header /> {/* Your global header, now correctly imported */}
-          {/* Main content area; flexGrow: 1 ensures it takes available space */}
+          <Header />
           <main style={{ flexGrow: 1, minHeight: '80vh' }}>
             {children}
           </main>
-          <Footer /> {/* Your global footer, now correctly imported */}
+          <Footer />
         </AppProviders>
       </body>
     </html>

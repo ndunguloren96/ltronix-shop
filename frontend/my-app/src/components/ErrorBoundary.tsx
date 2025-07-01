@@ -1,5 +1,4 @@
-// src/components/ErrorBoundary.tsx
-'use client'; // This must be a client component
+'use client';
 
 import { ErrorBoundary as ReactErrorBoundary } from 'react-error-boundary';
 import { Box, Heading, Text, Button, VStack } from '@chakra-ui/react';
@@ -50,17 +49,14 @@ interface ErrorBoundaryProps {
 }
 
 export function ErrorBoundary({ children }: ErrorBoundaryProps) {
-  // You can also add `onReset` prop to resetErrorBoundary,
-  // e.g., to clear some state or redirect the user.
   const handleReset = () => {
     // Optional: Log successful reset or navigate away
     console.log('Error boundary reset!');
   };
 
   const handleError = (error: Error, info: { componentStack: string }) => {
-    // Do something with the error, e.g., log to an error tracking service
     console.error('Caught an error in ErrorBoundary:', error, info.componentStack);
-    // You could send this to Sentry, Bugsnag, etc.
+    // Here you can send error info to Sentry/Bugsnag if needed
   };
 
   return (

@@ -8,6 +8,10 @@ from environ import Env
 from django.utils import timezone # Import timezone for default values in migrations
 from datetime import timedelta # Import timedelta for JWT settings
 
+# --- Sentry Integration (for observability) ---
+import sentry_sdk
+from sentry_sdk.integrations.django import DjangoIntegration
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -15,7 +19,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 env = Env()
 # Read environment variables from .env file.
 env.read_env(os.path.join(BASE_DIR.parent, '.env'))
-
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
@@ -27,7 +30,6 @@ SECRET_KEY = env('DJANGO_SECRET_KEY')
 DEBUG = False # Default to False, overridden by specific settings files
 
 ALLOWED_HOSTS = [] # Overridden by specific settings files
-
 
 # Application definition
 
@@ -69,6 +71,9 @@ INSTALLED_APPS = [
 
     # Django Spectacular for API documentation
     'drf_spectacular',
+
+    # Anymail for email (SendGrid)
+    'anymail',
 ]
 
 MIDDLEWARE = [
@@ -106,13 +111,10 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'ecommerce.wsgi.application'
 
-
-# Database
-# Defined in development.py and production.py
+# Database (defined in development.py and production.py)
 DATABASES = {
     'default': env.db('DATABASE_URL', default='sqlite:///db.sqlite3') 
 }
-
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -133,7 +135,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'Africa/Nairobi'
@@ -147,7 +148,6 @@ MEDIA_ROOT = os.path.join(BASE_DIR.parent, 'mediafiles')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'users.User'
-
 
 # DRF: enable token, session, OAuth2 & social auth
 REST_FRAMEWORK = {
@@ -186,7 +186,6 @@ from corsheaders.defaults import default_headers
 
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=['http://localhost:3000'])
-# Explicitly allow standard HTTP methods for CORS
 CORS_ALLOW_METHODS = [
     "DELETE",
     "GET",
@@ -217,27 +216,29 @@ AUTHENTICATION_BACKENDS = (
 )
 
 # --- AllAuth configuration (Crucial for email-based login) ---
-ACCOUNT_AUTHENTICATION_METHOD = 'email' # Authenticate using email
-ACCOUNT_EMAIL_REQUIRED = True # Email is a required field
-ACCOUNT_USERNAME_REQUIRED = False # Disable username field
-ACCOUNT_SIGNUP_PASSWORD_ENTER_TWICE = True # Require password confirmation on signup
-ACCOUNT_SESSION_REMEMBER = True # Keep user logged in across browser sessions
+ACCOUNT_AUTHENTICATION_METHOD = 'email'
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_USERNAME_REQUIRED = False
+ACCOUNT_SIGNUP_PASSWORD_ENTER_TWICE = True
+ACCOUNT_SESSION_REMEMBER = True
 ACCOUNT_UNIQUE_EMAIL = True
-ACCOUNT_EMAIL_VERIFICATION = 'optional' # Changed from 'mandatory' for simpler dev setup
+ACCOUNT_EMAIL_VERIFICATION = 'optional'
 ACCOUNT_CONFIRM_EMAIL_ON_GET = True
 ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
 ACCOUNT_LOGOUT_ON_PASSWORD_CHANGE = True
 ACCOUNT_EMAIL_SUBJECT_PREFIX = '[Ltronix-Shop]'
-ACCOUNT_LOGIN_METHODS = ['email'] # Redundant with ACCOUNT_AUTHENTICATION_METHOD but good for clarity
-ACCOUNT_SIGNUP_FIELDS = ['email'] # Specify fields for signup
+ACCOUNT_LOGIN_METHODS = ['email']
+ACCOUNT_SIGNUP_FIELDS = ['email']
 ACCOUNT_RATE_LIMITS = {'login_failed': '5/5m'}
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
-# --- End AllAuth configuration ---
 
-
+# --- Email/Anymail/SendGrid configuration ---
+ANYMAIL = {
+    "SENDGRID_API_KEY": env("SENDGRID_API_KEY", default=""),
+}
 EMAIL_BACKEND = env('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')
-DEFAULT_FROM_EMAIL = 'noreply@ltronix-shop.com'
+DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='noreply@ltronix-shop.com')
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
 EMAIL_HOST = env('EMAIL_HOST', default='localhost')
 EMAIL_PORT = env.int('EMAIL_PORT', default=1025)
@@ -245,7 +246,7 @@ EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS', default=False)
 EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='')
 EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')
 
-# dj-rest-auth settings for JWT (if you uncommented JWT in base.py)
+# dj-rest-auth settings for JWT
 REST_AUTH = {
     'USE_JWT': True, 
     'SESSION_LOGIN': True,
@@ -262,14 +263,13 @@ REST_AUTH = {
     'OLD_PASSWORD_FIELD_ENABLED': True,
 }
 
-# SIMPLE_JWT settings (must be configured if USE_JWT is True in REST_AUTH)
+# SIMPLE_JWT settings
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5), 
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1), 
     'ROTATE_REFRESH_TOKENS': True, 
     'BLACKLIST_AFTER_ROTATION': True, 
-    'UPDATE_LAST_LOGIN': False, # Corrected: Removed leading extra quote
-
+    'UPDATE_LAST_LOGIN': False,
     'ALGORITHM': 'HS256',
     'SIGNING_KEY': SECRET_KEY,
     'VERIFYING_KEY': None,
@@ -277,22 +277,18 @@ SIMPLE_JWT = {
     'ISSUER': None,
     'JWK_URL': None,
     'LEEWAY': 0,
-
     'AUTH_HEADER_TYPES': ('Bearer',), 
     'AUTH_HEADER_NAME': 'HTTP_AUTHORIZATION',
     'USER_ID_FIELD': 'id',
     'USER_ID_CLAIM': 'user_id',
     'USER_AUTHENTICATION_RULE': 'rest_framework_simplejwt.authentication.default_user_authentication_rule',
-
     'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
     'TOKEN_TYPE_CLAIM': 'token_type',
     'JTI_CLAIM': 'jti',
-
     'SLIDING_TOKEN_REFRESH_EXP_CLAIM': 'refresh_exp',
     'SLIDING_TOKEN_LIFETIME': timedelta(minutes=5),
     'SLIDING_TOKEN_REFRESH_LIFETIME': timedelta(days=1),
 }
-
 
 SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = env('SOCIAL_AUTH_GOOGLE_OAUTH2_KEY')
 SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = env('SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET')
@@ -319,4 +315,67 @@ MPESA_CONSUMER_SECRET = env('MPESA_CONSUMER_SECRET')
 MPESA_SHORTCODE = env('MPESA_SHORTCODE')
 MPESA_PASSKEY = env('MPESA_PASSKEY')
 MPESA_CALLBACK_URL = env('MPESA_CALLBACK_URL') 
-MPESA_ENV = env('MPESA_ENV', default='sandbox') 
+MPESA_ENV = env('MPESA_ENV', default='sandbox')
+
+# --- Sentry Observability and Logging ---
+SENTRY_DSN = env("SENTRY_DSN", default="")
+RELEASE_VERSION = env("RELEASE_VERSION", default="dev")
+DJANGO_ENVIRONMENT = env("DJANGO_ENVIRONMENT", default="development")
+
+if SENTRY_DSN:
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        integrations=[DjangoIntegration()],
+        environment=DJANGO_ENVIRONMENT,
+        release=RELEASE_VERSION,
+        send_default_pii=True,
+        traces_sample_rate=0.5,
+    )
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "json": {
+            'format': '{"timestamp": "%(asctime)s", "level": "%(levelname)s", "logger": "%(name)s", "message": "%(message)s", "module": "%(module)s", "funcName": "%(funcName)s", "lineno": "%(lineno)d"}',
+        },
+        "verbose": {
+            "format": "{levelname} {asctime} {module} {process:d} {thread:d} {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "console": {
+            "level": "INFO",
+            "class": "logging.StreamHandler",
+            "formatter": "json",
+        },
+        # "watchtower": {  # Uncomment if you use AWS CloudWatch
+        #     "level": "INFO",
+        #     "class": "watchtower.CloudWatchLogHandler",
+        #     "formatter": "json",
+        #     "log_group": "ltronix-shop-backend",
+        # },
+    },
+    "root": {
+        "handlers": ["console"],  # Add "watchtower" here if enabled
+        "level": "INFO",
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["console"],  # Add "watchtower" here if enabled
+            "level": "INFO",
+            "propagate": False,
+        },
+        "anymail": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "sentry_sdk": {
+            "handlers": ["console"],
+            "level": "ERROR",
+            "propagate": False,
+        },
+    },
+}

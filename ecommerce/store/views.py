@@ -4,116 +4,124 @@ import json
 import datetime
 from .models import * 
 from .utils import cookieCart, cartData
+from .email_utils import send_order_confirmation_email
+import logging
+
+logger = logging.getLogger("store")
 
 def store(request):
-	data = cartData(request)
+    data = cartData(request)
 
-	cartItems = data['cartItems']
-	order = data['order']
-	items = data['items']
+    cartItems = data['cartItems']
+    order = data['order']
+    items = data['items']
 
-	products = Product.objects.all()
-	context = {'products':products, 'cartItems':cartItems}
-	return render(request, 'store/store.html', context)
-
+    products = Product.objects.all()
+    context = {'products': products, 'cartItems': cartItems}
+    return render(request, 'store/store.html', context)
 
 def cart(request):
-	data = cartData(request)
+    data = cartData(request)
 
-	cartItems = data['cartItems']
-	order = data['order']
-	items = data['items']
+    cartItems = data['cartItems']
+    order = data['order']
+    items = data['items']
 
-	context = {'items':items, 'order':order, 'cartItems':cartItems}
-	return render(request, 'store/cart.html', context)
+    context = {'items': items, 'order': order, 'cartItems': cartItems}
+    return render(request, 'store/cart.html', context)
 
 def checkout(request):
-	data = cartData(request)
-	
-	cartItems = data['cartItems']
-	order = data['order']
-	items = data['items']
+    data = cartData(request)
 
-	context = {'items':items, 'order':order, 'cartItems':cartItems}
-	return render(request, 'store/checkout.html', context)
+    cartItems = data['cartItems']
+    order = data['order']
+    items = data['items']
+
+    context = {'items': items, 'order': order, 'cartItems': cartItems}
+    return render(request, 'store/checkout.html', context)
 
 def updateItem(request):
-	data = json.loads(request.body)
-	productId = data['productId']
-	action = data['action']
-	print('Action:', action)
-	print('Product:', productId)
+    data = json.loads(request.body)
+    productId = data['productId']
+    action = data['action']
+    print('Action:', action)
+    print('Product:', productId)
 
-	customer = request.user.customer
-	product = Product.objects.get(id=productId)
-	order, created = Order.objects.get_or_create(customer=customer, complete=False)
+    customer = request.user.customer
+    product = Product.objects.get(id=productId)
+    order, created = Order.objects.get_or_create(customer=customer, complete=False)
 
-	orderItem, created = OrderItem.objects.get_or_create(order=order, product=product)
+    orderItem, created = OrderItem.objects.get_or_create(order=order, product=product)
 
-	if action == 'add':
-		orderItem.quantity = (orderItem.quantity + 1)
-	elif action == 'remove':
-		orderItem.quantity = (orderItem.quantity - 1)
+    if action == 'add':
+        orderItem.quantity = (orderItem.quantity + 1)
+    elif action == 'remove':
+        orderItem.quantity = (orderItem.quantity - 1)
 
-	orderItem.save()
+    orderItem.save()
 
-	if orderItem.quantity <= 0:
-		orderItem.delete()
+    if orderItem.quantity <= 0:
+        orderItem.delete()
 
-	return JsonResponse('Item was added', safe=False)
+    return JsonResponse('Item was added', safe=False)
 
 def processOrder(request):
-	transaction_id = datetime.datetime.now().timestamp()
-	data = json.loads(request.body)
+    transaction_id = datetime.datetime.now().timestamp()
+    data = json.loads(request.body)
 
-	if request.user.is_authenticated:
-		customer = request.user.customer
-		order, created = Order.objects.get_or_create(customer=customer, complete=False)
+    if request.user.is_authenticated:
+        customer = request.user.customer
+        order, created = Order.objects.get_or_create(customer=customer, complete=False)
+    else:
+        print('User is not logged in')
+        print('COOKIES:', request.COOKIES)
+        name = data['form']['name']
+        email = data['form']['email']
 
-	else:
-		print('User is not logged in')
+        cookieData = cookieCart(request)
+        items = cookieData['items']
 
-		print('COOKIES:', request.COOKIES)
-		name = data['form']['name']
-		email = data['form']['email']
+        customer, created = Customer.objects.get_or_create(
+            email=email,
+        )
+        customer.name = name
+        customer.save()
 
-		cookieData = cookieCart(request)
-		items = cookieData['items']
+        order = Order.objects.create(
+            customer=customer,
+            complete=False,
+        )
 
-		customer, created = Customer.objects.get_or_create(
-				email=email,
-				)
-		customer.name = name
-		customer.save()
+        for item in items:
+            product = Product.objects.get(id=item['id'])
+            orderItem = OrderItem.objects.create(
+                product=product,
+                order=order,
+                quantity=item['quantity'],
+            )
 
-		order = Order.objects.create(
-			customer=customer,
-			complete=False,
-			)
+    total = float(data['form']['total'])
+    order.transaction_id = transaction_id
 
-		for item in items:
-			product = Product.objects.get(id=item['id'])
-			orderItem = OrderItem.objects.create(
-				product=product,
-				order=order,
-				quantity=item['quantity'],
-			)
+    if total == order.get_cart_total:
+        order.complete = True
+    order.save()
 
-	total = float(data['form']['total'])
-	order.transaction_id = transaction_id
+    # Send order confirmation email when order is completed
+    if order.complete:
+        recipient_email = customer.email or (customer.user.email if customer.user else None)
+        if recipient_email:
+            send_order_confirmation_email(order, recipient_email)
+        logger.info(f"Order {order.id} completed and confirmation email sent to {recipient_email}")
 
-	if total == order.get_cart_total:
-		order.complete = True
-	order.save()
+    if order.shipping == True:
+        ShippingAddress.objects.create(
+            customer=customer,
+            order=order,
+            address=data['shipping']['address'],
+            city=data['shipping']['city'],
+            state=data['shipping']['state'],
+            zipcode=data['shipping']['zipcode'],
+        )
 
-	if order.shipping == True:
-		ShippingAddress.objects.create(
-		customer=customer,
-		order=order,
-		address=data['shipping']['address'],
-		city=data['shipping']['city'],
-		state=data['shipping']['state'],
-		zipcode=data['shipping']['zipcode'],
-		)
-
-	return JsonResponse('Payment submitted..', safe=False)
+    return JsonResponse('Payment submitted..', safe=False)

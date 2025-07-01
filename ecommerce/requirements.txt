@@ -21,6 +21,11 @@ Django==5.2.3
 django-allauth==65.9.0
 djangorestframework==3.16.0
 djangorestframework_simplejwt==5.5.0
+django-anymail==10.3
+sentry-sdk==2.6.1
+# Optional for CloudWatch:
+# boto3==1.34.90
+# watchtower==3.0.1
 httplib2==0.20.2
 hyperlink==21.0.0
 idna==3.7

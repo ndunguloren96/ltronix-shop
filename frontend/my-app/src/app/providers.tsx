@@ -1,4 +1,3 @@
-// /var/www/ltronix-shop/frontend/my-app/src/app/providers.tsx
 'use client';
 
 import React from 'react';
@@ -6,10 +5,9 @@ import { ChakraProvider } from '@chakra-ui/react';
 import { extendTheme } from '@chakra-ui/react';
 import { Toaster } from 'react-hot-toast';
 import { SessionProvider } from 'next-auth/react';
-
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools'; // <<-- CORRECTED IMPORT HERE -->>
-
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 
 const colors = {
   brand: {
@@ -54,7 +52,9 @@ export function AppProviders({ children, session }: AppProvidersProps) {
     <SessionProvider session={session}>
       <QueryClientProvider client={queryClient}>
         <ChakraProvider theme={theme}>
-          {children}
+          <ErrorBoundary>
+            {children}
+          </ErrorBoundary>
           <Toaster
             position="bottom-center"
             toastOptions={{
