@@ -35,7 +35,7 @@ export default function AboutPage() {
             Welcome to Ltronix Shop, your premier destination for cutting-edge electronics. Founded in [Year], our mission is to bring the latest and greatest in technology directly to your fingertips, ensuring quality, affordability, and exceptional customer service.
           </Text>
           <Text>
-            We believe that technology should be accessible to everyone. That's why we meticulously curate our product selection, ranging from the newest smartphones and laptops to smart home devices, gaming consoles, and professional studio equipment. Every product in our catalog is chosen for its innovation, reliability, and value.
+            We believe that technology should be accessible to everyone. That&apos;s why we meticulously curate our product selection, ranging from the newest smartphones and laptops to smart home devices, gaming consoles, and professional studio equipment. Every product in our catalog is chosen for its innovation, reliability, and value.
           </Text>
           <Text>
             At Ltronix Shop, our commitment extends beyond just selling products. We are passionate about empowering our customers with knowledge and support, ensuring a seamless shopping experience from Browse to post-purchase assistance. Our dedicated team is always ready to help you find the perfect gadget or resolve any query.

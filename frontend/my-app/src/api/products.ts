@@ -45,7 +45,7 @@ export async function fetchProducts(): Promise<Product[]> {
       let errorData;
       try {
         errorData = await response.json();
-      } catch (jsonError) {
+      } catch (e: unknown) {
         errorData = { message: 'Could not parse error response as JSON', rawText: await response.text() };
       }
       console.error(`API Error fetching products (Status: ${response.status}):`, errorData);
@@ -54,12 +54,12 @@ export async function fetchProducts(): Promise<Product[]> {
 
     const data: Product[] = await response.json();
     return data;
-  } catch (error: any) { // Explicitly type error as 'any' or 'unknown' and handle
+  } catch (error: unknown) { // Explicitly type error as 'unknown'
     console.error('Network or unexpected error fetching products:', error);
     // Re-throw the error for TanStack Query (or whatever is consuming this) to catch,
     // ensuring the original cause is preserved if possible.
-    if (error instanceof TypeError && error.cause && error.cause.code === 'ECONNREFUSED') {
-        throw new Error(`Connection refused to Django backend. Is your Django server running and accessible at ${DJANGO_API_BASE_URL}? Original cause: ${error.cause.message}`);
+    if (error instanceof TypeError && 'cause' in error && (error.cause as any)?.code === 'ECONNREFUSED') {
+        throw new Error(`Connection refused to Django backend. Is your Django server running and accessible at ${DJANGO_API_BASE_URL}? Original cause: ${(error.cause as any)?.message}`);
     }
     throw error;
   }
@@ -82,7 +82,7 @@ export async function fetchProductById(id: number | string): Promise<Product> {
       let errorData;
       try {
         errorData = await response.json();
-      } catch (jsonError) {
+      } catch (e: unknown) {
         errorData = { message: 'Could not parse error response as JSON', rawText: await response.text() };
       }
       console.error(`API Error fetching product ${id} (Status: ${response.status}):`, errorData);
@@ -91,10 +91,10 @@ export async function fetchProductById(id: number | string): Promise<Product> {
 
     const data: Product = await response.json();
     return data;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error(`Network or unexpected error fetching product ${id}:`, error);
-    if (error instanceof TypeError && error.cause && error.cause.code === 'ECONNREFUSED') {
-        throw new Error(`Connection refused to Django backend. Is your Django server running and accessible at ${DJANGO_API_BASE_URL}? Original cause: ${error.cause.message}`);
+    if (error instanceof TypeError && 'cause' in error && (error.cause as any)?.code === 'ECONNREFUSED') {
+        throw new Error(`Connection refused to Django backend. Is your Django server running and accessible at ${DJANGO_API_BASE_URL}? Original cause: ${(error.cause as any)?.message}`);
     }
     throw error;
   }
