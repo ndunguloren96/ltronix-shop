@@ -61,6 +61,11 @@ class Product(models.Model):
         verbose_name = _('Product')
         verbose_name_plural = _('Products')
         ordering = ['name']
+        indexes = [
+            models.Index(fields=['name']),
+            models.Index(fields=['brand']),
+            models.Index(fields=['created_at']),
+        ]
 
     def __str__(self):
         return self.name
@@ -86,6 +91,10 @@ class Order(models.Model):
         verbose_name = _('Order')
         verbose_name_plural = _('Orders')
         ordering = ['-date_ordered']
+        indexes = [
+            models.Index(fields=['complete']),
+            models.Index(fields=['-date_ordered']),
+        ]
 
     def __str__(self):
         return str(self.id)
@@ -93,7 +102,7 @@ class Order(models.Model):
     @property
     def shipping(self):
         shipping = False
-        orderitems = self.orderitem_set.all()
+        orderitems = self.orderitem_set.select_related('product').all()
         for i in orderitems:
             if i.product.digital == False:
                 shipping = True
@@ -101,7 +110,7 @@ class Order(models.Model):
 
     @property
     def get_cart_total(self):
-        orderitems = self.orderitem_set.all()
+        orderitems = self.orderitem_set.select_related('product').all()
         total = sum([item.get_total for item in orderitems])
         return total
 
@@ -122,6 +131,9 @@ class OrderItem(models.Model):
         verbose_name = _('Order Item')
         verbose_name_plural = _('Order Items')
         ordering = ['-date_added']
+        indexes = [
+            models.Index(fields=['-date_added']),
+        ]
 
     @property
     def get_total(self):

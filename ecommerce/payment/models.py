@@ -60,6 +60,11 @@ class Transaction(models.Model):
         verbose_name = _('M-Pesa Transaction')
         verbose_name_plural = _('M-Pesa Transactions')
         ordering = ['-created_at'] # Order by most recent transaction
+        indexes = [
+            models.Index(fields=['phone']),
+            models.Index(fields=['status']),
+            models.Index(fields=['-created_at']),
+        ]
 
     def __str__(self):
         return f"TXN {self.id} | Order {self.order.id if self.order else 'N/A'} | {self.phone} | {self.amount} | {self.status}"
