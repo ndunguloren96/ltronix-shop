@@ -59,7 +59,18 @@ INSTALLED_APPS = [
     "payment",
     "django_daraja",
     "users",
+    "emails", # New emails app
 ]
+
+# Celery Configuration
+CELERY_BROKER_URL = env("CELERY_BROKER_URL", default="redis://localhost:6379/0")
+CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default="redis://localhost:6379/0")
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_TIMEZONE = "Africa/Nairobi"
+CELERY_TASK_ALWAYS_EAGER = False # Set to True for synchronous execution in tests/dev if needed
+CELERY_TASK_EAGER_PROPAGATES = True # Propagate exceptions in eager mode
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -194,6 +205,7 @@ AUTHENTICATION_BACKENDS = (
 ACCOUNT_AUTHENTICATION_METHOD = "email"
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_USERNAME_REQUIRED = False
+ACCOUNT_USER_MODEL_USERNAME_FIELD = None
 ACCOUNT_SIGNUP_PASSWORD_ENTER_TWICE = True
 ACCOUNT_SESSION_REMEMBER = True
 ACCOUNT_UNIQUE_EMAIL = True

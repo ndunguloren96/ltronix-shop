@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Payment Receipt for Order #{{ order.id }} - Ltronix Shop</title>
+</head>
+<body>
+    <h2>Payment Received</h2>
+    <p>Hello {{ order.customer_name }},</p>
+    <p>We have received your payment for order #{{ order.id }}.</p>
+    <ul>
+        {% for item in order.items %}
+            <li>{{ item.product_name }} x{{ item.quantity }} - KES {{ item.get_total }}</li>
+        {% endfor %}
+    </ul>
+    <p>Total Paid: <strong>KES {{ order.get_cart_total }}</strong></p>
+    <p>Thank you for your trust in Ltronix Shop!</p>
+</body>
+</html>
