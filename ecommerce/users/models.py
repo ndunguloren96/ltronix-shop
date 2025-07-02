@@ -54,6 +54,15 @@ class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(_("email address"), unique=True)
     first_name = models.CharField(_("first name"), max_length=150, blank=True)
     last_name = models.CharField(_("last name"), max_length=150, blank=True)
+    phone_number = models.CharField(_("phone number"), max_length=20, blank=True, null=True) # Corrected truncation
+    GENDER_CHOICES = [
+        ('M', 'Male'),
+        ('F', 'Female'),
+        ('O', 'Other'),
+    ]
+    gender = models.CharField(_("gender"), max_length=1, choices=GENDER_CHOICES, blank=True, null=True) # Corrected truncation
+    date_of_birth = models.DateField(_("date of birth"), blank=True, null=True)
+
     is_staff = models.BooleanField(
         _("staff status"),
         default=False,
@@ -86,15 +95,40 @@ class User(AbstractBaseUser, PermissionsMixin):
         ]
 
     def __str__(self):
-        return self.email
+        return self.get_full_name() or self.email
 
     def get_full_name(self):
         """
-        Return the first_name plus the last_name, with a space in between.
+        Return the first_name plus the middle_name and last_name, with spaces in between.
+        Includes middle_name from the UserProfile if it exists.
         """
-        full_name = "%s %s" % (self.first_name, self.last_name)
+        full_name_parts = [self.first_name]
+
+        # Safely get middle_name from profile if it exists
+        if hasattr(self, 'profile'):
+            if self.profile.middle_name:
+                full_name_parts.append(self.profile.middle_name)
+
+        full_name_parts.append(self.last_name)
+
+        # Filter out empty strings and join
+        full_name = " ".join(filter(None, full_name_parts))
         return full_name.strip()
 
+
     def get_short_name(self):
-        """Return the short name for the user."""
+        """
+        Return the short name for the user."""
         return self.first_name
+
+
+class UserProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    middle_name = models.CharField(_("middle name"), max_length=150, blank=True)
+
+    class Meta:
+        verbose_name = _("user profile")
+        verbose_name_plural = _("user profiles")
+
+    def __str__(self):
+        return f"{self.user.email}'s Profile"
