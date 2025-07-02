@@ -12,8 +12,8 @@ from rest_framework import permissions, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from store.email_utils import send_payment_receipt_email
 from store.models import Order
+from emails.services import send_payment_receipt
 
 from .models import Transaction
 from .serializers import TransactionSerializer
@@ -224,7 +224,16 @@ class MpesaConfirmationAPIView(APIView):
                         else None
                     )
                     if recipient_email:
-                        send_payment_receipt_email(transaction.order, recipient_email)
+                        send_payment_receipt(recipient_email, {
+                            'id': transaction.order.id,
+                            'customer_name': transaction.order.customer.name if transaction.order.customer else 'Guest',
+                            'get_cart_total': str(transaction.order.get_cart_total),
+                            'items': [{
+                                'product_name': item.product.name,
+                                'quantity': item.quantity,
+                                'get_total': str(item.get_total)
+                            } for item in transaction.order.orderitem_set.all()]
+                        })
                     logger.info(
                         f"Payment receipt email sent to {recipient_email} for order {transaction.order.id}"
                     )

@@ -5,9 +5,10 @@ import logging
 from django.http import JsonResponse
 from django.shortcuts import render
 
-from .email_utils import send_order_confirmation_email
-from .models import *
-from .utils import cartData, cookieCart
+from store.models import *
+from store.utils import cookieCart, cartData
+from emails.services import send_order_confirmation
+import logging
 
 logger = logging.getLogger("store")
 
@@ -120,7 +121,16 @@ def processOrder(request):
             customer.user.email if customer.user else None
         )
         if recipient_email:
-            send_order_confirmation_email(order, recipient_email)
+            send_order_confirmation(recipient_email, {
+                'id': order.id,
+                'customer_name': customer.name if customer else 'Guest',
+                'get_cart_total': str(order.get_cart_total),
+                'items': [{
+                    'product_name': item.product.name,
+                    'quantity': item.quantity,
+                    'get_total': str(item.get_total)
+                } for item in order.orderitem_set.all()]
+            })
         logger.info(
             f"Order {order.id} completed and confirmation email sent to {recipient_email}"
         )
