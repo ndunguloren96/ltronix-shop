@@ -13,14 +13,17 @@ const DJANGO_API_BASE_URL = process.env.NEXT_PUBLIC_DJANGO_API_URL || 'http://12
 
 interface DjangoUser {
   pk: number;
-  id: number; // For consistency, as some serializers might use 'id'
+  id: number;
   email: string;
   first_name?: string;
+  middle_name?: string;
   last_name?: string;
+  phone_number?: string;
+  gender?: string;
+  date_of_birth?: string;
   is_staff?: boolean;
   is_active?: boolean;
   date_joined?: string;
-  // Add other fields from your Django UserDetailsSerializer if available
 }
 
 export default function AccountPage() {
@@ -133,8 +136,23 @@ export default function AccountPage() {
               </Text>
               <Box>
                 <Text fontSize="md"><Text as="span" fontWeight="semibold">Email:</Text> {userDetails?.email || session.user?.email}</Text>
-                {userDetails?.first_name && userDetails?.last_name && (
-                  <Text fontSize="md"><Text as="span" fontWeight="semibold">Name:</Text> {userDetails.first_name} {userDetails.last_name}</Text>
+                {userDetails?.first_name && (
+                  <Text fontSize="md"><Text as="span" fontWeight="semibold">First Name:</Text> {userDetails.first_name}</Text>
+                )}
+                {userDetails?.middle_name && (
+                  <Text fontSize="md"><Text as="span" fontWeight="semibold">Middle Name:</Text> {userDetails.middle_name}</Text>
+                )}
+                {userDetails?.last_name && (
+                  <Text fontSize="md"><Text as="span" fontWeight="semibold">Last Name:</Text> {userDetails.last_name}</Text>
+                )}
+                {userDetails?.phone_number && (
+                  <Text fontSize="md"><Text as="span" fontWeight="semibold">Phone Number:</Text> {userDetails.phone_number}</Text>
+                )}
+                {userDetails?.gender && (
+                  <Text fontSize="md"><Text as="span" fontWeight="semibold">Gender:</Text> {userDetails.gender}</Text>
+                )}
+                {userDetails?.date_of_birth && (
+                  <Text fontSize="md"><Text as="span" fontWeight="semibold">Date of Birth:</Text> {userDetails.date_of_birth}</Text>
                 )}
                 {userDetails?.date_joined && (
                   <Text fontSize="md"><Text as="span" fontWeight="semibold">Member Since:</Text> {new Date(userDetails.date_joined).toLocaleDateString()}</Text>

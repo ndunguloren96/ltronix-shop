@@ -1,7 +1,7 @@
 // src/app/account/profile-update/page.tsx
 'use client';
 
-import { Box, Heading, Text, VStack, FormControl, FormLabel, Input, Flex, useToast, Spinner, Alert, AlertIcon, AlertTitle, AlertDescription } from '@chakra-ui/react';
+import { Box, Heading, Text, VStack, FormControl, FormLabel, Input, Flex, useToast, Spinner, Alert, AlertIcon, AlertTitle, AlertDescription, Select } from '@chakra-ui/react';
 import { MyButton } from '../../../components/MyButton';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -15,8 +15,11 @@ interface UserProfile {
   pk: number;
   email: string;
   first_name: string;
+  middle_name?: string;
   last_name: string;
-  // Add other fields your Django UserDetailsSerializer provides for updating
+  phone_number?: string;
+  gender?: string;
+  date_of_birth?: string;
 }
 
 export default function ProfileUpdatePage() {
@@ -26,7 +29,11 @@ export default function ProfileUpdatePage() {
 
   const [email, setEmail] = useState('');
   const [firstName, setFirstName] = useState('');
+  const [middleName, setMiddleName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [gender, setGender] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
   const [isLoading, setIsLoading] = useState(true); // For initial data fetch
   const [isSubmitting, setIsSubmitting] = useState(false); // For form submission
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -52,7 +59,11 @@ export default function ProfileUpdatePage() {
           const user = session.djangoUser as UserProfile;
           setEmail(user.email || '');
           setFirstName(user.first_name || '');
+          setMiddleName(user.middle_name || '');
           setLastName(user.last_name || '');
+          setPhoneNumber(user.phone_number || '');
+          setGender(user.gender || '');
+          setDateOfBirth(user.date_of_birth || '');
           setIsLoading(false);
           return;
         }
@@ -75,7 +86,11 @@ export default function ProfileUpdatePage() {
           const data: UserProfile = await res.json();
           setEmail(data.email || '');
           setFirstName(data.first_name || '');
+          setMiddleName(data.middle_name || '');
           setLastName(data.last_name || '');
+          setPhoneNumber(data.phone_number || '');
+          setGender(data.gender || '');
+          setDateOfBirth(data.date_of_birth || '');
         } else {
           const errorData = await res.json();
           setFetchError(errorData.detail || 'Failed to load user profile. Please try again.');
@@ -111,8 +126,11 @@ export default function ProfileUpdatePage() {
       const updateData = {
         email,
         first_name: firstName,
+        middle_name: middleName,
         last_name: lastName,
-        // Include other fields if your Django UserDetailsSerializer allows updating them
+        phone_number: phoneNumber,
+        gender: gender,
+        date_of_birth: dateOfBirth || null, // Send null if empty string
       };
 
       const res = await fetch(`${DJANGO_API_BASE_URL}/auth/user/`, {
@@ -229,6 +247,17 @@ export default function ProfileUpdatePage() {
                 />
               </FormControl>
 
+              <FormControl id="middle-name">
+                <FormLabel>Middle Name</FormLabel>
+                <Input
+                  type="text"
+                  value={middleName}
+                  onChange={(e) => setMiddleName(e.target.value)}
+                  placeholder="Enter your middle name"
+                  autoComplete="additional-name"
+                />
+              </FormControl>
+
               <FormControl id="last-name">
                 <FormLabel>Last Name</FormLabel>
                 <Input
@@ -240,7 +269,38 @@ export default function ProfileUpdatePage() {
                 />
               </FormControl>
 
-              {/* Add more profile fields here if needed based on your Django User model */}
+              <FormControl id="phone-number">
+                <FormLabel>Phone Number</FormLabel>
+                <Input
+                  type="tel"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  placeholder="e.g., +254712345678"
+                  autoComplete="tel"
+                />
+              </FormControl>
+
+              <FormControl id="gender">
+                <FormLabel>Gender</FormLabel>
+                <Select
+                  value={gender}
+                  onChange={(e) => setGender(e.target.value)}
+                  placeholder="Select gender"
+                >
+                  <option value="M">Male</option>
+                  <option value="F">Female</option>
+                  <option value="O">Other</option>
+                </Select>
+              </FormControl>
+
+              <FormControl id="date-of-birth">
+                <FormLabel>Date of Birth</FormLabel>
+                <Input
+                  type="date"
+                  value={dateOfBirth}
+                  onChange={(e) => setDateOfBirth(e.target.value)}
+                />
+              </FormControl>
 
               <MyButton
                 type="submit"

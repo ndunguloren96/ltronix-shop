@@ -8,7 +8,6 @@ import {
   Text,
   Badge,
   Flex,
-  Spacer,
   Button,
   Divider,
   HStack,
@@ -17,16 +16,14 @@ import {
   Input,
   InputGroup,
   InputRightElement,
-  Spinner, // For loading states
-  Center, // For centering content
 } from '@chakra-ui/react';
+import Image from 'next/image';
 import { CheckCircleIcon, StarIcon } from '@chakra-ui/icons';
-import Image from 'next/image'; // Import Next.js Image
-import { useCartStore } from '@/store/useCartStore'; // Import Zustand store
+import { useCartStore } from '@/store/useCartStore';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { updateEntireCartAPI, BackendOrder, ProductInCart, BackendOrderItem } from '@/api/orders';
 import { useSession } from 'next-auth/react';
-import Link from 'next/link'; // For Next.js Link component
+import Link from 'next/link';
 
 // Define the Product interface (should match the data passed from the server component)
 interface Product {
@@ -314,7 +311,6 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
 
           <Divider />
 
-          {/* Quantity selector and Add to Cart button */}
           <HStack width="full">
             <InputGroup size="lg" maxWidth="150px">
               <Input
@@ -327,7 +323,6 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
                 textAlign="center"
               />
               <InputRightElement width="4.5rem">
-                {/* You can add increment/decrement buttons here or rely on Chakra's NumberInput */}
               </InputRightElement>
             </InputGroup>
             <Button
@@ -338,7 +333,7 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
               isLoading={addToCartMutation.isPending || status === 'loading'}
               isDisabled={addToCartMutation.isPending || status === 'loading' || product.stock <= 0}
             >
-              {addToCartMutation.isPending ? 'Adding...' : (product.stock > 0 ? 'Add to Cart' : 'Out of Stock')}
+              {addToCartMutation.isPending ? 'Adding...' : (product.stock > 0 ? 'Add to cart' : 'Out of Stock')}
             </Button>
           </HStack>
 
@@ -349,11 +344,13 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
               <Link href="/auth/login" passHref>
                 <Text as="a" color="brand.500" fontWeight="bold">Login</Text>
               </Link>
-              {' '}or{' '}
+              {' '}
+              or{' '}
               <Link href="/auth/signup" passHref>
                 <Text as="a" color="brand.500" fontWeight="bold">Sign Up</Text>
               </Link>
-              {' '}to permanently save your cart and access order history.
+              {' '}
+              to permanently save your cart and access order history.
             </Text>
           )}
 
@@ -365,6 +362,14 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
           )}
         </VStack>
       </Flex>
+
+      {/* Recommended Products Section */}
+      <Box mt={10} p={5} borderWidth="1px" borderRadius="lg" boxShadow="sm">
+        <Heading as="h2" size="lg" mb={4}>Recommended Products</Heading>
+        <Text color="gray.600">Placeholder for recommended products based on this item. (Future Integration)</Text>
+        {/* Here you would fetch and display related products, e.g., using another useQuery hook */}
+        {/* Example: <SimpleGrid columns={{ base: 1, md: 3 }} spacing={5}>...</SimpleGrid> */}
+      </Box>
     </Box>
   );
 }
