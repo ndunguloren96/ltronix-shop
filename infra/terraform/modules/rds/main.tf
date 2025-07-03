@@ -1,7 +1,7 @@
 resource "aws_db_instance" "default" {
   identifier            = "ltronix-shop-db"
   engine                = "postgres"
-  engine_version        = "15.6"
+  engine_version        = "14"
   instance_class        = var.db_instance_class
   allocated_storage     = var.db_allocated_storage
   db_name               = var.db_name
@@ -13,7 +13,7 @@ resource "aws_db_instance" "default" {
   multi_az              = false
   vpc_security_group_ids = [aws_security_group.db_sg.id]
   db_subnet_group_name  = aws_db_subnet_group.default.name
-  parameter_group_name  = "default.postgres15"
+  parameter_group_name  = "default.postgres14"
   auto_minor_version_upgrade = true
   apply_immediately     = false
   backup_retention_period = 7
