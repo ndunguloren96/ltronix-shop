@@ -65,6 +65,30 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
+        {/* Datadog RUM Snippet - Replace with your actual client token and application ID */}
+        <script>
+          (function(h,o,u,n,d) {
+            h=h[d]=h[d]||{q:[],onReady:function(c){h.q.push(c)}};
+            var t=o.createElement(u);t.async=1;t.src=n;
+            o.getElementsByTagName(u)[0].parentNode.appendChild(t);
+          })(window,document,'script','https://www.datadoghq-browser-agent.com/datadog-rum-latest.js','DD_RUM');
+          DD_RUM.onReady(function() {
+            DD_RUM.init({
+              clientToken: 'YOUR_DATADOG_CLIENT_TOKEN',
+              applicationId: 'YOUR_DATADOG_APPLICATION_ID',
+              site: 'datadoghq.com',
+              service: 'ltronix-shop-frontend',
+              env: 'production',
+              version: '1.0.0',
+              sessionSampleRate: 100,
+              sessionReplaySampleRate: 20,
+              trackUserInteractions: true,
+              trackResources: true,
+              trackLongTasks: true,
+              defaultPrivacyLevel: 'mask-user-input',
+            });
+          });
+        </script>
         {/* CRITICAL FOUC FIX: Add ColorModeScript here */}
         {/* This script must be placed before any Chakra UI components are rendered */}
         <ColorModeScript initialColorMode={theme.config.initialColorMode} /> 
