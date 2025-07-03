@@ -17,9 +17,6 @@ resource "aws_db_instance" "default" {
   auto_minor_version_upgrade = true
   apply_immediately     = false
   backup_retention_period = 7
-  enabled_cloudwatch_logs_exports = ["postgresql", "upgrade"]
-  performance_insights_enabled = true
-  performance_insights_retention_period = 7
 
   tags = {
     Project     = var.project_name

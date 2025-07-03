@@ -98,15 +98,7 @@ module "elasticache" {
   public_subnet_id = aws_subnet.public.id
 }
 
-resource "aws_cloudwatch_log_group" "rds_logs" {
-  name              = "/aws/rds/instance/${module.rds.db_instance_identifier}"
-  retention_in_days = 7
 
-  tags = {
-    Project     = var.project_name
-    Environment = var.environment
-  }
-}
 
 output "rds_endpoint" {
   description = "The connection endpoint of the RDS instance"

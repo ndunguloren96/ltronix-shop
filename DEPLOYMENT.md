@@ -75,40 +75,11 @@ Sensitive information like API keys, database credentials, and AWS access keys a
     *   `DB_USER`
     *   `DB_PASSWORD`
     *   `SECRET_KEY` (for Django)
-    *   `DATADOG_CLIENT_TOKEN` (for frontend RUM)
-    *   `DATADOG_APPLICATION_ID` (for frontend RUM)
 
-## 4. Monitoring Setup
-
-### AWS CloudWatch
-
-CloudWatch logging for RDS is configured via Terraform. You can view logs directly in the AWS CloudWatch console.
-
-### Datadog RUM (Real User Monitoring)
-
-Datadog RUM is integrated into the frontend to monitor user experience. To enable it:
-
-1.  **Sign up for Datadog:** If you don't have an account, sign up at [https://www.datadoghq.com/](https://www.datadoghq.com/).
-2.  **Obtain Client Token and Application ID:** In your Datadog dashboard, navigate to `UX Monitoring > RUM Applications` to create a new application and obtain your `clientToken` and `applicationId`.
-3.  **Update Frontend Code:** The Datadog RUM snippet has been added as a placeholder in `frontend/my-app/src/app/layout.tsx`. You need to replace `YOUR_DATADOG_CLIENT_TOKEN` and `YOUR_DATADOG_APPLICATION_ID` with your actual values. For production, it's recommended to inject these via environment variables.
-
-    ```typescript
-    // Example of how to update in layout.tsx
-    DD_RUM.init({
-      clientToken: process.env.NEXT_PUBLIC_DATADOG_CLIENT_TOKEN, // Use environment variable
-      applicationId: process.env.NEXT_PUBLIC_DATADOG_APPLICATION_ID, // Use environment variable
-      // ... other configurations
-    });
-    ```
-
-4.  **Configure Environment Variables:** Add `NEXT_PUBLIC_DATADOG_CLIENT_TOKEN` and `NEXT_PUBLIC_DATADOG_APPLICATION_ID` to your frontend deployment environment variables (e.g., Vercel environment variables).
-
-## 5. Verifying Deployment and Monitoring
+## 4. Verifying Deployment
 
 After deploying your infrastructure and applications:
 
 *   **Backend:** Access your backend API endpoints to ensure they are functioning correctly and connecting to the database.
 *   **Frontend:** Access your frontend application in a browser. Verify that data is loading and user interactions are smooth.
-*   **CloudWatch:** Check the AWS CloudWatch console for logs from your RDS instance.
-*   **Datadog:** In your Datadog dashboard, navigate to `UX Monitoring > RUM Explorer` to see real-time user data and performance metrics.
 
