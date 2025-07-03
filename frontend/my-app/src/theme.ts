@@ -1,5 +1,5 @@
-// src/theme.ts
-import { extendTheme } from '@chakra-ui/react';
+// frontend/my-app/src/theme.ts
+import { extendTheme, type ThemeConfig } from '@chakra-ui/react'; // Import ThemeConfig
 
 // Define your brand color based on your preference
 const brandColors = {
@@ -13,7 +13,15 @@ const brandColors = {
   100: '#EBF8FF', // Lightest shade
 };
 
+// --- Add this config object for Chakra UI color mode ---
+const config: ThemeConfig = {
+  initialColorMode: 'dark', // Set your desired initial color mode (e.g., 'dark' as seen in your screenshot)
+  useSystemColorMode: false, // Set to true if you want to respect OS preference, false to force initialColorMode
+};
+// --- End config object ---
+
 export const theme = extendTheme({
+  config, // Add the config object here
   colors: {
     brand: brandColors,
   },
@@ -49,3 +57,4 @@ export const theme = extendTheme({
     // Add more component customizations as needed.
   },
 });
+
