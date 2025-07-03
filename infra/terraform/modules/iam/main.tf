@@ -1,15 +1,16 @@
 resource "aws_iam_user" "default" {
-  name = "${var.project_name}-user"
+  name = "ltronix-shop-user"
   path = "/system/"
 
   tags = {
-    Environment = var.environment
     Project     = var.project_name
+    Environment = var.environment
   }
 }
 
 resource "aws_iam_access_key" "default" {
-  user = aws_iam_user.default.name
+  user   = aws_iam_user.default.name
+  status = "Active"
 }
 
 resource "aws_iam_user_policy" "s3_access" {
@@ -28,8 +29,8 @@ resource "aws_iam_user_policy" "s3_access" {
         ]
         Effect   = "Allow"
         Resource = [
-          "arn:aws:s3:::${var.project_name}-bucket",
-          "arn:aws:s3:::${var.project_name}-bucket/*",
+          "arn:aws:s3:::${var.s3_bucket_name}",
+          "arn:aws:s3:::${var.s3_bucket_name}/*",
         ]
       },
     ]

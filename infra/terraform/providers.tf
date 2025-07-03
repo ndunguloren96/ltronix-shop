@@ -1,3 +1,4 @@
 provider "aws" {
-  region = var.aws_region
+  region  = "eu-north-1"
+  profile = "wsl-ltronix-shop-admin"
 }
