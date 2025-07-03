@@ -111,7 +111,7 @@ svgwrite==1.4.3
 systemd-python==234
 tomli==2.2.1
 Tree==0.2.4
-Twisted==22.1.0
+Twisted==22.4.0
 typing_extensions==4.14.0
 tzdata==2025.2
 ubuntu-pro-client==8001
