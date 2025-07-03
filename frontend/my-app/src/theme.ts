@@ -1,5 +1,7 @@
-// frontend/my-app/src/theme.ts
-import { extendTheme, type ThemeConfig } from '@chakra-ui/react'; // Import ThemeConfig
+// src/components/theme.ts
+'use client'; // <--- ADD THIS LINE AT THE VERY TOP
+
+import { extendTheme, type ThemeConfig } from '@chakra-ui/react';
 
 // Define your brand color based on your preference
 const brandColors = {
@@ -57,4 +59,3 @@ export const theme = extendTheme({
     // Add more component customizations as needed.
   },
 });
-
