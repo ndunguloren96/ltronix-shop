@@ -14,7 +14,7 @@ export default class ErrorBoundary extends React.Component<Props, State> {
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: any, errorInfo: any) {
+  componentDidCatch(_error: unknown, _errorInfo: unknown) { // _error and _errorInfo are unused
     // Log error if needed
   }
 

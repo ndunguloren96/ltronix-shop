@@ -49,10 +49,10 @@ export default function HomePageClientWidgets() {
   const [feedbackMessage, setFeedbackMessage] = useState('');
 
   // Zustand auth store (cart store is directly used in ProductCard now)
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  const user = useAuthStore((state) => state.user);
-  const login = useAuthStore((state) => state.login);
-  const logout = useAuthStore((state) => state.logout);
+  // const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  // const user = useAuthStore((state) => state.user);
+  // const login = useAuthStore((state) => state.login);
+  // const logout = useAuthStore((state) => state.logout);
 
   // Handle feedback submission
   const handleSubmitFeedback = (e: React.FormEvent) => {
@@ -124,7 +124,7 @@ export default function HomePageClientWidgets() {
       >
         <Text>
           This is a reusable modal component for displaying alerts, forms, or any other content.
-          It's ready for your production-ready e-commerce site!
+          It&apos;s ready for your production-ready e-commerce site!
         </Text>
       </MyModal>
 

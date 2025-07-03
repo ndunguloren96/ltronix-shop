@@ -2,7 +2,7 @@
 'use client';
 
 import { Box, Heading, Text, VStack, FormControl, FormLabel, Input, Flex, useToast } from '@chakra-ui/react';
-import { MyButton } from '../../../../components/MyButton';
+import { MyButton } from '@/components/MyButton';
 import { useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';

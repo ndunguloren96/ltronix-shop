@@ -7,7 +7,6 @@ import GoogleSignInButton from '../../../components/GoogleSignInButton';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
-import Link from 'next/link';
 import NextLink from 'next/link'; // Alias Next.js Link for clarity with ChakraLink
 
 // Define your Django backend URL from environment variables

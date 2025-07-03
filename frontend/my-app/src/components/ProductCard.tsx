@@ -27,7 +27,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   description,
   imageUrl,
   price,
-  stock,
 }) => {
   const formatPrice = (priceString: string): string => {
     const numericPrice = parseFloat(priceString);

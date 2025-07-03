@@ -12,16 +12,17 @@ import Image from 'next/image';
 
 // Define Product interface (should ideally be imported from src/api/products.ts or a shared types file)
 // Re-declaring here for clarity, but import is preferred.
-interface Product {
-  id: string; // Ensure this matches your backend's product ID type
-  name: string;
-  price: string; // Django DecimalField often comes as a string in JSON
-  description: string;
-  image_url?: string;
-  category?: string;
-  brand?: string;
-  // Add other fields you expect from your ProductSerializer
-}
+// interface Product {
+//   id: string; // Ensure this matches your backend's product ID type
+//   name: string;
+//   price: string; // Django DecimalField often comes as a string in JSON
+//   description: string;
+//   image_url?: string;
+//   category?: string;
+//   stock?: number;
+//   brand?: string;
+//   // Add other product fields as per your Django serializer
+// }
 
 export default async function HomePage() {
   const queryClient = new QueryClient(); // Create a new QueryClient instance for each request on the server

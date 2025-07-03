@@ -9,7 +9,6 @@ import {
   ModalFooter,
   ModalBody,
   ModalCloseButton,
-  Button,
   useDisclosure,
   ModalProps as ChakraModalProps, // Import ModalProps with an alias
 } from '@chakra-ui/react';

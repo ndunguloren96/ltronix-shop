@@ -149,7 +149,7 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
         setLocalCartItems([]);
       }
     },
-    onSettled: async (data, error, variables, context) => {
+    onSettled: async (data, _error, _variables, _context) => { // _error, _variables, _context are unused
         if (data && data.session_key && !guestSessionKey) {
             setGuestSessionKey(data.session_key);
             console.log("Guest session key received from backend and set:", data.session_key);

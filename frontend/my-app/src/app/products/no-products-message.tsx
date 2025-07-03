@@ -25,7 +25,7 @@ export default function NoProductsMessage() {
           No Products Available
         </AlertTitle>
         <AlertDescription maxWidth="sm">
-          We couldn't load any products at the moment. Please check your backend API.
+          We couldn&apos;t load any products at the moment. Please check your backend API.
         </AlertDescription>
         <Button mt={4} onClick={handleReload}>
           Retry

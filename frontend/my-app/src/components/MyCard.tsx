@@ -2,7 +2,6 @@
 
 import {
   Box,
-  Image as ChakraImage, // Rename Chakra UI's Image to avoid conflict with next/image
   Heading,
   Text,
   Stack,

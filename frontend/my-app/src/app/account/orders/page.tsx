@@ -32,9 +32,7 @@ export default function OrderHistoryPage() {
 
       {orders.length === 0 ? (
         <VStack spacing={4} textAlign="center" py={10}>
-          <Text fontSize="lg" color="gray.600">
-            You haven't placed any orders yet.
-          </Text>
+          <Text fontSize="md" color="gray.600">You haven&apos;t placed any orders yet.</Text>
           {/* Add a link to products page if desired */}
         </VStack>
       ) : (

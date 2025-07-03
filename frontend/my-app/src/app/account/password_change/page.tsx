@@ -1,7 +1,7 @@
 // src/app/account/password-change/page.tsx
 'use client';
 
-import { Box, Heading, Text, VStack, FormControl, FormLabel, Input, Flex, useToast, Spinner, Alert, AlertIcon, AlertTitle, AlertDescription } from '@chakra-ui/react';
+import { Box, Heading, Text, VStack, FormControl, FormLabel, Input, Flex, useToast, Spinner } from '@chakra-ui/react';
 import { MyButton } from '../../../components/MyButton';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';

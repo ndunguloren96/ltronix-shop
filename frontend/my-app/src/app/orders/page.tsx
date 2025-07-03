@@ -135,9 +135,7 @@ export default function OrderHistoryPage() {
 
       {orders && orders.length === 0 ? (
         <VStack spacing={4} textAlign="center" py={10}>
-          <Text fontSize="xl" color="gray.600">
-            You haven't placed any orders yet.
-          </Text>
+          <Text fontSize="md" color="gray.600">You haven&apos;t placed any orders yet.</Text>
           <Button colorScheme="brand" onClick={() => router.push('/products')}>
             Start Shopping
           </Button>
@@ -151,7 +149,7 @@ export default function OrderHistoryPage() {
                   <Box flex="1" textAlign="left">
                     <Flex direction={{ base: 'column', md: 'row' }} alignItems={{ base: 'flex-start', md: 'center' }} gap={2}>
                       <Text fontWeight="bold">Order #{order.id}</Text>
-                      <Spacer />
+                      <Flex flex="1" />
                       <Tag size="md" colorScheme={order.complete ? 'green' : 'orange'}>
                         {order.complete ? 'Completed' : 'Pending'}
                       </Tag>

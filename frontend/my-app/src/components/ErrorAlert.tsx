@@ -1,6 +1,6 @@
 'use client';
 
-import { Alert, AlertIcon, AlertTitle, AlertDescription, CloseButton, Box } from '@chakra-ui/react';
+import { Alert, AlertIcon, AlertTitle, AlertDescription, CloseButton } from '@chakra-ui/react';
 import React from 'react';
 
 interface ErrorAlertProps {

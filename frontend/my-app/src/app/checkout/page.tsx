@@ -123,7 +123,7 @@ export default function CheckoutPage() {
     },
     enabled: !!currentTransactionId && isOpen, // Only poll if there's a transaction ID and modal is open
     refetchInterval: POLLING_INTERVAL_MS,
-    retry: (failureCount, error) => {
+    retry: (_failureCount, _error) => { // _failureCount and _error are unused // _failureCount and _error are unused
       // Stop retrying if polling attempts exceed limit or if transaction is already completed/failed/cancelled/timeout
       if (pollingAttempts * POLLING_INTERVAL_MS >= POLLING_TIMEOUT_MS) {
         console.warn("Polling timed out for transaction:", currentTransactionId);

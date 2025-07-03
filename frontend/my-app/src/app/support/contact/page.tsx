@@ -129,7 +129,7 @@ export default function ContactPage() {
           Contact Us
         </Heading>
         <Text textAlign="center" mb={6}>
-          Have a question or need support? Fill out the form below and we'll get back to you.
+          Have a question or need support? Fill out the form below and we&apos;ll get back to you.
         </Text>
 
         {error && (

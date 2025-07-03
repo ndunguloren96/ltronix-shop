@@ -4,7 +4,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation'; // For reading URL query parameters
 import {
-  Box,
   Heading,
   Text,
   SimpleGrid,
@@ -121,7 +120,7 @@ export default function SearchResultsPage() {
       ) : (
         <Center py={10}>
           <Text fontSize="xl" color="gray.600">
-            No products found for "{searchQuery}". Try a different search term.
+            No products found for &quot;{searchQuery}&quot;. Try a different search term.
           </Text>
         </Center>
       )}

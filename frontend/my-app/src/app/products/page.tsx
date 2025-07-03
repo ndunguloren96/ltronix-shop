@@ -10,6 +10,7 @@ import { fetchProducts, Product } from '../../api/products'; // <<-- CORRECTED P
 
 // This function now specifically fetches data for the server component
 // It can be directly called here without useQuery.
+/*
 async function getProductsForServer(): Promise<Product[]> {
   const apiUrl = process.env.NEXT_PUBLIC_DJANGO_API_URL || 'http://127.0.0.1:8000/api/v1';
   try {
@@ -32,6 +33,7 @@ async function getProductsForServer(): Promise<Product[]> {
     return []; // On hard failure, return empty to display the NoProductsMessage
   }
 }
+*/
 
 // This is the Server Component for the Products page
 export default async function ProductsServerPage() {

@@ -42,7 +42,7 @@ export default function CartPage() {
   const toast = useToast();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { data: session, status } = useSession();
+  const { data: _session, status } = useSession(); // _session is unused
 
   const localCartItems = useCartStore((state) => state.items);
   const setLocalCartItems = useCartStore((state) => state.setItems);
@@ -95,10 +95,11 @@ export default function CartPage() {
   // It should ideally be handled earlier in a layout or root provider, but is kept here for robustness.
   useEffect(() => {
     if (status === 'unauthenticated' && !guestSessionKey) {
-      const { v4: uuidv4 } = require('uuid');
-      const newKey = uuidv4();
-      setGuestSessionKey(newKey);
-      console.log('Generated new guest session key on cart page:', newKey);
+      import('uuid').then(({ v4: uuidv4 }) => {
+        const newKey = uuidv4();
+        setGuestSessionKey(newKey);
+        console.log('Generated new guest session key on cart page:', newKey);
+      });
     }
   }, [status, guestSessionKey, setGuestSessionKey]);
 
@@ -167,7 +168,7 @@ export default function CartPage() {
       setLocalCartItems(newFrontendCartItems);
       return { previousCart };
     },
-    onError: (err, newFrontendCartItems, context) => {
+    onError: (err, _newFrontendCartItems, context) => { // _newFrontendCartItems is unused
       console.error("Failed to update cart on backend:", err);
       toast({
         title: 'Error Updating Cart',
@@ -190,10 +191,10 @@ export default function CartPage() {
         setLocalCartItems([]);
       }
     },
-    onSuccess: (data) => {
+    onSuccess: (_data) => { // _data is unused
       // Always update Zustand from backend's canonical cart
       setLocalCartItems(
-        data.items.map((backendItem) => ({
+        _data.items.map((backendItem) => ({
           id: backendItem.product.id,
           name: backendItem.product.name,
           price: parseFloat(backendItem.product.price),
@@ -202,9 +203,9 @@ export default function CartPage() {
         }))
       );
       // If the backend returned a session_key, update it in local storage (e.g., first guest item added)
-      if (data.session_key && !guestSessionKey && status === 'unauthenticated') {
-        setGuestSessionKey(data.session_key);
-        console.log("Backend returned new guest session key (from mutation):", data.session_key);
+      if (_data.session_key && !guestSessionKey && status === 'unauthenticated') {
+        setGuestSessionKey(_data.session_key);
+        console.log("Backend returned new guest session key (from mutation):", _data.session_key);
       }
       toast({
         title: 'Cart Updated',
@@ -228,7 +229,7 @@ export default function CartPage() {
       setGuestSessionKey(null);
       return {};
     },
-    onError: (err, cartId, context) => {
+    onError: (err, _cartId, _context) => { // _cartId and _context are unused
       console.error("Failed to clear cart on backend:", err);
       toast({
         title: 'Error Clearing Cart',
@@ -239,7 +240,7 @@ export default function CartPage() {
       });
       // No rollback needed for clear
     },
-    onSuccess: (data) => {
+    onSuccess: (_data) => { // _data is unused
       // Always update Zustand from backend cleared cart
       setLocalCartItems([]);
       setGuestSessionKey(null);

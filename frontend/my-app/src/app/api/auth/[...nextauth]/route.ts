@@ -25,7 +25,7 @@ interface DjangoUser {
   key?: string; // dj-rest-auth token (if TOKEN_MODEL is used and returned)
 }
 
-export const authOptions = {
+export export const authOptions = {
   // You had httpOptions here, which is not a standard NextAuth.js option for `authOptions`.
   // If you intended to set a fetch timeout, it should be applied to individual fetch calls.
   // Removing it to avoid misconfiguration.
@@ -231,5 +231,6 @@ export const authOptions = {
 };
 
 // Export GET and POST handlers for Next.js API Routes
-export const GET = NextAuth(authOptions);
-export const POST = NextAuth(authOptions);
+const handler = NextAuth(authOptions);
+
+export { handler as GET, handler as POST };
