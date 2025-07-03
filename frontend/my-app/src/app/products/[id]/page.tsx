@@ -32,7 +32,7 @@ interface Product {
   updated_at: string;
 }
 
-export default async function ProductDetailPage({ params, searchParams }: { params: { id: string }; searchParams?: { [key: string]: string | string[] | undefined } }) {
+export default async function ProductDetailPage({ params }: { params: { id: string } }) {
   const productId = params.id;
   let product: Product | null = null;
   let error: Error | null = null;

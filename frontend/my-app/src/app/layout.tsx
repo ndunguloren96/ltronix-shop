@@ -9,7 +9,7 @@ import Footer from '../components/Footer';
 // -------------------------------------------------------------------
 
 import { getServerSession } from 'next-auth'; // Import getServerSession for NextAuth.js
-import { authOptions } from './api/auth/[...nextauth]/route'; // Import authOptions from your NextAuth config
+import { authOptions } from '@/lib/auth'; // Import authOptions from your NextAuth config
 
 // --- Part 7 Additions: Frontend Monitoring (Sentry ErrorBoundary only here) ---
 import * as Sentry from "@sentry/nextjs"; // Import Sentry SDK (for ErrorBoundary)
