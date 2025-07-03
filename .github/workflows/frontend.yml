@@ -1,0 +1,44 @@
+name: Frontend CI/CD
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  lint-test-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+        working-directory: ./frontend/my-app
+
+      - name: Run ESLint
+        run: npm run lint
+        working-directory: ./frontend/my-app
+
+      - name: Run tests
+        run: npm test
+        working-directory: ./frontend/my-app
+        # Add a placeholder for a test command if one exists, e.g., `npm test`
+        # If no tests are configured, this step might fail or do nothing.
+
+      - name: Build Next.js application
+        run: npm run build
+        working-directory: ./frontend/my-app
+
+      # Deployment to Vercel/Render is typically handled by connecting the GitHub repository
+      # directly to the Vercel/Render dashboard. This workflow will build the application,
+      # but the actual deployment trigger is usually external to GitHub Actions for these platforms.
+      # For example, Vercel automatically deploys on pushes to the main branch.
