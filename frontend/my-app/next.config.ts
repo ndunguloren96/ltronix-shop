@@ -1,3 +1,5 @@
+// frontend/my-app/next.config.ts
+
 import type { NextConfig } from "next";
 import withBundleAnalyzer from "@next/bundle-analyzer";
 
@@ -9,6 +11,7 @@ const bundleAnalyzer = withBundleAnalyzer({
 const nextConfig: NextConfig = bundleAnalyzer({
   images: {
     // remotePatterns for optimized image domains
+    // This is the correct and modern way to configure image domains in Next.js 13+
     remotePatterns: [
       {
         protocol: 'https',
@@ -34,27 +37,44 @@ const nextConfig: NextConfig = bundleAnalyzer({
         port: '',
         pathname: '/media/**',
       },
-      // Add more production/CDN domains as needed
+      // IMPORTANT: Add your S3 bucket domain here once your backend is deployed
+      // Example:
+      // {
+      //   protocol: 'https',
+      //   hostname: 'ltronix-shop-bucket.s3.eu-north-1.amazonaws.com', // Replace with your actual S3 bucket domain
+      //   port: '',
+      //   pathname: '/**',
+      // },
+      // Add your Render backend domain here if images are proxied through it
+      // {
+      //   protocol: 'https',
+      //   hostname: 'your-render-backend-domain.render.com',
+      //   port: '',
+      //   pathname: '/media/**', // Or whatever path your backend uses for media
+      // },
     ],
   },
   // Speed up dev and build by ignoring type errors (optional: set to false if you want strict builds)
   typescript: {
     ignoreBuildErrors: false
   },
-  // SWC minification is on by default in Next.js 13+
-  swcMinify: true,
+  // swcMinify is true by default in Next.js 12.2.0 and later, so this option is no longer needed.
+  // It has been removed to resolve the "Unrecognized key(s) in object: 'swcMinify'" warning.
+  // swcMinify: true, // REMOVED THIS LINE
+
   async rewrites() {
     return [
       {
-        source: '/api/v1/products/:path*',
-        destination: 'http://localhost:8000/api/v1/products/:path*',
+        source: '/api/v1/:path*', // Catch all API paths
+        destination: `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/:path*`, // Use env var for backend URL
       },
-    ]
+    ];
   },
-  // Enable experimental features if needed (appDir, etc)
-  experimental: {
-    appDir: true
-  },
+  // The 'appDir' feature is no longer experimental in Next.js 13.4+ and later versions.
+  // The 'experimental' block is removed to resolve the "Unrecognized key(s) in object: 'appDir' at 'experimental'" warning.
+  // experimental: {
+  //   appDir: true // REMOVED THIS BLOCK
+  // },
   webpack(config, { isServer }) {
     // Suppress OpenTelemetry/Sentry dynamic require warnings
     config.ignoreWarnings = [
@@ -68,3 +88,4 @@ const nextConfig: NextConfig = bundleAnalyzer({
 });
 
 export default nextConfig;
+
