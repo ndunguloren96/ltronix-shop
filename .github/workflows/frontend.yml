@@ -38,7 +38,14 @@ jobs:
         run: npm run build
         working-directory: ./frontend/my-app
 
-      # Deployment to Vercel/Render is typically handled by connecting the GitHub repository
-      # directly to the Vercel/Render dashboard. This workflow will build the application,
-      # but the actual deployment trigger is usually external to GitHub Actions for these platforms.
-      # For example, Vercel automatically deploys on pushes to the main branch.
+      - name: Deploy to Vercel
+        if: github.ref == 'refs/heads/main'
+        run: | 
+          npm install -g vercel
+          vercel pull --yes --scope ltronix-shop-vercel-scope
+          vercel build --prod --scope ltronix-shop-vercel-scope
+          vercel deploy --prebuilt --prod --token ${{ secrets.VERCEL_TOKEN }} --scope ltronix-shop-vercel-scope
+        working-directory: ./frontend/my-app
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}

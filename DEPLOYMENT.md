@@ -22,8 +22,7 @@ This workflow is also triggered on pushes and pull requests to the `main` branch
 1.  **Linting:** Runs `eslint` to ensure code quality and adherence to JavaScript/TypeScript style guidelines.
 2.  **Testing:** Executes `npm test` to run tests for the Next.js application.
 3.  **Application Build:** Builds the Next.js application for production using `npm run build`.
-
-**Note on Frontend Deployment:** For platforms like Vercel or Render, direct deployment is typically handled by connecting the GitHub repository to their respective dashboards. These platforms automatically detect new pushes to the `main` branch and trigger deployments. The GitHub Actions workflow primarily ensures the build process is successful.
+4.  **Deployment to Vercel:** If the push is to the `main` branch, the application is deployed to Vercel using the Vercel CLI.
 
 ## 2. Infrastructure as Code (IaC) with Terraform
 
@@ -33,7 +32,6 @@ Our AWS infrastructure is defined using Terraform, located in the `infra/terrafo
 *   **ElastiCache (Redis):** In-memory data store for caching and session management.
 *   **S3:** Simple Storage Service for static files and media uploads.
 *   **IAM:** Identity and Access Management for necessary AWS permissions.
-*   **CloudWatch:** For logging and monitoring of AWS resources.
 
 ### Manual Steps for IaC Deployment
 
@@ -63,7 +61,61 @@ Our AWS infrastructure is defined using Terraform, located in the `infra/terrafo
     ```
     Confirm by typing `yes` when prompted.
 
-## 3. Secrets Management
+## 3. Deployment Platforms
+
+### Frontend Deployment (Vercel)
+
+Your Next.js frontend is configured for deployment to Vercel via GitHub Actions. For this to work, you need to:
+
+1.  **Connect GitHub to Vercel:** Go to your Vercel dashboard, import your Git repository, and configure the project settings. Vercel will automatically detect your Next.js application.
+2.  **Configure Vercel Project ID and Org ID:** In your Vercel project settings, find your Project ID and Organization ID. These are needed for the GitHub Action.
+3.  **Set up Vercel Token:** Generate a Vercel API Token from your Vercel account settings (`Settings > Tokens`).
+4.  **Add Vercel Secrets to GitHub:** Add the following secrets to your GitHub repository (`Settings > Secrets and variables > Actions`):
+    *   `VERCEL_TOKEN`: The API token you generated.
+    *   `VERCEL_ORG_ID`: Your Vercel Organization ID.
+    *   `VERCEL_PROJECT_ID`: Your Vercel Project ID.
+
+Once configured, pushes to the `main` branch will trigger the GitHub Action, which will build and deploy your frontend to Vercel.
+
+### Backend Deployment (Render)
+
+Your Django backend is Dockerized and can be deployed to Render. Here's a general guide:
+
+1.  **Create a Render Account:** If you don't have one, sign up at [https://render.com/](https://render.com/).
+2.  **Connect GitHub to Render:** In your Render dashboard, connect your GitHub account.
+3.  **Create a New Web Service:**
+    *   Choose `New Web Service`.
+    *   Select your `ltronix-shop` repository.
+    *   **Build Command:** Leave empty or specify `docker build -t ltronix-shop-backend .` (Render will typically handle this if you point to the Dockerfile).
+    *   **Start Command:** `python manage.py runserver 0.0.0.0:$PORT` (Render injects the `$PORT` environment variable).
+    *   **Root Directory:** Set to `ecommerce/` (where your Dockerfile and Django project reside).
+    *   **Environment:** Python 3.
+    *   **Instance Type:** Choose a suitable instance type (e.g., `Free` for testing).
+4.  **Configure Environment Variables:** Add the necessary environment variables from your `ecommerce/.env.example` to Render's environment settings for your web service. These include:
+    *   `SECRET_KEY`
+    *   `DEBUG`
+    *   `ALLOWED_HOSTS`
+    *   `DB_NAME`
+    *   `DB_USER`
+    *   `DB_PASSWORD`
+    *   `DB_HOST` (This will be the internal Render PostgreSQL service host)
+    *   `DB_PORT`
+    *   `EMAIL_HOST`, `EMAIL_PORT`, etc. (if using email)
+    *   `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_STORAGE_BUCKET_NAME`, `AWS_S3_REGION_NAME` (if using S3 for static/media files)
+    *   `CELERY_BROKER_URL`, `CELERY_RESULT_BACKEND` (if using Celery/Redis)
+5.  **Database Setup (Render PostgreSQL):**
+    *   In Render, create a new PostgreSQL database service (`New > PostgreSQL`).
+    *   Note down the internal database URL, username, and password. Use these for `DB_HOST`, `DB_USER`, `DB_PASSWORD` in your backend service's environment variables.
+6.  **Redis Setup (Render Redis):**
+    *   In Render, create a new Redis service (`New > Redis`).
+    *   Note down the internal Redis URL. Use this for `CELERY_BROKER_URL` and `CELERY_RESULT_BACKEND` if you are using Celery.
+7.  **Database Migrations:** After the first successful deployment, you'll need to run Django migrations. You can do this via Render's shell or by adding a `pre-deploy` command in your web service settings:
+    ```bash
+    python manage.py migrate
+    ```
+8.  **Collect Static Files:** If you are serving static files via Django (not S3), you might need to run `python manage.py collectstatic --noinput` as a `pre-deploy` command or manually.
+
+## 4. Secrets Management
 
 Sensitive information like API keys, database credentials, and AWS access keys are handled using environment variables and GitHub Actions secrets.
 
@@ -75,11 +127,13 @@ Sensitive information like API keys, database credentials, and AWS access keys a
     *   `DB_USER`
     *   `DB_PASSWORD`
     *   `SECRET_KEY` (for Django)
+    *   `VERCEL_TOKEN`
+    *   `VERCEL_ORG_ID`
+    *   `VERCEL_PROJECT_ID`
 
-## 4. Verifying Deployment
+## 5. Verifying Deployment
 
 After deploying your infrastructure and applications:
 
 *   **Backend:** Access your backend API endpoints to ensure they are functioning correctly and connecting to the database.
 *   **Frontend:** Access your frontend application in a browser. Verify that data is loading and user interactions are smooth.
-
