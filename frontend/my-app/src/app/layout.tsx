@@ -17,7 +17,7 @@ import { ErrorBoundary } from '@sentry/nextjs'; // Sentry's recommended ErrorBou
 
 // --- FOUC Fix: Chakra UI ColorModeScript ---
 import { ColorModeScript } from '@chakra-ui/react'; // Import ColorModeScript
-import { theme } from '../../theme'; // Import your Chakra UI theme (ensure correct path)
+import { theme } from '../theme'; // CORRECTED PATH: Import your Chakra UI theme from '../theme'
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -86,4 +86,3 @@ export default async function RootLayout({
     </html>
   );
 }
-
