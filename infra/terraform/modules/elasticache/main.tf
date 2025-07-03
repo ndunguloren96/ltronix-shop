@@ -18,7 +18,7 @@ resource "aws_elasticache_cluster" "default" {
 
 resource "aws_elasticache_subnet_group" "default" {
   name       = "ltronix-shop-cache-subnet-group"
-  subnet_ids = [var.public_subnet_id]
+  subnet_ids = var.public_subnet_ids
 
   tags = {
     Project     = var.project_name

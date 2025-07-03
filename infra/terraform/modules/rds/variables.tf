@@ -26,9 +26,9 @@ variable "vpc_id" {
   type        = string
 }
 
-variable "public_subnet_id" {
-  description = "The ID of the public subnet"
-  type        = string
+variable "public_subnet_ids" {
+  description = "The IDs of the public subnets"
+  type        = list(string)
 }
 
 variable "db_instance_class" {

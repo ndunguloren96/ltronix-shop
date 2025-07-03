@@ -1,6 +1,7 @@
+# .github/workflows/backend.yml
 name: Backend CI/CD
 
-on: 
+on:
   push:
     branches:
       - main
@@ -21,7 +22,7 @@ jobs:
           python-version: '3.9'
 
       - name: Install dependencies
-        run: | 
+        run: |
           python -m pip install --upgrade pip
           pip install ruff pytest Django
           pip install -r ecommerce/requirements.txt
@@ -36,11 +37,11 @@ jobs:
         working-directory: ./ecommerce
 
   build-and-push-docker:
-    needs: lint-and-test
+    needs: lint-and-test # This job depends on lint-and-test completing successfully
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write
+      packages: write # Required to push to GitHub Container Registry
 
     steps:
       - name: Checkout code
@@ -59,3 +60,58 @@ jobs:
           context: ./ecommerce
           push: true
           tags: ghcr.io/${{ github.repository }}/backend:latest
+
+  deploy-infrastructure:
+    # This job depends on both linting/testing and Docker image building
+    needs: [lint-and-test, build-and-push-docker]
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # Required for OpenID Connect (OIDC) to assume AWS role
+      contents: read  # Required to checkout the repository code
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        # This action assumes the IAM role you created in AWS via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          # Replace YOUR_AWS_ACCOUNT_ID with your actual AWS Account ID
+          # Replace GitHubActionsTerraformRole with the name of the IAM role you created
+          role-to-assume: arn:aws:iam::097681933692:role/GitHubActionsTerraformRole
+          aws-region: eu-north-1 # Use the AWS region where your resources will be deployed
+
+      - name: Setup Terraform
+        # Installs a specific version of Terraform on the runner
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.5.0 # Specify the Terraform version you prefer to use
+
+      - name: Terraform Init
+        # Initializes the Terraform working directory
+        run: terraform init
+        working-directory: infra/terraform # Adjust this path if your Terraform files are elsewhere
+
+      - name: Terraform Plan
+        # Generates an execution plan and shows what changes Terraform will make
+        run: terraform plan \
+          -var="db_name=${{ secrets.DB_NAME }}" \
+          -var="db_user=${{ secrets.DB_USER }}" \
+          -var="db_password=${{ secrets.DB_PASSWORD }}"
+        working-directory: infra/terraform
+
+      - name: Terraform Apply
+        # Applies the planned changes to provision AWS resources
+        # This step is conditional: it only runs on pushes to the 'main' branch
+        # -auto-approve is used for automated deployments, but consider manual approval for production
+        if: github.ref == 'refs/heads/main'
+        run: terraform apply -auto-approve \
+          -var="db_name=${{ secrets.DB_NAME }}" \
+          -var="db_user=${{ secrets.DB_USER }}" \
+          -var="db_password=${{ secrets.DB_PASSWORD }}"
+        working-directory: infra/terraform
+
+      # You might add further deployment steps here, e.g., deploying the Docker image to ECS/EKS
+      # or running database migrations after infrastructure is up.
+

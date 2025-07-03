@@ -20,14 +20,27 @@ resource "aws_internet_gateway" "main" {
   }
 }
 
-resource "aws_subnet" "public" {
+resource "aws_subnet" "public_a" {
   vpc_id                  = aws_vpc.main.id
   cidr_block              = "10.0.1.0/24"
   availability_zone       = "${var.aws_region}a"
   map_public_ip_on_launch = true
 
   tags = {
-    Name        = "ltronix-shop-public-subnet"
+    Name        = "ltronix-shop-public-subnet-a"
+    Project     = var.project_name
+    Environment = var.environment
+  }
+}
+
+resource "aws_subnet" "public_b" {
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = "10.0.2.0/24"
+  availability_zone       = "${var.aws_region}b"
+  map_public_ip_on_launch = true
+
+  tags = {
+    Name        = "ltronix-shop-public-subnet-b"
     Project     = var.project_name
     Environment = var.environment
   }
@@ -48,8 +61,13 @@ resource "aws_route_table" "public" {
   }
 }
 
-resource "aws_route_table_association" "public" {
-  subnet_id      = aws_subnet.public.id
+resource "aws_route_table_association" "public_a" {
+  subnet_id      = aws_subnet.public_a.id
+  route_table_id = aws_route_table.public.id
+}
+
+resource "aws_route_table_association" "public_b" {
+  subnet_id      = aws_subnet.public_b.id
   route_table_id = aws_route_table.public.id
 }
 
@@ -66,7 +84,7 @@ module "rds" {
   environment         = var.environment
 
   vpc_id           = aws_vpc.main.id
-  public_subnet_id = aws_subnet.public.id
+  public_subnet_ids = [aws_subnet.public_a.id, aws_subnet.public_b.id]
 }
 
 module "s3" {
@@ -95,10 +113,18 @@ module "elasticache" {
   environment      = var.environment
 
   vpc_id           = aws_vpc.main.id
-  public_subnet_id = aws_subnet.public.id
+  public_subnet_ids = [aws_subnet.public_a.id, aws_subnet.public_b.id]
 }
 
+resource "aws_cloudwatch_log_group" "rds_logs" {
+  name              = "/aws/rds/instance/${module.rds.db_instance_identifier}"
+  retention_in_days = 7
 
+  tags = {
+    Project     = var.project_name
+    Environment = var.environment
+  }
+}
 
 output "rds_endpoint" {
   description = "The connection endpoint of the RDS instance"
@@ -154,7 +180,7 @@ output "vpc_id" {
   value       = aws_vpc.main.id
 }
 
-output "public_subnet_id" {
-  description = "The ID of the public subnet"
-  value       = aws_subnet.public.id
+output "public_subnet_ids" {
+  description = "The IDs of the public subnets"
+  value       = [aws_subnet.public_a.id, aws_subnet.public_b.id]
 }
