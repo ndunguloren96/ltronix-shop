@@ -5,8 +5,7 @@ dj-rest-auth==7.0.1
 djangorestframework_simplejwt==5.5.0
 
 # Auth
-allauth==65.9.0
-django-allauth==65.9.0
+django-allauth==0.65.0
 social-auth-app-django==5.5.1
 social-auth-core==4.7.0
 drf-social-oauth2==3.1.0
@@ -38,14 +37,14 @@ django-anymail==10.3
 # M-Pesa
 django-daraja==1.3.0
 
-# For S3 media storage
+# S3 media storage
 django-storages==1.14.2
-boto3==1.39.0 # Already in original requirements, but explicitly add for clarity
+boto3==1.39.0
 
-# For serving the Django app
+# Serving
 gunicorn==22.0.0
 
-# Other core dependencies (ensure these are truly needed for runtime)
+# Essential supporting libraries
 asgiref==3.8.1
 async-timeout==5.0.1
 attrs==21.2.0
