@@ -19,7 +19,7 @@ billiard==4.2.1
 kombu==5.5.4
 vine==5.1.0
 
-# Django Task Scheduling & Results
+# Task Scheduling & Results
 django-celery-beat==2.8.1
 django-celery-results==2.6.0
 
@@ -45,6 +45,9 @@ pillow==11.2.1
 
 # YAML Parsing
 PyYAML==6.0.1
+
+# Error Monitoring
+sentry-sdk==2.32.0  # latest stable version :contentReference[oaicite:2]{index=2}
 
 # Supporting Libraries
 asgiref==3.8.1
