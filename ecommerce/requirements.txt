@@ -19,7 +19,7 @@ billiard==4.2.1
 kombu==5.5.4
 vine==5.1.0
 
-# Environment & Configuration
+# Configuration & Utilities
 python-decouple==3.8
 python-json-logger==3.3.0
 django-environ==0.11.2
@@ -46,6 +46,9 @@ s3transfer==0.13.0
 
 # Production Server
 gunicorn==22.0.0
+
+# YAML parser (fixed version)
+PyYAML==6.0.1
 
 # Supporting Dependencies
 asgiref==3.8.1
@@ -95,7 +98,6 @@ pyrsistent==0.18.1
 python-dateutil==2.9.0.post0
 python3-openid==3.2.0
 pytz==2022.1
-PyYAML==5.4.1
 requests==2.31.0
 requests-oauthlib==2.0.0
 SecretStorage==3.3.1
