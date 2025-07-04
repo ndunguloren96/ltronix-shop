@@ -181,6 +181,12 @@ EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=False)
 EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")
 EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
 
+# AllAuth: disable username field if using custom User with only email
+ACCOUNT_USER_MODEL_USERNAME_FIELD = None
+ACCOUNT_USERNAME_REQUIRED = False
+ACCOUNT_SIGNUP_FIELDS = ["email", "password1", "password2"]
+
+
 # --- dj-rest-auth / JWT
 REST_AUTH = {
     "USE_JWT": True,
