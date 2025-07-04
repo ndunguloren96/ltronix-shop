@@ -4,8 +4,16 @@ Optimized for performance, maintainability, and fast startup.
 """
 
 import os
+import warnings
 from datetime import timedelta
 from pathlib import Path
+
+# Suppress dj_rest_auth deprecation warnings
+warnings.filterwarnings(
+    "ignore",
+    message=r"app_settings\.(USERNAME|EMAIL)_REQUIRED is deprecated",
+    module="dj_rest_auth.registration.serializers",
+)
 
 import sentry_sdk
 from environ import Env
@@ -125,6 +133,10 @@ STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR.parent, "mediafiles")
+
+# --- WhiteNoise & static files configuration
+# Allow Django and WhiteNoise to gather static files from 'static/' folder(s)
+STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
 
 # --- DRF settings
 REST_FRAMEWORK = {
