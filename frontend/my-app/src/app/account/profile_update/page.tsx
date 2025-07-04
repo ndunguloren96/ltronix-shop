@@ -48,15 +48,17 @@ export default function ProfileUpdatePage() {
     }
 
     const fetchUserProfile = async () => {
-      if (!session?.accessToken) {
-        // Fallback: If session.accessToken is not available but session is authenticated,
+      // FIX APPLIED HERE: Access accessToken via session.user
+      if (!session?.user?.accessToken) {
+        // Fallback: If session.user.accessToken is not available but session is authenticated,
         // it means we might be using session-based auth without explicit token or JWT callback didn't store it.
         // In this case, we might not be able to make authenticated API calls if Django relies on Bearer token.
         // For dj-rest-auth with SessionAuthentication, cookies handle authentication.
-        // If your setup uses HTTP-only cookies, `session.accessToken` won't exist anyway.
+        // If your setup uses HTTP-only cookies, `session.user.accessToken` won't exist anyway.
         // For this scenario, if `djangoUser` is stored in session, we can use that.
-        if (session?.djangoUser) {
-          const user = session.djangoUser as UserProfile;
+        // FIX APPLIED HERE: Access djangoUser via session.user
+        if (session?.user?.djangoUser) {
+          const user = session.user.djangoUser as UserProfile;
           setEmail(user.email || '');
           setFirstName(user.first_name || '');
           setMiddleName(user.middle_name || '');
@@ -78,7 +80,8 @@ export default function ProfileUpdatePage() {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.accessToken}`,
+            // FIX APPLIED HERE: Use the Django access token from the NextAuth session
+            'Authorization': `Bearer ${session.user.accessToken}`,
           },
         });
 
@@ -110,7 +113,8 @@ export default function ProfileUpdatePage() {
     event.preventDefault();
     setIsSubmitting(true);
 
-    if (status !== 'authenticated' || !session?.accessToken && !session?.djangoUser) {
+    // FIX APPLIED HERE: Access accessToken and djangoUser via session.user
+    if (status !== 'authenticated' || (!session?.user?.accessToken && !session?.user?.djangoUser)) {
       toast({
         title: 'Authentication Required',
         description: 'You need to be logged in to update your profile.',
@@ -137,8 +141,8 @@ export default function ProfileUpdatePage() {
         method: 'PUT', // Use PUT or PATCH based on your Django API
         headers: {
           'Content-Type': 'application/json',
-          // Use the Django access token from the NextAuth session
-          'Authorization': `Bearer ${session.accessToken}`,
+          // FIX APPLIED HERE: Use the Django access token from the NextAuth session
+          'Authorization': `Bearer ${session.user.accessToken}`,
         },
         body: JSON.stringify(updateData),
       });

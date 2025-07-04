@@ -1,3 +1,4 @@
+//src/api/orders.ts
 import { getSession } from 'next-auth/react';
 
 // Define base URL for your Django API
@@ -71,9 +72,13 @@ export interface BackendTransaction {
 // This function is crucial for sending the X-Session-Key header for guest users.
 async function fetchWithSession(url: string, options?: RequestInit, guestSessionKey?: string | null) {
   const session = await getSession();
-  const headers: HeadersInit = {
+
+  // Initialize headers as a Record<string, string>
+  // This allows for dynamic assignment using bracket notation.
+  // Merge any existing headers from options.
+  const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...(options?.headers || {}),
+    ...(options?.headers as Record<string, string> || {}), // Ensure existing headers are also typed correctly
   };
 
   // Prioritize Authorization header for authenticated users
@@ -87,7 +92,7 @@ async function fetchWithSession(url: string, options?: RequestInit, guestSession
   // --- CRITICAL FIX: Always include credentials for session/cookie auth ---
   const response = await fetch(url, {
     ...options,
-    headers,
+    headers, // Pass the constructed headers object
     credentials: 'include',
   });
 

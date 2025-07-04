@@ -11,6 +11,8 @@ import Link from 'next/link';
 // Define your Django backend URL from environment variables
 const DJANGO_API_BASE_URL = process.env.NEXT_PUBLIC_DJANGO_API_URL || 'http://127.0.0.1:8000/api';
 
+// This interface should ideally be consistent with the one defined in next-auth.d.ts
+// to ensure type safety across your NextAuth session and direct API calls.
 interface DjangoUser {
   pk: number;
   id: number;
@@ -47,14 +49,16 @@ export default function AccountPage() {
 
     // Fetch user details from Django when authenticated session is available
     const fetchUserDetails = async () => {
-      if (session?.accessToken) {
+      // Prioritize fetching from backend if accessToken is available
+      // FIX APPLIED HERE: Access accessToken via session.user
+      if (session?.user?.accessToken) {
         try {
           const res = await fetch(`${DJANGO_API_BASE_URL}/auth/user/`, {
             method: 'GET',
             headers: {
               'Content-Type': 'application/json',
               // Use the Django access token from the NextAuth session
-              'Authorization': `Bearer ${session.accessToken}`,
+              'Authorization': `Bearer ${session.user.accessToken}`, // <-- Also fixed here
             },
           });
 
@@ -73,10 +77,9 @@ export default function AccountPage() {
           setIsLoadingUser(false);
         }
       } else {
-        // If no access token but session is authenticated (e.g., session-based login)
-        // You might rely on `session.user.djangoUser` if it was fully populated in the JWT callback
-        if (session?.djangoUser) {
-          setUserDetails(session.djangoUser as DjangoUser);
+        // If no direct accessToken on session, check if djangoUser was populated via NextAuth callbacks
+        if (session?.user?.djangoUser) {
+          setUserDetails(session.user.djangoUser as DjangoUser);
           setIsLoadingUser(false);
         } else {
           // This case means session is authenticated but no Django token/user object was stored.
@@ -115,11 +118,6 @@ export default function AccountPage() {
       </Flex>
     );
   }
-
-  // If status is 'unauthenticated', useEffect redirects, so this won't be reached
-  // if (status === 'unauthenticated') {
-  //   return null;
-  // }
 
   return (
     <Flex align="center" justify="center" minH="100vh" bg="gray.50" p={4}>

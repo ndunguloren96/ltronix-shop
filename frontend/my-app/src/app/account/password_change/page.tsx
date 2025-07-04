@@ -45,7 +45,8 @@ export default function PasswordChangePage() {
       return;
     }
 
-    if (status !== 'authenticated' || !session?.accessToken && !session?.djangoUser) {
+    // FIX APPLIED HERE: Access accessToken and djangoUser via session.user
+    if (status !== 'authenticated' || (!session?.user?.accessToken && !session?.user?.djangoUser)) {
       toast({
         title: 'Authentication Required',
         description: 'You need to be logged in to change your password.',
@@ -62,8 +63,8 @@ export default function PasswordChangePage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          // Use the Django access token from the NextAuth session
-          'Authorization': `Bearer ${session.accessToken}`,
+          // FIX APPLIED HERE: Use the Django access token from the NextAuth session
+          'Authorization': `Bearer ${session.user.accessToken}`,
         },
         body: JSON.stringify({
           old_password: oldPassword,
@@ -138,7 +139,7 @@ export default function PasswordChangePage() {
 
   // If status is 'unauthenticated', useEffect redirects, so this won't be reached
   // if (status === 'unauthenticated') {
-  //   return null;
+  //    return null;
   // }
 
   return (
