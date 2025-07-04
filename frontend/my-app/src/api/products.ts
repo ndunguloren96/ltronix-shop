@@ -47,11 +47,12 @@ export async function fetchProducts(): Promise<Product[]> {
     clearTimeout(timeoutId); // Clear the timeout if fetch completes
 
     if (!response.ok) {
+      const errorResponse = response.clone(); // Clone the response
       let errorData;
       try {
-        errorData = await response.json();
+        errorData = await errorResponse.json(); // Read from the clone
       } catch (e: unknown) {
-        errorData = { message: 'Could not parse error response as JSON', rawText: await response.text() };
+        errorData = { message: 'Could not parse error response as JSON', rawText: await errorResponse.text() }; // Read from the clone
       }
       console.error(`API Error fetching products (Status: ${response.status}):`, errorData);
       // For build time, return empty array on API error to allow build to complete
@@ -96,11 +97,12 @@ export async function fetchProductById(id: number | string): Promise<Product> {
     clearTimeout(timeoutId); // Clear the timeout if fetch completes
 
     if (!response.ok) {
+      const errorResponse = response.clone(); // Clone the response
       let errorData;
       try {
-        errorData = await response.json();
+        errorData = await errorResponse.json(); // Read from the clone
       } catch (e: unknown) {
-        errorData = { message: 'Could not parse error response as JSON', rawText: await response.text() };
+        errorData = { message: 'Could not parse error response as JSON', rawText: await errorResponse.text() }; // Read from the clone
       }
       console.error(`API Error fetching product ${id} (Status: ${response.status}):`, errorData);
       // For build time, throw an error to indicate product not found or API issue
