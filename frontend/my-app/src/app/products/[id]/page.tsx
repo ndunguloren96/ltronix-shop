@@ -32,7 +32,8 @@ interface Product {
   updated_at: string;
 }
 
-export default async function ProductDetailPage({ params }: { params: { id: string } }) {
+export default async function ProductDetailPage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const productId = params.id;
   let product: Product | null = null;
   let error: Error | null = null;

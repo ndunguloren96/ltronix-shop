@@ -13,7 +13,7 @@ import { authOptions } from '@/lib/auth'; // Import authOptions from your NextAu
 
 // --- Part 7 Additions: Frontend Monitoring (Sentry ErrorBoundary only here) ---
 import * as Sentry from "@sentry/nextjs"; // Import Sentry SDK (for ErrorBoundary)
-import { ErrorBoundary } from '@sentry/nextjs'; // Sentry's recommended ErrorBoundary component
+import { ErrorBoundary } from 'react-error-boundary'; // For UI fallback and recovery
 
 // --- FOUC Fix: Chakra UI ColorModeScript ---
 import { ColorModeScript } from '@chakra-ui/react'; // Import ColorModeScript
@@ -70,7 +70,7 @@ export default async function RootLayout({
         <ColorModeScript initialColorMode={theme.config.initialColorMode} /> 
 
         {/* Sentry ErrorBoundary to catch React errors and report them */}
-        <ErrorBoundary fallbackRender={SentryFallback}>
+        <ErrorBoundary fallbackRender={SentryFallback} onError={(error, info) => Sentry.captureException(error, { extra: { componentStack: info.componentStack } })}>
           {/* AppProviders wraps the entire application, including ChakraProvider and SessionProvider */}
           {/* Datadog RUM will be initialized within AppProviders' client-side context */}
           <AppProviders session={session}>

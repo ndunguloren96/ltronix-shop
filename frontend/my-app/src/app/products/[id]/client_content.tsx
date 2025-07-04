@@ -85,7 +85,7 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
 
   const priceAsNumber = parseFloat(product.price);
 
-  const addToCartMutation = useMutation<BackendOrder, Error, ProductInCart[], unknown>({
+  const addToCartMutation = useMutation<BackendOrder, Error, ProductInCart[], { previousCart?: BackendOrder }>({
     mutationFn: (items) => updateEntireCartAPI(items, guestSessionKey),
     onMutate: async (newCartItems: ProductInCart[]) => {
       await queryClient.cancelQueries({ queryKey: ['cart'] });

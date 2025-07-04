@@ -1,3 +1,4 @@
+//src/app/checkout/page.tsx
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -27,9 +28,9 @@ import {
   ModalBody,
   ModalFooter,
   useDisclosure,
-  Flex, // <-- ADDED: Fix for "Flex is not defined" error
+  Flex,
 } from '@chakra-ui/react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, UseQueryOptions } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link'; // For Next.js Link
@@ -39,7 +40,7 @@ import {
   fetchTransactionStatusAPI,
   BackendOrder,
   BackendTransaction,
-} from '@/api/orders'; // We'll add new functions to orders.ts
+} from '@/api/orders'; // Ensure these types and functions are correctly defined in your api/orders.ts
 import { useCartStore } from '@/store/useCartStore';
 
 const POLLING_INTERVAL_MS = 3000; // Poll every 3 seconds
@@ -61,25 +62,35 @@ export default function CheckoutPage() {
   const [currentTransactionId, setCurrentTransactionId] = useState<number | null>(null);
   const [pollingAttempts, setPollingAttempts] = useState(0);
 
+  // Effect to reset polling attempts when a new transaction is initiated
+  useEffect(() => {
+    if (currentTransactionId !== null) {
+      setPollingAttempts(0);
+    }
+  }, [currentTransactionId]);
+
   // Fetch the current cart data
   const {
     data: cart,
     isLoading: isLoadingCart,
     isError: isErrorCart,
     error: cartError,
-  } = useQuery<BackendOrder, Error>({
+  } = useQuery<BackendOrder | null, Error>({ // Correctly specify that cart data can be null
     queryKey: ['cart', authStatus, guestSessionKey],
-    queryFn: () => {
+    queryFn: async () => {
+      // Only fetch if authenticated or if unauthenticated but has a guest session key
       if (authStatus === 'authenticated') {
         return fetchCartAPI();
       }
       if (authStatus === 'unauthenticated' && guestSessionKey) {
         return fetchCartAPI(guestSessionKey);
       }
-      return Promise.reject(new Error("No active cart for authenticated user or guest session."));
+      // If conditions are not met, return null to indicate no active cart
+      return null;
     },
+    // `enabled` ensures the query only runs when conditions are met
     enabled: authStatus !== 'loading' && (authStatus === 'authenticated' || (authStatus === 'unauthenticated' && !!guestSessionKey)),
-    staleTime: 0,
+    staleTime: 0, // Always refetch cart data when this query becomes active
     refetchOnWindowFocus: false, // Don't refetch on window focus to manage polling manually
   });
 
@@ -97,8 +108,6 @@ export default function CheckoutPage() {
         isClosable: true,
         position: 'top-right',
       });
-      // Start polling for transaction status
-      setPollingAttempts(0); // Reset polling attempts
     },
     onError: (error) => {
       console.error("STK Push Initiation Error:", error);
@@ -113,18 +122,28 @@ export default function CheckoutPage() {
   });
 
   // Query for polling transaction status
-  const { data: transactionStatus, isLoading: isLoadingTransactionStatus } = useQuery<BackendTransaction, Error>({
+  const transactionStatusQueryOptions = {
     queryKey: ['transactionStatus', currentTransactionId],
-    queryFn: () => {
+    queryFn: async () => {
       if (currentTransactionId) {
+        // fetchTransactionStatusAPI should return BackendTransaction or null/undefined
+        // if the transaction is not yet found or in a pending state.
         return fetchTransactionStatusAPI(currentTransactionId);
       }
-      return Promise.reject(new Error("No transaction ID for status check."));
+      return null; // Return null if no transaction ID is set
     },
-    enabled: !!currentTransactionId && isOpen, // Only poll if there's a transaction ID and modal is open
-    refetchInterval: POLLING_INTERVAL_MS,
-    retry: (_failureCount, _error) => { // _failureCount and _error are unused // _failureCount and _error are unused
-      // Stop retrying if polling attempts exceed limit or if transaction is already completed/failed/cancelled/timeout
+    // Query is only enabled if a transaction ID exists and the modal is open
+    enabled: !!currentTransactionId && isOpen, 
+    refetchInterval: POLLING_INTERVAL_MS, // Keep polling every X milliseconds
+    retry: (_failureCount: number, error: Error) => {
+      // The retry function is for re-attempting failed API calls.
+      // It should NOT check `transactionStatus.status` here, as `data` (transactionStatus)
+      // might not be updated or available in this context.
+
+      // If the error indicates a non-retriable condition (e.g., a 404 from backend meaning transaction not found)
+      // you could add specific error type checks here. For now, we retry generic errors.
+
+      // Check for overall polling timeout
       if (pollingAttempts * POLLING_INTERVAL_MS >= POLLING_TIMEOUT_MS) {
         console.warn("Polling timed out for transaction:", currentTransactionId);
         toast({
@@ -135,23 +154,19 @@ export default function CheckoutPage() {
           isClosable: true,
           position: 'top-right',
         });
-        queryClient.invalidateQueries({ queryKey: ['cart'] }); // Invalidate cart to re-fetch
-        setCurrentTransactionId(null); // Stop polling
+        queryClient.invalidateQueries({ queryKey: ['cart'] }); // Invalidate cart to re-fetch its status
+        setCurrentTransactionId(null); // Stop polling by disabling query
         onClose(); // Close modal
-        return false;
+        return false; // Do not retry further
       }
       
-      if (transactionStatus && ['COMPLETED', 'FAILED', 'CANCELLED', 'TIMEOUT'].includes(transactionStatus.status)) {
-        console.log("Polling stopped, transaction status is final:", transactionStatus.status);
-        setCurrentTransactionId(null); // Stop polling
-        onClose(); // Close modal
-        return false;
-      }
       setPollingAttempts(prev => prev + 1);
-      return true; // Continue polling
+      return true; // Continue retrying on error (e.g., network issues)
     },
-    onSuccess: (data) => {
-      if (['COMPLETED', 'FAILED', 'CANCELLED', 'TIMEOUT'].includes(data.status)) {
+    onSuccess: (data: BackendTransaction | null) => {
+      // This `data` is the successfully fetched `BackendTransaction | null`.
+      // We can now safely check its status if it's not null.
+      if (data && ['COMPLETED', 'FAILED', 'CANCELLED', 'TIMEOUT'].includes(data.status)) {
         toast({
           title: `Payment ${data.status.replace('_', ' ')}`,
           description: data.result_desc || `Transaction ${data.status.toLowerCase()}.`,
@@ -162,21 +177,26 @@ export default function CheckoutPage() {
         });
         if (data.status === 'COMPLETED') {
           clearLocalCart(); // Clear local cart state
-          queryClient.invalidateQueries({ queryKey: ['cart'] }); // Invalidate cart query
-          queryClient.invalidateQueries({ queryKey: ['orders'] }); // Invalidate orders history
+          queryClient.invalidateQueries({ queryKey: ['cart'] }); // Invalidate cart to ensure it's empty on next fetch
+          queryClient.invalidateQueries({ queryKey: ['orders'] }); // Invalidate orders history to show new order
           router.push('/account/orders'); // Redirect to order history
         } else {
-          queryClient.invalidateQueries({ queryKey: ['cart'] }); // Invalidate cart to re-fetch potentially
+          queryClient.invalidateQueries({ queryKey: ['cart'] }); // Invalidate cart to re-fetch if payment failed
         }
-        setCurrentTransactionId(null); // Stop polling
+        setCurrentTransactionId(null); // Stop polling by setting transaction ID to null
         onClose(); // Close modal
       }
+      // If data is null or its status is not one of the final states, polling continues due to refetchInterval.
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       console.error("Polling Transaction Status Error:", error);
-      // Don't show a toast for every polling error, only for the main initiation or final outcome
+      // This onError will fire if `fetchTransactionStatusAPI` consistently fails (after retries)
+      // or if an unretriable error occurs.
+      // A specific toast for a final polling error could go here if desired, but general errors are handled by retry.
     }
-  });
+  };
+
+  const { data: transactionStatus, isLoading: isLoadingTransactionStatus } = useQuery(transactionStatusQueryOptions);
 
 
   const handleInitiatePayment = async () => {
@@ -191,10 +211,11 @@ export default function CheckoutPage() {
       return;
     }
 
-    if (!cart || !cart.id) {
+    // Ensure cart is valid before proceeding
+    if (!cart || !cart.id || parseFloat(cart.get_cart_total) <= 0) {
       toast({
         title: 'Cart Error',
-        description: 'Your cart is empty or could not be loaded.',
+        description: 'Your cart is empty or could not be loaded for payment.',
         status: 'error',
         duration: 3000,
         isClosable: true,
@@ -202,19 +223,27 @@ export default function CheckoutPage() {
       return;
     }
 
-    // Ensure phone number is in the 254 format before sending to backend
-    let formattedPhoneNumber = mpesaPhoneNumber;
-    if (formattedPhoneNumber.startsWith('0')) {
-      formattedPhoneNumber = '254' + formattedPhoneNumber.substring(1);
-    } else if (!formattedPhoneNumber.startsWith('254')) {
-      toast({
-        title: 'Invalid Phone Number',
-        description: 'Please enter a valid M-Pesa number starting with 07/01 or 2547/2541.',
-        status: 'error',
-        duration: 5000,
-        isClosable: true,
-      });
-      return;
+    // Robust Kenyan M-Pesa phone number validation
+    const cleanedPhoneNumber = mpesaPhoneNumber.replace(/\s/g, ''); // Use 'const' as it's not reassigned
+    let formattedPhoneNumber = cleanedPhoneNumber;
+
+    // Convert 07/01 to 2547/2541
+    if (cleanedPhoneNumber.startsWith('0') && cleanedPhoneNumber.length === 10) {
+        formattedPhoneNumber = '254' + cleanedPhoneNumber.substring(1);
+    } 
+    
+    // Basic regex for 2547XXXXXXXX or 2541XXXXXXXX
+    const kenyanPhoneRegex = /^254(7|1)\d{8}$/;
+
+    if (!kenyanPhoneRegex.test(formattedPhoneNumber)) {
+        toast({
+            title: 'Invalid Phone Number',
+            description: 'Please enter a valid Kenyan M-Pesa number (e.g., 07xxxxxxxx or 2547xxxxxxxx).',
+            status: 'error',
+            duration: 5000,
+            isClosable: true,
+        });
+        return;
     }
 
     initiateStkPushMutation.mutate({
@@ -224,16 +253,19 @@ export default function CheckoutPage() {
   };
 
   const handleModalClose = () => {
-    // Only close if not currently processing or if final status is reached
-    if (!isLoadingTransactionStatus && (!transactionStatus || ['COMPLETED', 'FAILED', 'CANCELLED', 'TIMEOUT'].includes(transactionStatus.status))) {
+    // Only allow closing the modal if polling is not active
+    // OR if a final transaction status has been reached.
+    // The `transactionStatus?.status || ''` provides a default empty string
+    // so `includes` works safely even if transactionStatus is null/undefined.
+    if (!isLoadingTransactionStatus && (!transactionStatus || ['COMPLETED', 'FAILED', 'CANCELLED', 'TIMEOUT'].includes(transactionStatus.status || ''))) {
       onClose();
-      setCurrentTransactionId(null); // Ensure polling stops
+      setCurrentTransactionId(null); // Ensure polling stops when modal is manually closed after completion/failure
     } else {
         toast({
             title: 'Payment in Progress',
-            description: 'Please wait for the payment to complete or check your phone.',
+            description: 'Please wait for the payment to complete or check your phone. The modal will close automatically.',
             status: 'info',
-            duration: 3000,
+            duration: 4000,
             isClosable: true,
         });
     }
@@ -342,8 +374,7 @@ export default function CheckoutPage() {
             placeholder="7XXXXXXXXX or 1XXXXXXXXX"
             value={mpesaPhoneNumber}
             onChange={(e) => setMpesaPhoneNumber(e.target.value)}
-            pattern="^(7|1)[0-9]{8}$" // Basic pattern for 7 or 1 followed by 8 digits
-            maxLength={10} // Max 10 digits after 0 (e.g., 07xxxxxxxx)
+            maxLength={10} // Max 10 digits for the suffix (e.g., 7xxxxxxxx)
             required
             isDisabled={initiateStkPushMutation.isPending}
           />

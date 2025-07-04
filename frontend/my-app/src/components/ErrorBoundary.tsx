@@ -54,7 +54,7 @@ export function ErrorBoundary({ children }: ErrorBoundaryProps) {
     console.log('Error boundary reset!');
   };
 
-  const handleError = (error: Error, info: { componentStack: string }) => {
+  const handleError = (error: Error, info: React.ErrorInfo) => {
     console.error('Caught an error in ErrorBoundary:', error, info.componentStack);
     // Here you can send error info to Sentry/Bugsnag if needed
   };

@@ -25,6 +25,7 @@ interface Product {
   brand: string;
   price: number;
   imageUrl: string;
+  stock: number;
   // Add any other fields you want to search through or display
 }
 
@@ -114,7 +115,15 @@ export default function SearchResultsPage() {
       {filteredProducts.length > 0 ? (
         <SimpleGrid columns={{ base: 1, sm: 2, md: 3, lg: 4 }} spacing={6}>
           {filteredProducts.map((product) => (
-            <ProductCard key={product.id} product={product} />
+            <ProductCard
+              key={product.id}
+              id={product.id}
+              name={product.name}
+              description={product.description}
+              imageUrl={product.imageUrl}
+              price={product.price.toString()}
+              stock={product.stock} // Assuming stock is available on the Product type
+            />
           ))}
         </SimpleGrid>
       ) : (

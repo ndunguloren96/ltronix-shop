@@ -12,15 +12,20 @@ const DJANGO_API_BASE_URL = process.env.NEXT_PUBLIC_DJANGO_API_URL || 'http://12
 
 // Define a simple type for your product (adjust according to your Django model's serializer output)
 export interface Product {
-  id: number;
+  id: string;
   name: string;
   price: string;
   description: string;
-  image_url: string;
+  digital: boolean;
+  image_url?: string;
   category?: string;
-  stock?: number;
+  stock: number;
   brand?: string;
-  // Add other product fields as per your Django serializer
+  sku?: string;
+  rating: string;
+  reviews_count: number;
+  created_at: string;
+  updated_at: string;
 }
 
 /**

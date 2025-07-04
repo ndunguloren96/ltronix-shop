@@ -41,16 +41,7 @@ import Fuse from 'fuse.js';
 import { useQuery } from '@tanstack/react-query';
 import { fetchProducts, Product } from '../../api/products';
 
-export interface Product {
-  id: string;
-  name: string;
-  price: string;
-  description: string;
-  image_url?: string;
-  category: string;
-  brand: string;
-  stock: number; // Ensure stock is always part of the Product interface here
-}
+
 
 const getNumericPrice = (priceString: string): number => {
   const cleanedPrice = priceString.replace(/[^0-9.]/g, '');
@@ -65,7 +56,11 @@ const fuseOptions = {
 
 const PRODUCTS_PER_PAGE = 8;
 
-export default function ProductsClientPage() {
+interface ProductsClientPageProps {
+  isHomePage?: boolean; // Optional prop to indicate if it's rendered on the home page
+}
+
+export default function ProductsClientPage({ isHomePage }: ProductsClientPageProps) {
   const { data: products, isLoading, isError, error } = useQuery<Product[], Error>({
     queryKey: ['products'],
     queryFn: fetchProducts,
@@ -139,9 +134,9 @@ export default function ProductsClientPage() {
 
     return productsToFilter.filter(product => {
       const productPrice = getNumericPrice(product.price);
-      const categoryMatch = selectedCategories.length === 0 || selectedCategories.includes(product.category);
+      const categoryMatch = selectedCategories.length === 0 || selectedCategories.includes(product.category || '');
       const priceMatch = productPrice >= priceRange[0] && productPrice <= priceRange[1];
-      const brandMatch = selectedBrands.length === 0 || selectedBrands.includes(product.brand);
+      const brandMatch = selectedBrands.length === 0 || selectedBrands.includes(product.brand || '');
       return categoryMatch && priceMatch && brandMatch;
     });
   }, [debouncedSearchTerm, selectedCategories, priceRange, selectedBrands, fuse, products]);
@@ -224,190 +219,7 @@ export default function ProductsClientPage() {
 
   return (
     <Container maxW="7xl" py={8}>
-      <Heading as="h1" size="xl" mb={6} textAlign="center">
-        Our Products
-      </Heading>
-
-      <Box mb={6} width={{ base: 'full', md: '75%', lg: '50%' }} mx="auto">
-        <InputGroup>
-          <InputLeftElement pointerEvents="none">
-            <SearchIcon color="gray.300" />
-          </InputLeftElement>
-          <Input
-            type="text"
-            placeholder="Search for products by name, category, or brand..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            size="lg"
-            borderRadius="lg"
-            variant="filled"
-          />
-        </InputGroup>
-      </Box>
-
-      <Flex direction={{ base: 'column', md: 'row' }} gap={8}>
-        {/* Filter Sidebar*/}
-        <Box
-          w={{ base: 'full', md: '250px' }}
-          p={4}
-          borderWidth="1px"
-          borderRadius="lg"
-          boxShadow="sm"
-          mb={{ base: 6, md: 0 }}
-        >
-          <Heading as="h2" size="md" mb={4}>
-            Filters
-          </Heading>
-          <Accordion allowMultiple defaultIndex={[0, 1, 2]}>
-
-            {/* Category Filter */}
-            <AccordionItem>
-              <h2>
-                <AccordionButton>
-                  <Box flex="1" textAlign="left" fontWeight="bold">
-                    Category
-                  </Box>
-                  <AccordionIcon />
-                </AccordionButton>
-              </h2>
-              <AccordionPanel pb={4}>
-                <VStack align="flex-start">
-                  {allCategories.length === 0 && !isLoading && !isError ? (
-                      <Text fontSize="sm" color="gray.500">No categories available.</Text>
-                  ) : (
-                      allCategories.map(category => (
-                          <Checkbox
-                              key={category}
-                              isChecked={selectedCategories.includes(category)}
-                              onChange={() => handleCategoryChange(category)}
-                              colorScheme="brand"
-                          >
-                              {category}
-                          </Checkbox>
-                      ))
-                  )}
-                </VStack>
-              </AccordionPanel>
-            </AccordionItem>
-
-            {/* Price Range Filter */}
-            <AccordionItem>
-              <h2>
-                <AccordionButton>
-                  <Box flex="1" textAlign="left" fontWeight="bold">
-                    Price Range
-                  </Box>
-                  <AccordionIcon />
-                </AccordionButton>
-              </h2>
-              <AccordionPanel pb={4}>
-                {minPrice === maxPrice && products && products.length > 0 ? (
-                    <Text fontSize="sm" color="gray.500">All products are Ksh{minPrice.toLocaleString()}.</Text>
-                ) : products && products.length > 0 ? (
-                    <Box pt={4} pb={2}>
-                        <RangeSlider
-                            aria-label={['min price', 'max price']}
-                            defaultValue={[minPrice, maxPrice]}
-                            min={minPrice}
-                            max={maxPrice}
-                            step={100}
-                            value={priceRange}
-                            onChangeEnd={setPriceRange}
-                            onChange={setPriceRange}
-                            colorScheme="brand"
-                        >
-                            <RangeSliderTrack>
-                                <RangeSliderFilledTrack />
-                            </RangeSliderTrack>
-                            <RangeSliderThumb index={0} />
-                            <RangeSliderThumb index={1} />
-                        </RangeSlider>
-                        <Flex justifyContent="space-between" mt={2}>
-                            <Text fontSize="sm">Ksh{priceRange[0].toLocaleString()}</Text>
-                            <Text fontSize="sm">Ksh{priceRange[1].toLocaleString()}</Text>
-                        </Flex>
-                    </Box>
-                ) : (
-                    <Text fontSize="sm" color="gray.500">Price range not available.</Text>
-                )}
-              </AccordionPanel>
-            </AccordionItem>
-
-            {/* Brand Filter */}
-            <AccordionItem>
-              <h2>
-                <AccordionButton>
-                  <Box flex="1" textAlign="left" fontWeight="bold">
-                    Brand
-                  </Box>
-                  <AccordionIcon />
-                </AccordionButton>
-              </h2>
-              <AccordionPanel pb={4}>
-                <VStack align="flex-start">
-                  {allBrands.length === 0 && !isLoading && !isError ? (
-                      <Text fontSize="sm" color="gray.500">No brands available.</Text>
-                  ) : (
-                      allBrands.map(brand => (
-                          <Checkbox
-                              key={brand}
-                              isChecked={selectedBrands.includes(brand)}
-                              onChange={() => handleBrandChange(brand)}
-                              colorScheme="brand"
-                          >
-                              {brand}
-                          </Checkbox>
-                      ))
-                  )}
-                </VStack>
-              </AccordionPanel>
-            </AccordionItem>
-
-          </Accordion>
-        </Box>
-
-        {/* Product Grid Area */}
-        <Box flex="1">
-          {productsToDisplay.length === 0 ? (
-            <Text fontSize="xl" textAlign="center" mt={10} color="gray.500">
-              No products match your current filters or search.
-            </Text>
-          ) : (
-            <>
-              <SimpleGrid
-                columns={{ base: 1, sm: 2, md: 2, lg: 3 }}
-                spacing={6}
-              >
-                {productsToDisplay.map(product => (
-                  <ProductCard
-                    key={product.id}
-                    id={product.id}
-                    name={product.name}
-                    description={product.description} // Make sure description is passed
-                    price={product.price}
-                    imageUrl={product.image_url}
-                    stock={product.stock}
-                  />
-                ))}
-              </SimpleGrid>
-
-              {/* Load More Button (ONLY SHOW IF there are more products) */}
-              {hasMoreProducts && (
-                <Flex justifyContent="center" mt={8}>
-                  <Button
-                    onClick={handleLoadMore}
-                    colorScheme="brand"
-                    size="lg"
-                    px={10}
-                  >
-                    Load More
-                  </Button>
-                </Flex>
-              )}
-            </>
-          )}
-        </Box>
-      </Flex>
+      <Text>Products will be displayed here.</Text>
     </Container>
   );
 }
