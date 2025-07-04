@@ -11,6 +11,10 @@ social-auth-core==4.7.0
 drf-social-oauth2==3.1.0
 django-oauth-toolkit==3.0.1
 
+# Doc generation
+drf-spectacular==0.28.0          # latest release :contentReference[oaicite:1]{index=1}
+drf-spectacular-sidecar==2025.7.1 # include Swagger UI/Redoc locally :contentReference[oaicite:2]{index=2}
+
 # Celery & Redis
 celery==5.4.0
 redis==5.0.1
@@ -47,7 +51,7 @@ pillow==11.2.1
 PyYAML==6.0.1
 
 # Error Monitoring
-sentry-sdk==2.32.0  # latest stable version :contentReference[oaicite:2]{index=2}
+sentry-sdk==2.32.0
 
 # Supporting Libraries
 asgiref==3.8.1
