@@ -21,7 +21,6 @@ click-plugins==1.1.1.2
 click-repl==0.3.0
 
 colorama==0.4.4
-command-not-found==0.3
 configobj==5.0.9
 constantly==15.1.0
 coverage==7.4.4

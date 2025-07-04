@@ -60,6 +60,7 @@ INSTALLED_APPS = [
     "django_daraja",
     "users",
     "emails", # New emails app
+    "storages", # For S3 media storage
 ]
 
 # Celery Configuration
