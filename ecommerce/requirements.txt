@@ -23,7 +23,8 @@ vine==5.1.0
 # Environment & Utilities
 python-decouple==3.8
 python-json-logger==3.3.0
-environ==0.10.0
+environ==0.11.0
+django-celery-beat==2.6.0
 sentry-sdk==2.32.0
 whitenoise==6.9.0
 pillow==11.2.1
