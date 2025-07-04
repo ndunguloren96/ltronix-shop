@@ -42,7 +42,7 @@ django-storages==1.14.2
 boto3==1.39.0 # Already in original requirements, but explicitly add for clarity
 
 # For serving the Django app
-gunicorn==22.0.0
+gunicorn==23.0.0
 
 # Other core dependencies (ensure these are truly needed for runtime)
 asgiref==3.8.1
@@ -93,7 +93,7 @@ python-dateutil==2.9.0.post0
 python3-openid==3.2.0
 pytz==2022.1
 PyYAML==5.4.1
-requests==2.31.0
+requests==2.32.4
 requests-oauthlib==2.0.0
 s3transfer==0.13.0
 SecretStorage==3.3.1
