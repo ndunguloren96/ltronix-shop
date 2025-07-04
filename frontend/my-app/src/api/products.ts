@@ -47,7 +47,7 @@ export async function fetchProducts(): Promise<Product[]> {
     clearTimeout(timeoutId); // Clear the timeout if fetch completes
 
     if (!response.ok) {
-      // const errorResponse = response.clone(); // Clone the response --Todo: uncomment
+      const errorResponse = response.clone(); // Clone the response
       let errorData;
       try {
         errorData = await errorResponse.json(); // Read from the clone
