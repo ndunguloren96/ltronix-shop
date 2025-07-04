@@ -34,16 +34,7 @@ declare module "next-auth" {
     } & DefaultSession["user"]; // Inherit default user properties (name, email, image)
   }
 
-  /**
-   * The type of the `user` object in the `DefaultUser` interface
-   */
-  interface User extends DefaultUser {
-    // This interface is extended for type safety.
-    // No additional custom properties are typically required here for your current setup,
-    // as `accessToken` and `djangoUser` are usually added in JWT/Session callbacks.
-    // However, if your auth provider directly returns an ID that should be on DefaultUser,
-    // you might add: id?: string; here as well if you explicitly modify DefaultUser in callbacks.
-  }
+  
 }
 
 declare module "next-auth/jwt" {

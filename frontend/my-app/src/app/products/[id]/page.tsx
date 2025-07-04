@@ -1,6 +1,4 @@
 // frontend/my-app/src/app/products/[id]/page.tsx
-// This is a Server Component
-
 import React from 'react';
 import {
   Container,
@@ -11,30 +9,45 @@ import {
   AlertDescription,
 } from '@chakra-ui/react';
 import { notFound } from 'next/navigation';
-import { fetchProductById } from '../../../api/products'; // Path to your product API functions
-import ProductDetailClientContent from './client_content'; // Import the new client component
+import { fetchProductById } from '../../../api/products';
+import ProductDetailClientContent from './client_content';
 
-// Define the Product interface (should match your backend Product model's serializer output)
 interface Product {
-  id: string; // Django PK/ID, ensure it's treated as a string for consistency
+  id: string;
   name: string;
   description: string;
-  price: string; // Django DecimalField often comes as a string in JSON
+  price: string;
   digital: boolean;
-  image_url?: string; // Optional image URL from Django
+  image_url?: string;
   category?: string;
   stock: number;
   brand?: string;
   sku?: string;
-  rating: string; // From DecimalField, might be string (e.g., "4.50")
+  rating: string;
   reviews_count: number;
   created_at: string;
   updated_at: string;
 }
 
-export default async function ProductDetailPage(props: { params: Promise<{ id: string }> }) {
-  const params = await props.params;
-  const productId = params.id;
+// Define the resolved params type
+interface ResolvedProductDetailPageParams {
+  id: string;
+}
+
+// Define the component's props type, where params and searchParams are Promises
+interface ProductDetailPageProps {
+  params: Promise<ResolvedProductDetailPageParams>;
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
+}
+
+export default async function ProductDetailPage({ params, searchParams }: ProductDetailPageProps) {
+  // Await params to get the actual object
+  const resolvedParams = await params;
+  const productId = resolvedParams.id;
+
+  // If you need searchParams, you'd await them too:
+  // const resolvedSearchParams = await searchParams;
+  // const mySearchParam = resolvedSearchParams?.someKey;
   let product: Product | null = null;
   let error: Error | null = null;
 
@@ -43,21 +56,12 @@ export default async function ProductDetailPage(props: { params: Promise<{ id: s
   } catch (err) {
     console.error(`Error fetching product ${productId}:`, err);
     error = err as Error;
-    // If product is not found (e.g., 404 from API), Next.js `notFound()` can be used
-    // However, we'll show an error message instead of 404 for API errors that aren't strict "not found".
-    // If you want a hard 404 for missing products:
-    // if (err && (err as any).message?.includes('404')) {
-    //   notFound();
-    // }
   }
 
-  // Handle product not found or API error
   if (!product || error) {
-    // If the error explicitly indicates not found, use Next.js notFound()
     if (error && error.message.includes('404')) {
       notFound();
     }
-    // Otherwise, display a general error message
     return (
       <Center minH="80vh" p={4}>
         <Alert
@@ -85,7 +89,6 @@ export default async function ProductDetailPage(props: { params: Promise<{ id: s
 
   return (
     <Container maxW="container.xl" py={8}>
-      {/* Pass the fetched product data to the client component */}
       <ProductDetailClientContent product={product} />
     </Container>
   );

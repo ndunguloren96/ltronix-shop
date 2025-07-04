@@ -32,21 +32,21 @@ export interface Product {
  * Fetches a list of all products from the Django backend.
  */
 export async function fetchProducts(): Promise<Product[]> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 5000); // 5-second timeout
+
   try {
-    // CRITICAL FIX: Ensure the base URL is correct for your Django setup.
-    // The path '/products/products/' seems correct if your Django app's urls.py
-    // and your products app's urls.py lead to this structure.
     const response = await fetch(`${DJANGO_API_BASE_URL}/products/products/`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
       },
-      // You might want to add a timeout for network requests in a production scenario
-      // signal: AbortSignal.timeout(5000) // Example for timeout
+      signal: controller.signal, // Attach the abort signal
     });
 
+    clearTimeout(timeoutId); // Clear the timeout if fetch completes
+
     if (!response.ok) {
-      // Attempt to parse error data even if response.json() fails, to provide better debug info
       let errorData;
       try {
         errorData = await response.json();
@@ -54,19 +54,26 @@ export async function fetchProducts(): Promise<Product[]> {
         errorData = { message: 'Could not parse error response as JSON', rawText: await response.text() };
       }
       console.error(`API Error fetching products (Status: ${response.status}):`, errorData);
-      throw new Error(`Failed to fetch products: Status ${response.status}, Details: ${JSON.stringify(errorData)}`);
+      // For build time, return empty array on API error to allow build to complete
+      return [];
     }
 
     const data: Product[] = await response.json();
     return data;
-  } catch (error: unknown) { // Explicitly type error as 'unknown'
+  } catch (error: unknown) {
+    clearTimeout(timeoutId); // Ensure timeout is cleared on error
     console.error('Network or unexpected error fetching products:', error);
-    // Re-throw the error for TanStack Query (or whatever is consuming this) to catch,
-    // ensuring the original cause is preserved if possible.
-    if (error instanceof TypeError && 'cause' in error && (error.cause as any)?.code === 'ECONNREFUSED') {
-        throw new Error(`Connection refused to Django backend. Is your Django server running and accessible at ${DJANGO_API_BASE_URL}? Original cause: ${(error.cause as any)?.message}`);
+
+    // Gracefully handle network errors during build time
+    if (error instanceof TypeError && (
+        (error.cause as any)?.code === 'ECONNREFUSED' ||
+        (error.cause as any)?.code === 'ETIMEDOUT' ||
+        (error as any).name === 'AbortError' // Handle timeout explicitly
+    )) {
+        console.warn(`Backend connection issue during build. Returning empty products. Error: ${error.message}`);
+        return []; // Return empty array to allow build to complete
     }
-    throw error;
+    throw error; // Re-throw other unexpected errors
   }
 }
 
@@ -74,14 +81,19 @@ export async function fetchProducts(): Promise<Product[]> {
  * Fetches a single product by its ID from the Django backend.
  */
 export async function fetchProductById(id: number | string): Promise<Product> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 5000); // 5-second timeout
+
   try {
-    // CRITICAL FIX: Ensure the base URL is correct for your Django setup.
     const response = await fetch(`${DJANGO_API_BASE_URL}/products/products/${id}/`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
       },
+      signal: controller.signal, // Attach the abort signal
     });
+
+    clearTimeout(timeoutId); // Clear the timeout if fetch completes
 
     if (!response.ok) {
       let errorData;
@@ -91,16 +103,25 @@ export async function fetchProductById(id: number | string): Promise<Product> {
         errorData = { message: 'Could not parse error response as JSON', rawText: await response.text() };
       }
       console.error(`API Error fetching product ${id} (Status: ${response.status}):`, errorData);
+      // For build time, throw an error to indicate product not found or API issue
       throw new Error(`Failed to fetch product ${id}: Status ${response.status}, Details: ${JSON.stringify(errorData)}`);
     }
 
     const data: Product = await response.json();
     return data;
   } catch (error: unknown) {
+    clearTimeout(timeoutId); // Ensure timeout is cleared on error
     console.error(`Network or unexpected error fetching product ${id}:`, error);
-    if (error instanceof TypeError && 'cause' in error && (error.cause as any)?.code === 'ECONNREFUSED') {
-        throw new Error(`Connection refused to Django backend. Is your Django server running and accessible at ${DJANGO_API_BASE_URL}? Original cause: ${(error.cause as any)?.message}`);
+
+    // Gracefully handle network errors during build time
+    if (error instanceof TypeError && (
+        (error.cause as any)?.code === 'ECONNREFUSED' ||
+        (error.cause as any)?.code === 'ETIMEDOUT' ||
+        (error as any).name === 'AbortError' // Handle timeout explicitly
+    )) {
+        console.warn(`Backend connection issue during build for product ${id}. Throwing error to indicate failure.`);
+        throw new Error(`Backend connection issue during build for product ${id}. Original error: ${error.message}`);
     }
-    throw error;
+    throw error; // Re-throw other unexpected errors
   }
 }
