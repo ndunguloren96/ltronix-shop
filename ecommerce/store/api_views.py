@@ -23,7 +23,7 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
     Read-only as products are managed via Django Admin.
     """
 
-    queryset = Product.objects.all().order_by("name")
+    queryset = Product.objects.select_related('category').all().order_by("name")
     serializer_class = ProductSerializer
     permission_classes = [AllowAny]
 
