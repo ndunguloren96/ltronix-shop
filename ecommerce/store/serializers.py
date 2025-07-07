@@ -7,7 +7,6 @@ from .models import Customer, Order, OrderItem, Product
 
 # --- Read-only Product Serializer (for nested use in OrderItem) ---
 class ProductSerializer(serializers.ModelSerializer):
-    image_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
@@ -16,7 +15,7 @@ class ProductSerializer(serializers.ModelSerializer):
             "name",
             "description",
             "price",
-            "image_url",  # Using the property
+            "image_file",  # Directly exposing the ImageField
             "brand",
             "sku",
             "rating",
@@ -27,18 +26,7 @@ class ProductSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["id", "image_url", "created_at", "updated_at"]
-
-    def get_image_url(self, obj):
-        # Build the absolute URL for the image_file
-        if obj.image_file and hasattr(obj.image_file, "url"):
-            request = self.context.get("request")
-            if request is not None:
-                return request.build_absolute_uri(obj.image_file.url)
-            return (
-                obj.image_file.url
-            )  # Fallback to relative if request context isn't available
-        return ""
+        read_only_fields = ["id", "image_file", "created_at", "updated_at"]
 
 
 # --- Writable OrderItem Serializer (for handling input to Order) ---
