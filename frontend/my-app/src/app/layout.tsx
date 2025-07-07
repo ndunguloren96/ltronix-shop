@@ -12,7 +12,7 @@ import * as Sentry from "@sentry/nextjs";
 import { ErrorBoundary } from 'react-error-boundary';
 
 import { ColorModeScript } from '@chakra-ui/react';
-import { theme } from '../theme'; // ✅ FIXED PATH
+import { config } from '../chakra.config';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -62,7 +62,7 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <ColorModeScript initialColorMode={theme.config.initialColorMode} />
+        <ColorModeScript initialColorMode={config.initialColorMode} />
         <ErrorBoundary
           fallbackRender={SentryFallback}
           onError={(error, info) =>

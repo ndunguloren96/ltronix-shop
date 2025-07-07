@@ -1,6 +1,8 @@
 // src/components/theme.ts
+'use client';
 
-import { extendTheme, type ThemeConfig } from '@chakra-ui/react';
+import { extendTheme } from '@chakra-ui/react';
+import { config } from './chakra.config';
 
 const brandColors = {
   900: '#1a365d',
@@ -10,11 +12,6 @@ const brandColors = {
   400: '#63B3ED',
   200: '#90CDF4',
   100: '#EBF8FF',
-};
-
-const config: ThemeConfig = {
-  initialColorMode: 'dark',
-  useSystemColorMode: false,
 };
 
 const theme = extendTheme({
