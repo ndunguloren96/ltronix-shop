@@ -1,33 +1,63 @@
-Task 1
-Analyze and identify key performance bottlenecks in a Next.js e-commerce application. Propose actionable solutions to significantly improve page load times, development server compilation speed, and overall responsiveness. All existing features must be maintained, and end-to-end integration with the backend must remain robust.
+Solve this error efficiently, effectively, completely leaving the codebase intergrated, fully functional, synced from end to end. Preserve existing tech, functionalities and designs ie build upon:
+"
+➜  my-app git:(fix/frontend-errors) npm run dev
 
-Focus your suggestions on these critical areas, providing concise, actionable advice and relevant Next.js features or best practices:
+> my-app@0.1.0 dev
+> NODE_OPTIONS='--max-old-space-size=4096' next dev
 
-* **Rendering Strategy Optimization:** Recommend optimal use of SSR, SSG, ISR, and CSR for different e-commerce page types.
-* **Image Optimization:** Suggest advanced techniques for efficient product image loading and delivery.
-* **Bundle Size Reduction:** Advise on identifying and reducing JavaScript bundle size, including dynamic imports.
-* **Data Fetching & Caching:** Provide strategies for efficient server-side and client-side data fetching and caching.
-* **Client-side Performance:** Offer methods to minimize component re-renders and improve UI responsiveness.
-* **Development Environment (WSL2):** Address WSL2-specific performance considerations for the dev server.
-* **General Best Practices:** Include other vital Next.js performance optimizations and monitoring tools.
+   ▲ Next.js 15.3.5
+   - Local:        http://localhost:3000
+   - Network:      http://172.28.143.206:3000
+   - Environments: .env.local
 
-Prioritize solutions that enhance performance without requiring a feature rewrite or compromising application integrity.
+ ✓ Starting...
+ ✓ Ready in 25.8s
+ ○ Compiling / ...
 
 
-Task 2
-I'm facing a persistent issue with my Next.js e-commerce application, displaying two critical errors during development (`npm run dev`) and page access:
+Retrying 1/3...
 
-1.  **TypeError: Cannot read properties of undefined (reading 'initialColorMode')** at `src/app/layout.tsx:65:56`. This occurs when trying to access `theme.config.initialColorMode`.
-2.  **Error [AbortError]: This operation was aborted** at `src/api/products.ts:29:21` during a `fetch` call to my backend API. This error also manifests as "Network or unexpected error fetching products" and "Failed to prefetch products for Home page."
 
-These errors are very stubborn. Please take your time to thoroughly analyze these two distinct but potentially related issues.
+Retrying 1/3...
 
-**Provide a systematic diagnostic and resolution plan.** Your plan should:
 
-* **Identify the root causes** for both the `TypeError` related to `initialColorMode` and the `AbortError` during API fetching.
-* **Propose specific, actionable steps** to debug and fix each problem.
-* **Consider potential interdependencies** between the two errors (e.g., if the API `AbortError` causes a server restart leading to the `TypeError`).
-* **Suggest how to prevent future occurrences.**
-* **Maintain all existing application functionality.**
-- Tip you can access this repo in github to track down a potential cause as i incrementally developed since last week i was able to retrive products from the backend without any issue. Therefore this issue has only developed recently with recent improvements.
-**Crucially, if you need more information about my codebase (e.g., how `theme` is defined and imported, the full `ColorModeScript` component, the `DJANGO_API_BASE_URL` setup, the `fetchProducts` function, Next.js version, or `next-auth` configuration), please ask specific, targeted questions.** I will provide the necessary details.
+Retrying 1/3...
+
+
+Retrying 1/3...
+
+
+Retrying 1/3...
+
+
+Retrying 1/3...
+
+
+Retrying 1/3...
+
+
+Retrying 2/3...
+
+
+Retrying 3/3...
+ ✓ Compiled / in 453.5s (4502 modules)
+ ⨯ Error: Attempted to call extendTheme() from the server but extendTheme is on the client. It's not possible to invoke a client function from the server, it can only be rendered as a Component or passed to props of a Client Component.
+    at <unknown> (.next/server/vendor-chunks/@chakra-ui.js:2013:20)
+    at eval (src/theme.ts:20:26)
+    at <unknown> (rsc)/./src/theme.ts (/home/ndunguloren96/projects/ltronix-shop/frontend/my-app/.next/server/app/page.js:249:1)
+    at __webpack_require__ (.next/server/webpack-runtime.js:33:43)
+    at eval (webpack-internal:///(rsc)/./src/app/layout.tsx:21:64)
+    at <unknown> (rsc)/./src/app/layout.tsx (/home/ndunguloren96/projects/ltronix-shop/frontend/my-app/.next/server/app/page.js:150:1)
+    at Function.__webpack_require__ (.next/server/webpack-runtime.js:33:43)
+  18 | };
+  19 |
+> 20 | const theme = extendTheme({
+     |                          ^
+  21 |   config,
+  22 |   colors: {
+  23 |     brand: brandColors, {
+  page: '/'
+}
+ ○ Compiling /_error ...
+
+"

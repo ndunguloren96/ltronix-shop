@@ -1,7 +1,7 @@
 import uuid
 
 from django.db import transaction
-from django.db.models import F
+from django.db.models import F, Sum, Case, When, Value, BooleanField
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import mixins, status, viewsets
@@ -51,19 +51,29 @@ class OrderViewSet(
         user = self.request.user
         session_key = self.request.headers.get("X-Session-Key")
 
+        queryset = self.queryset.annotate(
+            cart_total=Sum(F('orderitem__quantity') * F('orderitem__product__price')),
+            cart_items_count=Sum('orderitem__quantity'),
+            has_shipping_items=Case(
+                When(orderitem__product__digital=False, then=Value(True)),
+                default=Value(False),
+                output_field=BooleanField()
+            )
+        ).prefetch_related('orderitem_set__product')
+
         if self.action == "list" and user.is_authenticated:
             customer, _ = Customer.objects.get_or_create(user=user)
-            return self.queryset.filter(customer=customer, complete=True)
+            return queryset.filter(customer=customer, complete=True)
 
         if self.action in ["retrieve", "update", "destroy", "complete_order"]:
             if user.is_authenticated:
                 customer, _ = Customer.objects.get_or_create(user=user)
-                return self.queryset.filter(customer=customer)
+                return queryset.filter(customer=customer)
             elif session_key:
-                return self.queryset.filter(session_key=session_key)
-            return self.queryset.none()
+                return queryset.filter(session_key=session_key)
+            return queryset.none()
 
-        return self.queryset.all()
+        return queryset.all()
 
     def create(self, request, *args, **kwargs):
         """
@@ -95,23 +105,31 @@ class OrderViewSet(
                 if session_key:
                     guest_order = Order.objects.filter(
                         session_key=session_key, complete=False
-                    ).first()
+                    ).prefetch_related('orderitem_set__product').first()
                     if guest_order and guest_order.id != order.id:
+                        # Merge guest cart items into user's cart
+                        existing_order_items = {item.product_id: item for item in order.orderitem_set.all()}
+                        items_to_create = []
+                        items_to_update = []
+
                         for guest_item in guest_order.orderitem_set.all():
-                            existing_item = order.orderitem_set.filter(
-                                product=guest_item.product
-                            ).first()
-                            if existing_item:
-                                existing_item.quantity = (
-                                    F("quantity") + guest_item.quantity
-                                )
-                                existing_item.save()
+                            if guest_item.product_id in existing_order_items:
+                                existing_item = existing_order_items[guest_item.product_id]
+                                existing_item.quantity = F("quantity") + guest_item.quantity
+                                items_to_update.append(existing_item)
                             else:
-                                OrderItem.objects.create(
-                                    product=guest_item.product,
-                                    order=order,
-                                    quantity=guest_item.quantity,
+                                items_to_create.append(
+                                    OrderItem(
+                                        product=guest_item.product,
+                                        order=order,
+                                        quantity=guest_item.quantity,
+                                    )
                                 )
+                        if items_to_update:
+                            OrderItem.objects.bulk_update(items_to_update, ['quantity'])
+                        if items_to_create:
+                            OrderItem.objects.bulk_create(items_to_create)
+
                         guest_order.delete()
                         print(
                             f"Merged guest cart ({session_key}) into user's cart ({user.email})"
@@ -143,6 +161,9 @@ class OrderViewSet(
                 product__id__in=current_product_ids_in_payload
             ).delete()
 
+            product_ids = [item_data["product_id"] for item_data in items_payload if item_data.get("product_id")]
+            products_map = {str(p.id): p for p in Product.objects.filter(id__in=product_ids)}
+
             for item_data in items_payload:
                 product_id = item_data.get("product_id")
                 quantity = item_data.get("quantity")
@@ -156,7 +177,12 @@ class OrderViewSet(
                     print(f"Skipping invalid item data: {item_data}")
                     continue
 
-                product = get_object_or_404(Product, id=product_id)
+                product = products_map.get(product_id)
+                if not product:
+                    return Response(
+                        {"detail": f"Product with ID '{product_id}' not found."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
 
                 if quantity == 0:
                     order.orderitem_set.filter(product=product).delete()
@@ -193,7 +219,15 @@ class OrderViewSet(
 
         if user.is_authenticated:
             customer, _ = Customer.objects.get_or_create(user=user)
-            order = Order.objects.filter(customer=customer, complete=False).first()
+            order = Order.objects.annotate(
+                cart_total=Sum(F('orderitem__quantity') * F('orderitem__product__price')),
+                cart_items_count=Sum('orderitem__quantity'),
+                has_shipping_items=Case(
+                    When(orderitem__product__digital=False, then=Value(True)),
+                    default=Value(False),
+                    output_field=BooleanField()
+                )
+            ).prefetch_related('orderitem_set__product').filter(customer=customer, complete=False).first()
             if not order and session_key_from_header:
                 guest_order = Order.objects.filter(
                     session_key=session_key_from_header, complete=False
@@ -208,7 +242,15 @@ class OrderViewSet(
                     )
 
         elif session_key_from_header:
-            order = Order.objects.filter(
+            order = Order.objects.annotate(
+                cart_total=Sum(F('orderitem__quantity') * F('orderitem__product__price')),
+                cart_items_count=Sum('orderitem__quantity'),
+                has_shipping_items=Case(
+                    When(orderitem__product__digital=False, then=Value(True)),
+                    default=Value(False),
+                    output_field=BooleanField()
+                )
+            ).prefetch_related('orderitem_set__product').filter(
                 session_key=session_key_from_header, complete=False
             ).first()
 
@@ -280,6 +322,11 @@ class OrderViewSet(
         with transaction.atomic():
             instance.orderitem_set.all().delete()
 
+            product_ids = [item_data["product_id"] for item_data in items_payload if item_data.get("product_id")]
+            products_map = {str(p.id): p for p in Product.objects.filter(id__in=product_ids)}
+
+            items_to_create = []
+
             for item_data in items_payload:
                 product_id = item_data.get("product_id")
                 quantity = item_data.get("quantity")
@@ -293,12 +340,21 @@ class OrderViewSet(
                     print(f"Skipping invalid item data during update: {item_data}")
                     continue
 
-                product = get_object_or_404(Product, id=product_id)
+                product = products_map.get(product_id)
+                if not product:
+                    return Response(
+                        {"detail": f"Product with ID '{product_id}' not found."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
 
                 if quantity > 0:
-                    OrderItem.objects.create(
-                        order=instance, product=product, quantity=quantity
+                    items_to_create.append(
+                        OrderItem(
+                            order=instance, product=product, quantity=quantity
+                        )
                     )
+            if items_to_create:
+                OrderItem.objects.bulk_create(items_to_create)
 
             instance.refresh_from_db()
 
@@ -346,13 +402,17 @@ class OrderViewSet(
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        if not order.orderitem_set.exists():
+        # Prefetch related products to avoid N+1 queries
+        order_items = order.orderitem_set.select_related('product').all()
+
+        if not order_items.exists():
             return Response(
                 {"detail": "Cannot complete an empty cart."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        for item in order.orderitem_set.all():
+        products_to_update = []
+        for item in order_items:
             if item.product.stock < item.quantity:
                 return Response(
                     {
@@ -360,6 +420,8 @@ class OrderViewSet(
                     },
                     status=status.HTTP_400_BAD_REQUEST,
                 )
+            item.product.stock -= item.quantity
+            products_to_update.append(item.product)
 
         with transaction.atomic():
             order.complete = True
@@ -367,9 +429,8 @@ class OrderViewSet(
             order.transaction_id = str(uuid.uuid4())
             order.save()
 
-            for item in order.orderitem_set.all():
-                item.product.stock -= item.quantity
-                item.product.save()
+            # Bulk update product stock
+            Product.objects.bulk_update(products_to_update, ['stock'])
 
         serializer = self.get_serializer(order)
         return Response(serializer.data, status=status.HTTP_200_OK)
