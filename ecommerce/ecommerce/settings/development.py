@@ -16,25 +16,16 @@ DATABASES = {
     )
 }
 
-REST_FRAMEWORK = {
-    **REST_FRAMEWORK,
-    "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework.authentication.SessionAuthentication",
-        "dj_rest_auth.jwt_auth.JWTCookieAuthentication",
-        "rest_framework.authentication.TokenAuthentication",
-        "rest_framework_social_oauth2.authentication.SocialAuthentication",
-    ),
-    "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
-    "DEFAULT_RENDERER_CLASSES": (
-        "rest_framework.renderers.JSONRenderer",
-        "rest_framework.renderers.BrowsableAPIRenderer",
-    ),
-    "DEFAULT_PARSER_CLASSES": (
-        "rest_framework.parsers.JSONParser",
-        "rest_framework.parsers.FormParser",
-        "rest_framework.parsers.MultiPartParser",
-    ),
-}
+# IMPORTANT: Remove the explicit re-definition of REST_FRAMEWORK settings here
+# to ensure the settings from base.py (where social auth is commented out
+# and permissions are set to AllowAny by default) are used.
+# If you need to override specific DRF settings for development, do so carefully
+# and avoid re-introducing commented-out modules.
+# For example, if you wanted to change only renderers:
+# REST_FRAMEWORK["DEFAULT_RENDERER_CLASSES"] = (
+#     "rest_framework.renderers.JSONRenderer",
+#     "rest_framework.renderers.BrowsableAPIRenderer",
+# )
 
 # CORS settings for development
 CORS_ALLOW_ALL_ORIGINS = True  # TEMPORARY: For debugging CORS only.
@@ -70,3 +61,4 @@ SOCIAL_AUTH_GOOGLE_OAUTH2_REDIRECT_URI = env(
     default="http://127.0.0.1:8000/api/auth/complete/google-oauth2/",
 )
 SOCIAL_AUTH_REDIRECT_IS_HTTPS = env.bool("SOCIAL_AUTH_REDIRECT_IS_HTTPS", default=False)
+
