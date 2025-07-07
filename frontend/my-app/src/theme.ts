@@ -1,5 +1,4 @@
 // src/components/theme.ts
-'use client';
 
 import { extendTheme, type ThemeConfig } from '@chakra-ui/react';
 

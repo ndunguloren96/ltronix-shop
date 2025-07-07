@@ -21,7 +21,7 @@ export interface Product {
 
 export async function fetchProducts(): Promise<Product[]> {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 5000);
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
 
   try {
     const url = new URL('products/products/', DJANGO_API_BASE_URL);
@@ -79,7 +79,7 @@ export async function fetchProductById(
   id: number | string
 ): Promise<Product> {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 5000);
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
 
   try {
     const url = new URL(`products/products/${id}/`, DJANGO_API_BASE_URL);
