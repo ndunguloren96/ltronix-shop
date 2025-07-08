@@ -129,14 +129,19 @@ USE_TZ = True
 
 # --- Static & media
 STATIC_URL = "/static/"
-STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
+STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")  # where 'collectstatic' dumps files
+
+# Allow Django and WhiteNoise to gather static files from your custom static folder
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR.parent, "static"),  # e.g., /project_root/static/
+]
+
+# Use WhiteNoise for efficient static file serving
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR.parent, "mediafiles")
 
-# --- WhiteNoise & static files configuration
-# Allow Django and WhiteNoise to gather static files from 'static/' folder(s)
-STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
 
 # --- DRF settings
 REST_FRAMEWORK = {
@@ -194,6 +199,7 @@ EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")
 EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
 
 # AllAuth: disable username field if using custom User with only email
+ACCOUNT_AUTHENTICATION_METHOD = "email"
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None
 ACCOUNT_USERNAME_REQUIRED = False
 ACCOUNT_SIGNUP_FIELDS = ["email", "password1", "password2"]
