@@ -1,8 +1,8 @@
-// src/components/theme.ts
+// src/theme.ts
 'use client';
 
 import { extendTheme } from '@chakra-ui/react';
-import { config } from './chakra.config';
+import config from './chakra.config';
 
 const brandColors = {
   900: '#1a365d',
@@ -51,5 +51,5 @@ const theme = extendTheme({
   },
 });
 
-export { theme };
+export default theme;
 

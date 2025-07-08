@@ -2,29 +2,12 @@
 
 import React from 'react';
 import { ChakraProvider } from '@chakra-ui/react';
-import { extendTheme } from '@chakra-ui/react';
 import { Toaster } from 'react-hot-toast';
 import { SessionProvider } from 'next-auth/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { ErrorBoundary } from '../components/ErrorBoundary';
-
-const colors = {
-  brand: {
-    50: '#F0F8FF',
-    100: '#E0EEFF',
-    200: '#B2D6FF',
-    300: '#84BEFF',
-    400: '#56A6FF',
-    500: '#288EFF',
-    600: '#1F70CC',
-    700: '#175299',
-    800: '#0E3466',
-    900: '#051633',
-  },
-};
-
-const theme = extendTheme({ colors });
+import theme from '../theme'; // ✅ corrected import — use central theme
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -71,3 +54,4 @@ export function AppProviders({ children, session }: AppProvidersProps) {
     </SessionProvider>
   );
 }
+
