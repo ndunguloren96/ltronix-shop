@@ -1,4 +1,5 @@
 // frontend/my-app/src/app/layout.tsx
+
 import './globals.css';
 import { Inter } from 'next/font/google';
 import { AppProviders } from './providers';
@@ -9,9 +10,8 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
 import { ClientErrorBoundary } from '../components/ClientErrorBoundary';
-
 import { ColorModeScript } from '@chakra-ui/react';
-import { config } from '../chakra.config';
+import chakraTheme from '../chakra.config';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -29,8 +29,11 @@ export default async function RootLayout({
 
   return (
     <html lang="en">
+      <head>
+        {/* Chakra UI FOUC Fix: Must be placed before body */}
+        <ColorModeScript initialColorMode={chakraTheme.config.initialColorMode} />
+      </head>
       <body className={inter.className}>
-        <ColorModeScript initialColorMode={config.initialColorMode} />
         <ClientErrorBoundary>
           <AppProviders session={session}>
             <Header />
@@ -42,4 +45,3 @@ export default async function RootLayout({
     </html>
   );
 }
-
