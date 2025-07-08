@@ -24,7 +24,7 @@ export async function fetchProducts(): Promise<Product[]> {
   const timeoutId = setTimeout(() => controller.abort(), 10000);
 
   try {
-    const url = new URL('products/products/', DJANGO_API_BASE_URL);
+    const url = new URL('api/v1/products/', DJANGO_API_BASE_URL);
 
     const response = await fetch(url.toString(), {
       method: 'GET',
@@ -82,7 +82,7 @@ export async function fetchProductById(
   const timeoutId = setTimeout(() => controller.abort(), 10000);
 
   try {
-    const url = new URL(`products/products/${id}/`, DJANGO_API_BASE_URL);
+    const url = new URL('api/v1/products/', DJANGO_API_BASE_URL); // ✅ Correct endpoint
 
     const response = await fetch(url.toString(), {
       method: 'GET',
