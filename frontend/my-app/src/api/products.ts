@@ -19,17 +19,18 @@ export interface Product {
   updated_at: string;
 }
 
+// Fetch list of products
 export async function fetchProducts(): Promise<Product[]> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 10000);
 
   try {
-    const url = new URL('api/v1/products/', DJANGO_API_BASE_URL);
+    const url = new URL('products/', DJANGO_API_BASE_URL); // Updated: avoid double "api/v1"
 
     const response = await fetch(url.toString(), {
       method: 'GET',
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json' // Fixed: removed invalid trailing comma
       },
       signal: controller.signal,
     });
@@ -75,6 +76,7 @@ export async function fetchProducts(): Promise<Product[]> {
   }
 }
 
+// Fetch a single product by ID
 export async function fetchProductById(
   id: number | string
 ): Promise<Product> {
@@ -82,12 +84,12 @@ export async function fetchProductById(
   const timeoutId = setTimeout(() => controller.abort(), 10000);
 
   try {
-    const url = new URL('api/v1/products/', DJANGO_API_BASE_URL); // ✅ Correct endpoint
+    const url = new URL(`products/${id}/`, DJANGO_API_BASE_URL); // ✅ Updated: correct path for detail view
 
     const response = await fetch(url.toString(), {
       method: 'GET',
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json'
       },
       signal: controller.signal,
     });
@@ -131,4 +133,3 @@ export async function fetchProductById(
     throw error;
   }
 }
-
