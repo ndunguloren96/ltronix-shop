@@ -1,6 +1,6 @@
 // frontend/my-app/src/api/products.ts
 const DJANGO_API_BASE_URL =
-  process.env.NEXT_PUBLIC_DJANGO_API_URL || 'http://127.0.0.1:8000/api/v1/';
+  process.env.NEXT_PUBLIC_DJANGO_API_URL || 'http://127.0.0.1:8000/';
 
 export interface Product {
   id: string;
@@ -19,18 +19,28 @@ export interface Product {
   updated_at: string;
 }
 
+// Define a type guard for errors that might have a 'cause' with a 'code'
+// This helps TypeScript understand the shape of the error.cause when it exists.
+interface ErrorWithCauseAndCode extends Error {
+  cause?: {
+    code?: string;
+    // Add other properties if you expect them on 'cause'
+  };
+}
+
+
 // Fetch list of products
 export async function fetchProducts(): Promise<Product[]> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 10000);
 
   try {
-    const url = new URL('products/', DJANGO_API_BASE_URL); // Updated: avoid double "api/v1"
+    const url = new URL('products/', DJANGO_API_BASE_URL);
 
     const response = await fetch(url.toString(), {
       method: 'GET',
       headers: {
-        'Content-Type': 'application/json' // Fixed: removed invalid trailing comma
+        'Content-Type': 'application/json' // Fixed: removed invalid trailing comma          },
       },
       signal: controller.signal,
     });
@@ -56,15 +66,19 @@ export async function fetchProducts(): Promise<Product[]> {
     }
 
     return await response.json();
-  } catch (error: any) {
+  } catch (err: any) { // Change 'error: any' to 'err: any' for clarity if you wish, or keep 'error: any'
     clearTimeout(timeoutId);
-    console.error('Network or unexpected error fetching products:', error);
+    console.error('Network or unexpected error fetching products:', err);
+
+    // Apply the type guard here
+    const error = err as ErrorWithCauseAndCode;
 
     if (
       error instanceof TypeError &&
       (error.name === 'AbortError' ||
-        error.cause?.code === 'ECONNREFUSED' ||
-        error.cause?.code === 'ETIMEDOUT')
+       // Check if cause exists, is an object, and has 'code' property
+       (error.cause && typeof error.cause === 'object' && 'code' in error.cause && error.cause.code === 'ECONNREFUSED') ||
+       (error.cause && typeof error.cause === 'object' && 'code' in error.cause && error.cause.code === 'ETIMEDOUT'))
     ) {
       console.warn(
         `Backend connection issue. Returning empty products. Error: ${error.message}`
@@ -115,15 +129,19 @@ export async function fetchProductById(
     }
 
     return await response.json();
-  } catch (error: any) {
+  } catch (err: any) { // Change 'error: any' to 'err: any' for clarity if you wish, or keep 'error: any'
     clearTimeout(timeoutId);
-    console.error(`Error fetching product ${id}:`, error);
+    console.error(`Error fetching product ${id}:`, err);
+
+    // Apply the same type guard here
+    const error = err as ErrorWithCauseAndCode;
 
     if (
       error instanceof TypeError &&
       (error.name === 'AbortError' ||
-        error.cause?.code === 'ECONNREFUSED' ||
-        error.cause?.code === 'ETIMEDOUT')
+       // Check if cause exists, is an object, and has 'code' property
+       (error.cause && typeof error.cause === 'object' && 'code' in error.cause && error.cause.code === 'ECONNREFUSED') ||
+       (error.cause && typeof error.cause === 'object' && 'code' in error.cause && error.cause.code === 'ETIMEDOUT'))
     ) {
       throw new Error(
         `Backend connection issue for product ${id}. ${error.message}`
