@@ -40,16 +40,18 @@ services:
       - ./ecommerce:/app
       - static_volume:/app/staticfiles
       - media_volume:/app/media
-    expose:
-      - "8000"
+   # expose:
+    #  - "8000"
+    ports:
+      - "8000:8000"
     env_file:
       - ./ecommerce/.env
     depends_on:
       - db
       - redis
+    user: root
     command: >
-      sh -c "chmod -R 777 /app/staticfiles &&
-             python manage.py migrate --noinput &&
+      sh -c "python manage.py migrate --noinput &&
              python manage.py collectstatic --noinput &&
              gunicorn ecommerce.wsgi:application --bind 0.0.0.0:8000"
 
@@ -57,16 +59,18 @@ services:
     build:
       context: ./frontend/my-app
       dockerfile: Dockerfile
-      args:
-        NEXT_PUBLIC_DJANGO_API_URL: http://backend:8000/
     volumes:
-      # The application should be built directly into the image.
+      # The frontend app is now built into the image itself.
       # This anonymous volume is fine if you still want node_modules to be separate.
       - /app/node_modules
-    expose:
-      - "3000"
+  #  expose:
+     # - "3000"
+    ports:
+      - "3000:3000"
     env_file:
       - ./frontend/my-app/.env.local
+    environment:
+      NEXT_PUBLIC_DJANGO_API_URL: http://backend:8000/
     depends_on:
       - backend
 
