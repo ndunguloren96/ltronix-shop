@@ -69,4 +69,5 @@ RUN python manage.py collectstatic --noinput
 
 EXPOSE 8000
 
-CMD ["gunicorn", "ecommerce.wsgi:application", "--bind", "0.0.0.0:8000"]
+# Run migrations and then start the Gunicorn server
+CMD sh -c "python manage.py migrate --noinput && gunicorn ecommerce.wsgi:application --bind 0.0.0.0:$PORT"
