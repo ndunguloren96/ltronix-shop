@@ -11,17 +11,16 @@ from payment.views import mpesa_stk_push_callback
 # are imported here.
 from users.views import (
     CustomRegisterView,
-    EmailChangeView,    # <--- ADDED THIS IMPORT
-    AccountDeleteView,  # <--- ADDED THIS IMPORT
-    # Note: PasswordChangeView is imported from dj_rest_auth below,
-    # if you have a custom one in users.views, you'd import it here instead.
-    # For now, we'll assume the dj_rest_auth one is intended for password change.
+    EmailChangeView,
+    AccountDeleteView,
 )
 from dj_rest_auth.views import PasswordChangeView
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("api/v1/products/", include("store.api_urls")),  # Your product and order APIs
+    # FIX: Changed 'api/v1/products/' to 'api/v1/' to avoid double 'products/' nesting
+    # Now, products will be at /api/v1/products/ as defined in store/api_urls.py
+    path("api/v1/", include("store.api_urls")),
     # API endpoints for payment (using api_urls for DRF views)
     path("api/v1/payments/", include("payment.api_urls")),
     # Direct URL for M-Pesa STK Push Confirmation Callback (webhook)
@@ -42,9 +41,9 @@ urlpatterns = [
     # This ensures dj_rest_auth.registration.serializers.RegisterSerializer is NEVER loaded by this path.
     path(
         "api/v1/auth/registration/", CustomRegisterView.as_view(), name="rest_register"
-    ),  # <-- UPDATED LINE
-    # If you're using drf-social-oauth2
-    path("api/v1/auth/social/", include("drf_social_oauth2.urls", namespace="drf")),
+    ),
+    # If you're using drf-social-oauth2 (this was commented out in your base.py, keeping it consistent)
+    # path("api/v1/auth/social/", include("drf_social_oauth2.urls", namespace="drf")),
 ]
 
 # Serve media files in development

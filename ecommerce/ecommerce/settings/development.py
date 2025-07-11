@@ -58,7 +58,7 @@ REST_AUTH["PASSWORD_RESET_CONFIRM_URL"] = env(
 )
 SOCIAL_AUTH_GOOGLE_OAUTH2_REDIRECT_URI = env(
     "SOCIAL_AUTH_GOOGLE_OAUTH2_REDIRECT_URI",
-    default="http://127.0.0.1:8000/api/auth/complete/google-oauth2/",
+    default="http://localhost:8000/api/auth/complete/google-oauth2/",
 )
 SOCIAL_AUTH_REDIRECT_IS_HTTPS = env.bool("SOCIAL_AUTH_REDIRECT_IS_HTTPS", default=False)
 

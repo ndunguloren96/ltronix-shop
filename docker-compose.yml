@@ -59,6 +59,8 @@ services:
     build:
       context: ./frontend/my-app
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_DJANGO_API_URL: ${NEXT_PUBLIC_DJANGO_API_URL}
     volumes:
       # The frontend app is now built into the image itself.
       # This anonymous volume is fine if you still want node_modules to be separate.
@@ -70,7 +72,7 @@ services:
     env_file:
       - ./frontend/my-app/.env.local
     environment:
-      NEXT_PUBLIC_DJANGO_API_URL: http://backend:8000/
+      NEXT_PUBLIC_DJANGO_API_URL: http://localhost/api/v1/
     depends_on:
       - backend
 

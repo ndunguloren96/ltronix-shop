@@ -1,7 +1,21 @@
 // frontend/my-app/src/api/products.ts
-const DJANGO_API_BASE_URL =
-  process.env.NEXT_PUBLIC_DJANGO_API_URL || 'http://127.0.0.1:8000/';
 
+// The DJANGO_API_BASE_URL MUST be set correctly in your environment,
+// typically via docker-compose.yml for Dockerized Next.js applications,
+// or via a .env.local file. It should include the full API path, e.g., 'http://localhost/api/v1/'.
+// Removing the fallback to force the environment variable to be correctly picked up at build time.
+const DJANGO_API_BASE_URL = process.env.NEXT_PUBLIC_DJANGO_API_URL;
+
+// --- Debugging Logs (keep these for now to verify) ---
+// Log the raw environment variable to confirm what Next.js is actually seeing
+console.log('Raw NEXT_PUBLIC_DJANGO_API_URL from process.env:', process.env.NEXT_PUBLIC_DJANGO_API_URL);
+if (!DJANGO_API_BASE_URL) {
+  console.error('ERROR: DJANGO_API_BASE_URL is not defined! Please check your environment variables.');
+}
+// --- End Debugging Logs ---
+
+
+// --- Type Definitions ---
 export interface Product {
   id: string;
   name: string;
@@ -20,34 +34,48 @@ export interface Product {
 }
 
 // Define a type guard for errors that might have a 'cause' with a 'code'
-// This helps TypeScript understand the shape of the error.cause when it exists.
 interface ErrorWithCauseAndCode extends Error {
   cause?: {
     code?: string;
-    // Add other properties if you expect them on 'cause'
   };
 }
 
+// --- API Functions ---
 
-// Fetch list of products
+/**
+ * Fetches a list of all products from the Django backend.
+ */
 export async function fetchProducts(): Promise<Product[]> {
+  // Ensure the base URL is defined before proceeding with the fetch
+  if (!DJANGO_API_BASE_URL) {
+    // If the base URL is missing, log an error and return an empty array
+    // This prevents runtime errors from an undefined URL.
+    console.error('Cannot fetch products: DJANGO_API_BASE_URL is undefined.');
+    return [];
+  }
+
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 10000);
+  const timeoutId = setTimeout(() => controller.abort(), 10000); // 10-second timeout
 
   try {
+    // Construct the URL using the correct base and endpoint path.
+    // Assuming DJANGO_API_BASE_URL is 'http://localhost/api/v1/'
+    // and the Django endpoint for product list is 'products/' relative to that.
     const url = new URL('products/', DJANGO_API_BASE_URL);
+    console.log('Fetching products from URL:', url.toString());
 
     const response = await fetch(url.toString(), {
       method: 'GET',
       headers: {
-        'Content-Type': 'application/json' // Fixed: removed invalid trailing comma          },
+        'Content-Type': 'application/json',
       },
       signal: controller.signal,
     });
 
-    clearTimeout(timeoutId);
+    clearTimeout(timeoutId); // Clear timeout if fetch completes successfully
 
     if (!response.ok) {
+      // Improved error handling from your current version to parse API error responses
       const errorResponse = response.clone();
       let errorData;
       try {
@@ -62,55 +90,66 @@ export async function fetchProducts(): Promise<Product[]> {
         `API Error fetching products (Status: ${response.status}):`,
         errorData
       );
-      return [];
+      return []; // Return empty array on API error
     }
 
     return await response.json();
-  } catch (err: any) { // Change 'error: any' to 'err: any' for clarity if you wish, or keep 'error: any'
-    clearTimeout(timeoutId);
+  } catch (err: any) {
+    clearTimeout(timeoutId); // Clear timeout on any error
     console.error('Network or unexpected error fetching products:', err);
 
-    // Apply the type guard here
+    // Use the type guard for more specific error handling
     const error = err as ErrorWithCauseAndCode;
 
+    // Specific handling for network-related errors (e.g., connection refused, timeout)
     if (
       error instanceof TypeError &&
-      (error.name === 'AbortError' ||
-       // Check if cause exists, is an object, and has 'code' property
-       (error.cause && typeof error.cause === 'object' && 'code' in error.cause && error.cause.code === 'ECONNREFUSED') ||
-       (error.cause && typeof error.cause === 'object' && 'code' in error.cause && error.cause.code === 'ETIMEDOUT'))
+      (error.name === 'AbortError' || // Fetch operation aborted by timeout
+        (error.cause && typeof error.cause === 'object' && 'code' in error.cause &&
+         (error.cause.code === 'ECONNREFUSED' || error.cause.code === 'ETIMEDOUT'))) // Common network errors
     ) {
       console.warn(
         `Backend connection issue. Returning empty products. Error: ${error.message}`
       );
-      return [];
+      return []; // Return empty array if backend is unreachable
     }
 
-    throw error;
+    throw error; // Re-throw other unexpected errors to be handled upstream
   }
 }
 
-// Fetch a single product by ID
+/**
+ * Fetches a single product by its ID from the Django backend.
+ */
 export async function fetchProductById(
   id: number | string
 ): Promise<Product> {
+  // Ensure the base URL is defined before proceeding
+  if (!DJANGO_API_BASE_URL) {
+    console.error(`Cannot fetch product ${id}: DJANGO_API_BASE_URL is undefined.`);
+    throw new Error('DJANGO_API_BASE_URL is undefined.'); // Throw error if base URL is missing
+  }
+
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 10000);
+  const timeoutId = setTimeout(() => controller.abort(), 10000); // 10-second timeout
 
   try {
-    const url = new URL(`products/${id}/`, DJANGO_API_BASE_URL); // ✅ Updated: correct path for detail view
+    // Construct the URL for a single product
+    const url = new URL(`products/${id}/`, DJANGO_API_BASE_URL);
+    console.log(`Fetching product ${id} from URL:`, url.toString());
 
     const response = await fetch(url.toString(), {
       method: 'GET',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       },
       signal: controller.signal,
     });
 
-    clearTimeout(timeoutId);
+    clearTimeout(timeoutId); // Clear timeout if fetch completes
 
     if (!response.ok) {
+      // Improved error handling
       const errorResponse = response.clone();
       let errorData;
       try {
@@ -129,25 +168,25 @@ export async function fetchProductById(
     }
 
     return await response.json();
-  } catch (err: any) { // Change 'error: any' to 'err: any' for clarity if you wish, or keep 'error: any'
-    clearTimeout(timeoutId);
+  } catch (err: any) {
+    clearTimeout(timeoutId); // Clear timeout on error
     console.error(`Error fetching product ${id}:`, err);
 
-    // Apply the same type guard here
+    // Use the type guard for more specific error handling
     const error = err as ErrorWithCauseAndCode;
 
+    // Specific handling for network-related errors
     if (
       error instanceof TypeError &&
       (error.name === 'AbortError' ||
-       // Check if cause exists, is an object, and has 'code' property
-       (error.cause && typeof error.cause === 'object' && 'code' in error.cause && error.cause.code === 'ECONNREFUSED') ||
-       (error.cause && typeof error.cause === 'object' && 'code' in error.cause && error.cause.code === 'ETIMEDOUT'))
+        (error.cause && typeof error.cause === 'object' && 'code' in error.cause &&
+         (error.cause.code === 'ECONNREFUSED' || error.cause.code === 'ETIMEDOUT')))
     ) {
       throw new Error(
         `Backend connection issue for product ${id}. ${error.message}`
       );
     }
 
-    throw error;
+    throw error; // Re-throw other unexpected errors
   }
 }
