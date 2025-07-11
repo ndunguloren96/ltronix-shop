@@ -117,7 +117,7 @@ AUTH_PASSWORD_VALIDATORS = [
 AUTHENTICATION_BACKENDS = (
     "django.contrib.auth.backends.ModelBackend",
     "allauth.account.auth_backends.AuthenticationBackend",
-    "social_core.backends.google.GoogleOAuth2",
+   # "social_core.backends.google.GoogleOAuth2",
     # "drf_social_oauth2.backends.DjangoOAuth2", # COMMENTED OUT
 )
 

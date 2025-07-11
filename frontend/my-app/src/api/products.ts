@@ -33,6 +33,14 @@ export interface Product {
   updated_at: string;
 }
 
+// New interface for the paginated response structure from Django DRF
+interface PaginatedProductsResponse {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: Product[];
+}
+
 // Define a type guard for errors that might have a 'cause' with a 'code'
 interface ErrorWithCauseAndCode extends Error {
   cause?: {
@@ -93,7 +101,12 @@ export async function fetchProducts(): Promise<Product[]> {
       return []; // Return empty array on API error
     }
 
-    return await response.json();
+    // --- CRITICAL CHANGE HERE ---
+    // Cast the response to the PaginatedProductsResponse interface
+    const data: PaginatedProductsResponse = await response.json();
+    return data.results; // Return only the 'results' array
+    // --- END CRITICAL CHANGE ---
+
   } catch (err: any) {
     clearTimeout(timeoutId); // Clear timeout on any error
     console.error('Network or unexpected error fetching products:', err);
@@ -106,7 +119,7 @@ export async function fetchProducts(): Promise<Product[]> {
       error instanceof TypeError &&
       (error.name === 'AbortError' || // Fetch operation aborted by timeout
         (error.cause && typeof error.cause === 'object' && 'code' in error.cause &&
-         (error.cause.code === 'ECONNREFUSED' || error.cause.code === 'ETIMEDOUT'))) // Common network errors
+          (error.cause.code === 'ECONNREFUSED' || error.cause.code === 'ETIMEDOUT'))) // Common network errors
     ) {
       console.warn(
         `Backend connection issue. Returning empty products. Error: ${error.message}`
@@ -180,7 +193,7 @@ export async function fetchProductById(
       error instanceof TypeError &&
       (error.name === 'AbortError' ||
         (error.cause && typeof error.cause === 'object' && 'code' in error.cause &&
-         (error.cause.code === 'ECONNREFUSED' || error.cause.code === 'ETIMEDOUT')))
+          (error.cause.code === 'ECONNREFUSED' || error.cause.code === 'ETIMEDOUT')))
     ) {
       throw new Error(
         `Backend connection issue for product ${id}. ${error.message}`
