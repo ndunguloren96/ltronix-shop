@@ -1,4 +1,6 @@
 """
+# ecommerce/settings/base.py
+
 Base Django settings for ecommerce project.
 Optimized for performance, maintainability, and fast startup.
 """
@@ -46,8 +48,8 @@ INSTALLED_APPS = [
     "allauth.socialaccount",
     "allauth.socialaccount.providers.google",
     "oauth2_provider",
-    "social_django",
-    "drf_social_oauth2",
+    # "social_django", # COMMENTED OUT: Temporarily disable social_django
+    # "drf_social_oauth2", # COMMENTED OUT: Temporarily disable drf_social_oauth2
     "rest_framework",
     "rest_framework.authtoken",
     "rest_framework_simplejwt",
@@ -91,8 +93,8 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
-                "social_django.context_processors.backends",
-                "social_django.context_processors.login_redirect",
+                # "social_django.context_processors.backends", # COMMENTED OUT
+                # "social_django.context_processors.login_redirect", # COMMENTED OUT
             ]
         },
     },
@@ -115,11 +117,22 @@ AUTH_PASSWORD_VALIDATORS = [
 AUTHENTICATION_BACKENDS = (
     "django.contrib.auth.backends.ModelBackend",
     "allauth.account.auth_backends.AuthenticationBackend",
-    "social_core.backends.google.GoogleOAuth2",
-    "drf_social_oauth2.backends.DjangoOAuth2",
+   # "social_core.backends.google.GoogleOAuth2",
+    # "drf_social_oauth2.backends.DjangoOAuth2", # COMMENTED OUT
 )
 
 SITE_ID = 1
+
+# --- AllAuth specific settings ---
+# CRITICAL FIX: Tell AllAuth to only use email for login
+ACCOUNT_LOGIN_METHODS = ["email"]
+ACCOUNT_USERNAME_REQUIRED = False
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_AUTHENTICATION_METHOD = "email"
+ACCOUNT_UNIQUE_EMAIL = True
+ACCOUNT_EMAIL_VERIFICATION = "optional" # or "mandatory" depending on your flow
+ACCOUNT_USER_MODEL_USERNAME_FIELD = None # Ensure this is None for email-only login
+ACCOUNT_SIGNUP_FIELDS = ["email", "password"] # Simplified for clarity
 
 # --- Internationalization
 LANGUAGE_CODE = "en-us"
@@ -142,6 +155,10 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR.parent, "mediafiles")
 
+# --- WhiteNoise & static files configuration
+# FIX: Correct STATICFILES_DIRS to point to the 'static' folder at the ecommerce project root
+STATICFILES_DIRS = [os.path.join(BASE_DIR.parent, "static")]
+
 
 # --- DRF settings
 REST_FRAMEWORK = {
@@ -150,7 +167,7 @@ REST_FRAMEWORK = {
         "rest_framework.authentication.TokenAuthentication",
         "dj_rest_auth.jwt_auth.JWTCookieAuthentication",
         "oauth2_provider.contrib.rest_framework.OAuth2Authentication",
-        "drf_social_oauth2.authentication.SocialAuthentication",
+        # "drf_social_oauth2.authentication.SocialAuthentication", # COMMENTED OUT
     ),
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.AllowAny",),
     "DEFAULT_RENDERER_CLASSES": (
@@ -158,6 +175,8 @@ REST_FRAMEWORK = {
         "rest_framework.renderers.BrowsableAPIRenderer",
     ),
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_PAGINATION_CLASS": "ecommerce.pagination.StandardResultsSetPagination",
+    "PAGE_SIZE": 10,
 }
 
 # --- CORS/CSRF
@@ -204,7 +223,6 @@ ACCOUNT_USER_MODEL_USERNAME_FIELD = None
 ACCOUNT_USERNAME_REQUIRED = False
 ACCOUNT_SIGNUP_FIELDS = ["email", "password1", "password2"]
 
-
 # --- dj-rest-auth / JWT
 REST_AUTH = {
     "USE_JWT": True,
@@ -237,7 +255,7 @@ SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = env("SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET")
 SOCIAL_AUTH_GOOGLE_OAUTH2_SCOPE = ["openid", "email", "profile"]
 SOCIAL_AUTH_GOOGLE_OAUTH2_REDIRECT_URI = env(
     "SOCIAL_AUTH_GOOGLE_OAUTH2_REDIRECT_URI",
-    default="http://127.0.0.1:8000/api/v1/auth/convert-token/"
+    default="http://localhost:8000/api/auth/complete/google-oauth2/"
 )
 SOCIAL_AUTH_REDIRECT_IS_HTTPS = env.bool("SOCIAL_AUTH_REDIRECT_IS_HTTPS", default=False)
 
@@ -271,6 +289,8 @@ if SENTRY_DSN:
         traces_sample_rate=0.5,
     )
 
+# FIX: Add DEFAULT_AUTO_FIELD for Django 3.2+
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 LOGGING = {
     "version": 1,
@@ -319,3 +339,4 @@ LOGGING = {
         },
     },
 }
+

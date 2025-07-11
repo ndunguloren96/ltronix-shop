@@ -3,7 +3,6 @@
 *.o
 *.ko
 *.obj
-*.elf
 *.ilk
 *.map
 *.exp
@@ -136,3 +135,5 @@ cython_debug/
 /site
 
 infra/terraform/*.tfvars
+.gemini.md
+GEMINI.md

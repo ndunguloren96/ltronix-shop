@@ -1,47 +1,14 @@
 // frontend/my-app/src/app/page.tsx
-// This is now a pure Server Component, so no 'use client' directive here.
-
-import { QueryClient, HydrationBoundary, dehydrate } from '@tanstack/react-query';
-import { fetchProducts } from '../api/products'; // CRITICAL FIX: Corrected import path
 import ProductsClientPage from '../app/products/client_page'; // Path to your client component that displays products
 import HomePageClientWidgets from '@/components/HomePageClientWidgets'; // NEW: Import the new client component for widgets
 import React from 'react';
-import { Box, Heading, Text, VStack, Button, Flex, Container }
+import { Box, Heading, Text, VStack, Button, Container }
  from '@chakra-ui/react';
 import Image from 'next/image';
 
-// Define Product interface (should ideally be imported from src/api/products.ts or a shared types file)
-// Re-declaring here for clarity, but import is preferred.
-// interface Product {
-//   id: string; // Ensure this matches your backend's product ID type
-//   name: string;
-//   price: string; // Django DecimalField often comes as a string in JSON
-//   description: string;
-//   image_url?: string;
-//   category?: string;
-//   stock?: number;
-//   brand?: string;
-//   // Add other product fields as per your Django serializer
-// }
-
-export default async function HomePage() {
-  const queryClient = new QueryClient(); // Create a new QueryClient instance for each request on the server
-
-  try {
-    // Prefetch product data on the server using the shared fetchProducts function.
-    await queryClient.fetchQuery({
-      queryKey: ['products'], // This key MUST match what ProductsClientPage uses
-      queryFn: fetchProducts,
-    });
-  } catch (error) {
-    console.error("Failed to prefetch products for Home page:", error);
-  }
-
-  // Dehydrate the query client's state to pass it from the server to the client.
-  const dehydratedState = dehydrate(queryClient);
-
+export default function HomePage() {
   return (
-    <HydrationBoundary state={dehydratedState}>
+    <>
       {/* Hero Section with an LCP-priority Image */}
       <Box position="relative" width="100%" height={{ base: '300px', md: '450px', lg: '550px' }} overflow="hidden">
         <Image
@@ -85,6 +52,6 @@ export default async function HomePage() {
       {/* Render the new client component for other interactive widgets */}
       <HomePageClientWidgets />
 
-    </HydrationBoundary>
+    </>
   );
 }

@@ -7,7 +7,6 @@ from .models import Customer, Order, OrderItem, Product
 
 # --- Read-only Product Serializer (for nested use in OrderItem) ---
 class ProductSerializer(serializers.ModelSerializer):
-    image_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
@@ -16,7 +15,7 @@ class ProductSerializer(serializers.ModelSerializer):
             "name",
             "description",
             "price",
-            "image_url",  # Using the property
+            "image_file",  # Directly exposing the ImageField
             "brand",
             "sku",
             "rating",
@@ -27,18 +26,7 @@ class ProductSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["id", "image_url", "created_at", "updated_at"]
-
-    def get_image_url(self, obj):
-        # Build the absolute URL for the image_file
-        if obj.image_file and hasattr(obj.image_file, "url"):
-            request = self.context.get("request")
-            if request is not None:
-                return request.build_absolute_uri(obj.image_file.url)
-            return (
-                obj.image_file.url
-            )  # Fallback to relative if request context isn't available
-        return ""
+        read_only_fields = ["id", "image_file", "created_at", "updated_at"]
 
 
 # --- Writable OrderItem Serializer (for handling input to Order) ---
@@ -92,9 +80,9 @@ class OrderSerializer(serializers.ModelSerializer):
         many=True, read_only=True, source="orderitem_set"
     )
 
-    # Removed `order_items_input` field here because the ViewSet directly accesses `request.data`
-    # for the input items. The ViewSet is responsible for validating and processing them.
-    # WritableOrderItemSerializer is still used independently in the ViewSet for item-level validation.
+    cart_total = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    cart_items_count = serializers.IntegerField(read_only=True)
+    has_shipping_items = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = Order
@@ -105,9 +93,9 @@ class OrderSerializer(serializers.ModelSerializer):
             "date_ordered",
             "complete",
             "transaction_id",
-            "get_cart_total",
-            "get_cart_items",
-            "shipping",
+            "cart_total",
+            "cart_items_count",
+            "has_shipping_items",
             "items",
         ]
         read_only_fields = [
@@ -117,9 +105,9 @@ class OrderSerializer(serializers.ModelSerializer):
             "date_ordered",
             "complete",
             "transaction_id",
-            "get_cart_total",
-            "get_cart_items",
-            "shipping",
+            "cart_total",
+            "cart_items_count",
+            "has_shipping_items",
             "items",
         ]
 

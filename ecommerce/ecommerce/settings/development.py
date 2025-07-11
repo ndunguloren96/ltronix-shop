@@ -22,7 +22,6 @@ REST_FRAMEWORK = {
         "rest_framework.authentication.SessionAuthentication",
         "dj_rest_auth.jwt_auth.JWTCookieAuthentication",
         "rest_framework.authentication.TokenAuthentication",
-        # "rest_framework_social_oauth2.authentication.SocialAuthentication", -Incorrect
         "drf_social_oauth2.authentication.SocialAuthentication",
     ),
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
@@ -68,6 +67,7 @@ REST_AUTH["PASSWORD_RESET_CONFIRM_URL"] = env(
 )
 SOCIAL_AUTH_GOOGLE_OAUTH2_REDIRECT_URI = env(
     "SOCIAL_AUTH_GOOGLE_OAUTH2_REDIRECT_URI",
-    default="http://127.0.0.1:8000/api/auth/complete/google-oauth2/",
+    default="http://localhost:8000/api/auth/complete/google-oauth2/",
 )
 SOCIAL_AUTH_REDIRECT_IS_HTTPS = env.bool("SOCIAL_AUTH_REDIRECT_IS_HTTPS", default=False)
+
