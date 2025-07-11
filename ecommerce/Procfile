@@ -1,3 +1,3 @@
-web: python manage.py collectstatic --noinput && python manage.py migrate && gunicorn ecommerce.wsgi:application --bind 0.0.0.0:$PORT
-worker: celery -A ecommerce worker -l info
-beat: celery -A ecommerce beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+web: python manage.py collectstatic --noinput && python manage.py migrate && PYTHONPATH=. gunicorn ecommerce.wsgi:application --bind 0.0.0.0:$PORT
+worker: PYTHONPATH=. celery -A ecommerce worker -l info
+beat: PYTHONPATH=. celery -A ecommerce beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler

@@ -2,7 +2,7 @@
 import { getSession } from 'next-auth/react';
 
 // Define base URL for your Django API
-const DJANGO_API_BASE_URL = process.env.NEXT_PUBLIC_DJANGO_API_URL || 'http://127.0.0.1:8000/api/v1';
+const DJANGO_API_BASE_URL = process.env.NEXT_PUBLIC_DJANGO_API_URL || 'http://localhost:8000/api/v1';
 
 // --- Type Definitions for Cart/Order Operations ---
 export interface ProductInCart {

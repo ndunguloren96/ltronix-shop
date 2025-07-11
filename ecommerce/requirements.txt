@@ -1,16 +1,22 @@
+# PostgreSQL adapter
+psycopg[binary]>=3.1.8
+
 # Core Django & DRF
 Django==5.2.3
 djangorestframework==3.16.0
 dj-rest-auth==7.0.1
 djangorestframework_simplejwt==5.5.0
 
-# Auth
-allauth==65.9.0
+# Authentication
 django-allauth==65.9.0
 social-auth-app-django==5.5.1
 social-auth-core==4.7.0
 drf-social-oauth2==3.1.0
-oauth2_provider==3.0.1
+django-oauth-toolkit==3.0.1
+
+# Documentation generation
+drf-spectacular==0.28.0
+drf-spectacular-sidecar==2025.7.1
 
 # Celery & Redis
 celery==5.4.0
@@ -20,31 +26,34 @@ billiard==4.2.1
 kombu==5.5.4
 vine==5.1.0
 
-# Environment & Utilities
+# Task scheduling & results
+django-celery-beat==2.8.1
+django-celery-results==2.6.0
+
+# Configuration & utilities
 python-decouple==3.8
 python-json-logger==3.3.0
-environ==0.10.0
-sentry-sdk==2.32.0
+django-environ==0.11.2
+
+# Maintenance & assets
 whitenoise==6.9.0
-pillow==11.2.1
-
-# CORS
 django-cors-headers==4.7.0
-
-# Email
 django-anymail==10.3
-
-# M-Pesa
 django-daraja==1.3.0
 
-# For S3 media storage
+# Media & storage
 django-storages==1.14.2
-boto3==1.39.0 # Already in original requirements, but explicitly add for clarity
+boto3==1.39.0
+s3transfer==0.13.0
 
 # For serving the Django app
 gunicorn==23.0.0
+pillow==11.2.1
 
-# Other core dependencies (ensure these are truly needed for runtime)
+# Error monitoring
+sentry-sdk==2.32.0
+
+# Supporting libraries
 asgiref==3.8.1
 async-timeout==5.0.1
 attrs==21.2.0
@@ -59,6 +68,7 @@ charset-normalizer==3.4.2
 click==8.1.3
 configobj==5.0.9
 constantly==15.1.0
+coverage==7.4.4
 cryptography==44.0.1
 defusedxml==0.7.1
 exceptiongroup==1.3.0
@@ -92,10 +102,10 @@ pyrsistent==0.18.1
 python-dateutil==2.9.0.post0
 python3-openid==3.2.0
 pytz==2022.1
-PyYAML==5.4.1
+# Data formats
+PyYAML==6.0.1
 requests==2.32.4
 requests-oauthlib==2.0.0
-s3transfer==0.13.0
 SecretStorage==3.3.1
 six==1.16.0
 sqlparse==0.5.3
@@ -108,3 +118,4 @@ urllib3==2.5.0
 watchtower==3.4.0
 wcwidth==0.2.13
 zipp==3.19.1
+setuptools>=78.1.1 # not directly required, pinned by Snyk to avoid a vulnerability

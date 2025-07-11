@@ -1,0 +1,73 @@
+# docker-compose.yml
+
+services:
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+      - frontend
+    volumes:
+      # Mount static and media files from Django for Nginx to serve
+      - static_volume:/usr/share/nginx/html/static
+      - media_volume:/usr/share/nginx/html/media
+
+  backend:
+    build:
+      context: ./ecommerce
+      dockerfile: Dockerfile
+    volumes:
+      - ./ecommerce:/app
+      - static_volume:/app/staticfiles
+      - media_volume:/app/mediafiles
+    expose:
+      - "8000"
+    env_file:
+      - ./ecommerce/.env # Correctly points to your backend's .env file
+    depends_on:
+      - db
+      - redis
+    command: >
+      sh -c "python manage.py collectstatic --noinput &&
+             python manage.py migrate &&
+             gunicorn ecommerce.wsgi:application --bind 0.0.0.0:8000"
+
+  frontend:
+    build:
+      context: ./frontend/my-app
+      dockerfile: Dockerfile
+    volumes:
+      - ./frontend/my-app:/app
+      - /app/node_modules # Anonymous volume to prevent host node_modules from overwriting container's node_modules
+    expose:
+      - "3000"
+    env_file:
+      - ./frontend/my-app/.env.local # Correctly points to your frontend's .env.local file
+    depends_on:
+      - backend # Frontend needs backend for API calls
+
+  db:
+    image: postgres:13-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    env_file:
+      - ./ecommerce/.env # This ensures the DB container gets its credentials from the backend's .env
+    environment:
+      POSTGRES_DB: ${DATABASE_NAME}
+      POSTGRES_USER: ${DATABASE_USER}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+    expose:
+      - "5432"
+
+  redis:
+    image: redis:alpine
+    expose:
+      - "6379"
+
+volumes:
+  postgres_data:
+  static_volume:
+  media_volume:
