@@ -46,12 +46,9 @@ django-storages==1.14.2
 boto3==1.39.0
 s3transfer==0.13.0
 
-# Production server & imaging
-gunicorn==22.0.0
+# For serving the Django app
+gunicorn==23.0.0
 pillow==11.2.1
-
-# Data formats
-PyYAML==6.0.1
 
 # Error monitoring
 sentry-sdk==2.32.0
@@ -105,7 +102,9 @@ pyrsistent==0.18.1
 python-dateutil==2.9.0.post0
 python3-openid==3.2.0
 pytz==2022.1
-requests==2.31.0
+# Data formats
+PyYAML==6.0.1
+requests==2.32.4
 requests-oauthlib==2.0.0
 SecretStorage==3.3.1
 six==1.16.0
