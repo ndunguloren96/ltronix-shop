@@ -17,20 +17,20 @@ if (!DJANGO_API_BASE_URL) {
 
 // --- Type Definitions ---
 export interface Product {
-  id: string;
-  name: string;
-  price: string;
-  description: string;
-  digital: boolean;
-  image_url?: string;
-  category?: string;
-  stock: number;
-  brand?: string;
-  sku?: string;
-  rating: string;
-  reviews_count: number;
-  created_at: string;
-  updated_at: string;
+    id: string;
+    name: string;
+    price: string;
+    description: string;
+    digital: boolean;
+    image_url?: string;
+    category?: string;
+    stock: number;
+    brand?: string;
+    sku?: string;
+    rating: string;
+    reviews_count: number;
+    created_at: string;
+    updated_at: string;
 }
 
 // New interface for the paginated response structure from Django DRF

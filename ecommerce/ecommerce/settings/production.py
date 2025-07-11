@@ -6,7 +6,7 @@ from .base import *
 
 DEBUG = False
 
-ALLOWED_HOSTS = env.list("ALLOWED_HOSTS")
+ALLOWED_HOSTS = ['ltronix-shop.onrender.com','*.onrender.com','https://ltronix-shop.vercel.app','localhost','127.0.0.1']
 
 DATABASES = {"default": env.db("DATABASE_URL")}
 
