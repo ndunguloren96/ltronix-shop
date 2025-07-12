@@ -9,14 +9,14 @@ import {
   Divider,
   Link as ChakraLink,
 } from '@chakra-ui/react';
-import Image from 'next/image';
+// import Image from 'next/image'; // <-- You can comment out or remove this import
 import NextLink from 'next/link';
 
 interface ProductCardProps {
   id: string;
   name: string;
   description: string;
-  imageUrl?: string;
+  image_file?: string; // <-- CHANGE THIS: Renamed from imageUrl to image_file
   price: string;
   stock: number;
 }
@@ -25,7 +25,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   id,
   name,
   description,
-  imageUrl,
+  image_file, // <-- CHANGE THIS: Renamed from imageUrl to image_file
   price,
 }) => {
   const formatPrice = (priceString: string): string => {
@@ -40,15 +40,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     <ChakraLink as={NextLink} href={`/products/${id}`} passHref _hover={{ textDecoration: 'none' }}>
       <Box maxW="sm" borderWidth="1px" borderRadius="lg" overflow="hidden" boxShadow="md" bg="white" cursor="pointer">
         <Box position="relative" height="200px" width="100%" display="block">
-          {imageUrl ? (
-            <Image
-              src={imageUrl}
+          {image_file ? ( // <-- Use image_file here
+            // CHANGE THIS: Using a standard <img> tag instead of Next.js Image for full URLs
+            <img
+              src={image_file} // <-- Use image_file here
               alt={name}
-              fill
-              style={{ objectFit: 'cover' }}
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-              priority={false}
-              unoptimized={true}
+              style={{ objectFit: 'cover', width: '100%', height: '100%' }} // Added inline styles for img
             />
           ) : (
             <Box height="200px" width="100%" bg="gray.200" display="flex" alignItems="center" justifyContent="center">
@@ -57,11 +54,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           )}
         </Box>
 
-        <Box p={4}> {/* Reduced padding for more compact look */}
-          <Stack spacing={1}> {/* Reduced spacing */}
+        <Box p={4}>
+          <Stack spacing={1}>
             <Heading size="md" noOfLines={1}>{name}</Heading>
             <Text fontSize="sm" color="gray.600" noOfLines={2}>{description}</Text>
-            <Text color="brand.600" fontSize="xl" fontWeight="bold"> {/* Slightly smaller price font */}
+            <Text color="brand.600" fontSize="xl" fontWeight="bold">
               {formatPrice(price)}
             </Text>
           </Stack>
