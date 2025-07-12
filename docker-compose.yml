@@ -39,7 +39,7 @@ services:
     volumes:
       - ./ecommerce:/app
       - static_volume:/app/staticfiles
-      - media_volume:/app/media
+      - media_volume:/app/mediafiles
    # expose:
     #  - "8000"
     ports:
