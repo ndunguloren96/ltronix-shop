@@ -22,7 +22,7 @@ export interface Product {
     price: string;
     description: string;
     digital: boolean;
-    image_url?: string;
+    image_file?: string;
     category?: string;
     stock: number;
     brand?: string;
