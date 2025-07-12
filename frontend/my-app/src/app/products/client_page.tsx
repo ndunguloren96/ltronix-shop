@@ -1,4 +1,4 @@
-// /var/www/ltronix-shop/frontend/my-app/src/app/products/client_page.tsx
+// src/app/products/client_page.tsx
 'use client'; // This is a client component
 
 import React from 'react';
@@ -34,13 +34,12 @@ import {
 // Given your project structure: frontend/my-app/src/app/products/client_page.tsx
 // to reach: frontend/my-app/src/components/ProductCard.tsx
 // You need to go up two directories (../../) then into components/
-import { ProductCard } from '../../components/ProductCard'; 
+import { ProductCard } from '../../components/ProductCard';
 import { SearchIcon } from '@chakra-ui/icons';
 import Fuse from 'fuse.js';
 
 import { useQuery } from '@tanstack/react-query';
 import { fetchProducts, Product } from '../../api/products';
-
 
 
 const getNumericPrice = (priceString: string): number => {
@@ -67,11 +66,11 @@ export default function ProductsClientPage({ isHomePage }: ProductsClientPagePro
   });
 
   const allCategories = React.useMemo(() =>
-    products ? Array.from(new Set(products.map(p => p.category))) : [],
+    products ? Array.from(new Set(products.map(p => p.category))).filter(Boolean) : [], // Filter out null/undefined
     [products]
   );
   const allBrands = React.useMemo(() =>
-    products ? Array.from(new Set(products.map(p => p.brand))) : [],
+    products ? Array.from(new Set(products.map(p => p.brand))).filter(Boolean) : [], // Filter out null/undefined
     [products]
   );
 
@@ -134,6 +133,7 @@ export default function ProductsClientPage({ isHomePage }: ProductsClientPagePro
 
     return productsToFilter.filter(product => {
       const productPrice = getNumericPrice(product.price);
+      // Ensure category and brand are treated as strings or fallback to empty string for includes
       const categoryMatch = selectedCategories.length === 0 || selectedCategories.includes(product.category || '');
       const priceMatch = productPrice >= priceRange[0] && productPrice <= priceRange[1];
       const brandMatch = selectedBrands.length === 0 || selectedBrands.includes(product.brand || '');
@@ -165,6 +165,7 @@ export default function ProductsClientPage({ isHomePage }: ProductsClientPagePro
 
   const hasMoreProducts = visibleProductsCount < filteredAndSearchedProducts.length;
 
+  // --- Start of Conditional Renders ---
   if (isLoading) {
     return (
       <Center height="50vh">
@@ -204,6 +205,7 @@ export default function ProductsClientPage({ isHomePage }: ProductsClientPagePro
     );
   }
 
+  // This check should come after isLoading and isError
   if (!products || products.length === 0) {
     return (
       <Center height="50vh">
@@ -216,11 +218,141 @@ export default function ProductsClientPage({ isHomePage }: ProductsClientPagePro
       </Center>
     );
   }
+  // --- End of Conditional Renders ---
+
 
   return (
     <Container maxW="7xl" py={8}>
-      <Text>Products will be displayed here.</Text>
+      <Flex direction={{ base: 'column', md: 'row' }} gap={8}>
+        {/* Filters/Sidebar */}
+        <Box w={{ base: '100%', md: '250px' }} p={4} borderWidth="1px" borderRadius="lg" bg="white" shadow="md">
+          <VStack spacing={6} align="stretch">
+            <Heading size="md" mb={2}>Filters</Heading>
+
+            {/* Search Bar */}
+            <InputGroup>
+              <InputLeftElement pointerEvents="none">
+                <SearchIcon color="gray.300" />
+              </InputLeftElement>
+              <Input
+                placeholder="Search products..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </InputGroup>
+
+            {/* Categories Filter */}
+            <Accordion allowMultiple defaultIndex={[0]}>
+              <AccordionItem>
+                <h2>
+                  <AccordionButton>
+                    <Box as="span" flex="1" textAlign="left" fontWeight="semibold">
+                      Categories
+                    </Box>
+                    <AccordionIcon />
+                  </AccordionButton>
+                </h2>
+                <AccordionPanel pb={4}>
+                  <VStack align="flex-start">
+                    {allCategories.map(category => (
+                      <Checkbox
+                        key={category}
+                        isChecked={selectedCategories.includes(category || '')}
+                        onChange={() => handleCategoryChange(category || '')}
+                      >
+                        {category || 'Uncategorized'}
+                      </Checkbox>
+                    ))}
+                  </VStack>
+                </AccordionPanel>
+              </AccordionItem>
+            </Accordion>
+
+            {/* Brands Filter */}
+            <Accordion allowMultiple defaultIndex={[0]}>
+              <AccordionItem>
+                <h2>
+                  <AccordionButton>
+                    <Box as="span" flex="1" textAlign="left" fontWeight="semibold">
+                      Brands
+                    </Box>
+                    <AccordionIcon />
+                  </AccordionButton>
+                </h2>
+                <AccordionPanel pb={4}>
+                  <VStack align="flex-start">
+                    {allBrands.map(brand => (
+                      <Checkbox
+                        key={brand}
+                        isChecked={selectedBrands.includes(brand || '')}
+                        onChange={() => handleBrandChange(brand || '')}
+                      >
+                        {brand || 'Unbranded'}
+                      </Checkbox>
+                    ))}
+                  </VStack>
+                </AccordionPanel>
+              </AccordionItem>
+            </Accordion>
+
+            {/* Price Range Filter */}
+            <Accordion allowMultiple defaultIndex={[0]}>
+              <AccordionItem>
+                <h2>
+                  <AccordionButton>
+                    <Box as="span" flex="1" textAlign="left" fontWeight="semibold">
+                      Price Range
+                    </Box>
+                    <AccordionIcon />
+                  </AccordionButton>
+                </h2>
+                <AccordionPanel pb={4}>
+                  <Text fontSize="sm" mb={2}>{`$${priceRange[0].toFixed(2)} - $${priceRange[1].toFixed(2)}`}</Text>
+                  <RangeSlider
+                    aria-label={['min price', 'max price']}
+                    defaultValue={[minPrice, maxPrice]}
+                    min={minPrice}
+                    max={maxPrice}
+                    step={1}
+                    // Only update on changeEnd to avoid excessive re-renders during slide
+                    onChangeEnd={(val) => setPriceRange(val)}
+                    // Set value prop to control it and display current range correctly
+                    value={priceRange}
+                  >
+                    <RangeSliderTrack>
+                      <RangeSliderFilledTrack />
+                    </RangeSliderTrack>
+                    <RangeSliderThumb index={0} />
+                    <RangeSliderThumb index={1} />
+                  </RangeSlider>
+                </AccordionPanel>
+              </AccordionItem>
+            </Accordion>
+          </VStack>
+        </Box>
+
+        {/* Product Grid */}
+        <Box flex="1">
+          {productsToDisplay.length > 0 ? (
+            <SimpleGrid columns={{ base: 1, sm: 2, md: 2, lg: 3 }} spacing={8}>
+              {productsToDisplay.map(product => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </SimpleGrid>
+          ) : (
+            <Center p={8}>
+              <Text fontSize="xl" color="gray.500">No products match your criteria.</Text>
+            </Center>
+          )}
+          {hasMoreProducts && (
+            <Center mt={8}>
+              <Button onClick={handleLoadMore} colorScheme="brand">
+                Load More
+              </Button>
+            </Center>
+          )}
+        </Box>
+      </Flex>
     </Container>
   );
 }
-
