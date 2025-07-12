@@ -336,7 +336,15 @@ export default function ProductsClientPage({ isHomePage }: ProductsClientPagePro
           {productsToDisplay.length > 0 ? (
             <SimpleGrid columns={{ base: 1, sm: 2, md: 2, lg: 3 }} spacing={8}>
               {productsToDisplay.map(product => (
-                <ProductCard key={product.id} product={product} />
+                <ProductCard
+                  key={product.id}
+                  id={product.id}
+                  name={product.name}
+                  description={product.description}
+                  image_file={product.image_file} // <-- Ensure image_file is passed here
+                  price={product.price}
+                  stock={product.stock}
+                />
               ))}
             </SimpleGrid>
           ) : (
