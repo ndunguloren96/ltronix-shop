@@ -14,7 +14,11 @@ import {
   AlertIcon,
 } from '@chakra-ui/react';
 import Fuse from 'fuse.js'; // Import Fuse.js
-import { ProductCard } from '@/components/ProductCard'; // Assuming this path is correct
+// CRITICAL FIX: Changed import path to a relative path for better module resolution.
+// Given your project structure: frontend/my-app/src/app/search/page.tsx
+// to reach: frontend/my-app/src/components/ProductCard.tsx
+// You need to go up two directories (../../) then into components/
+import { ProductCard } from '../../components/ProductCard';
 
 // Define a Product type to match your product structure (adjust if needed)
 interface Product {
@@ -24,7 +28,7 @@ interface Product {
   category: string;
   brand: string;
   price: number;
-  imageUrl: string;
+  image_file: string; // Changed from imageUrl to image_file
   stock: number;
   // Add any other fields you want to search through or display
 }
@@ -42,7 +46,12 @@ export default function SearchResultsPage() {
       try {
         setLoading(true);
         // Fetch all products from your API endpoint
-        const response = await fetch('/api/products'); // Adjust this URL if your API is on a different path
+        // It's crucial to use the full API URL for client-side fetches
+        // as relative paths might not resolve correctly or might hit Next.js API routes
+        // if not explicitly defined. For direct backend access, use the full URL.
+        const apiUrl = process.env.NEXT_PUBLIC_DJANGO_API_URL || 'http://localhost/api/v1/';
+        const response = await fetch(`${apiUrl}products/`); // Adjust this URL if your API is on a different path
+        
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -61,10 +70,6 @@ export default function SearchResultsPage() {
 
   // Memoize Fuse.js instance and search results to prevent re-creation on every render
   const fuse = useMemo(() => {
-    // Fuse.js options:
-    // keys: fields to search within
-    // includeScore: returns a score for each match (0 is perfect, 1 is no match)
-    // threshold: score at which the match is considered relevant (0.0 is perfect, 1.0 is full match)
     const options = {
       keys: ['name', 'description', 'category', 'brand'], // Fields to search in your product data
       includeScore: true,
@@ -120,7 +125,7 @@ export default function SearchResultsPage() {
               id={product.id}
               name={product.name}
               description={product.description}
-              imageUrl={product.imageUrl}
+              image_file={product.image_file} // Changed from imageUrl to image_file
               price={product.price.toString()}
               stock={product.stock} // Assuming stock is available on the Product type
             />
