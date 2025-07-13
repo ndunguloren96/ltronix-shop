@@ -1,4 +1,4 @@
-//src/api/orders.ts
+// frontend/my-app/src/api/orders.ts
 import { getSession } from 'next-auth/react';
 
 // Define base URL for your Django API
@@ -135,7 +135,8 @@ async function fetchWithSession(url: string, options?: RequestInit, guestSession
  */
 export async function fetchCartAPI(guestSessionKey?: string | null): Promise<BackendOrder | null> {
   try {
-    const response = await fetchWithSession(`${DJANGO_API_BASE_URL}/products/orders/my_cart/`, {}, guestSessionKey);
+    // FIX: Removed '/products/' from the URL path
+    const response = await fetchWithSession(`${DJANGO_API_BASE_URL}/orders/my_cart/`, {}, guestSessionKey);
     return response;
   } catch (error) {
     console.error("Error fetching cart:", error);
@@ -157,7 +158,8 @@ export async function updateEntireCartAPI(cartItems: ProductInCart[], guestSessi
     })),
   };
 
-  const url = `${DJANGO_API_BASE_URL}/products/orders/`;
+  // FIX: Removed '/products/' from the URL path
+  const url = `${DJANGO_API_BASE_URL}/orders/`;
   const response = await fetchWithSession(url, {
     method: 'POST',
     body: JSON.stringify(payload),
@@ -174,7 +176,8 @@ export async function updateEntireCartAPI(cartItems: ProductInCart[], guestSessi
 export async function clearCartAPI(cartId: number, guestSessionKey?: string | null): Promise<BackendOrder> {
   // Clearing cart is essentially updating with an empty items array.
   // Using PUT on the specific order ID to explicitly clear it.
-  const url = `${DJANGO_API_BASE_URL}/products/orders/${cartId}/`;
+  // FIX: Removed '/products/' from the URL path
+  const url = `${DJANGO_API_BASE_URL}/orders/${cartId}/`;
   const response = await fetchWithSession(url, {
     method: 'PUT', // Use PUT to update the entire cart (clear it by sending no items)
     body: JSON.stringify({ items: [] }), // Send an empty items array
@@ -189,7 +192,8 @@ export async function clearCartAPI(cartId: number, guestSessionKey?: string | nu
  * @returns The completed BackendOrder.
  */
 export async function checkoutCartAPI(cartId: number, guestSessionKey?: string | null): Promise<BackendOrder> {
-  const url = `${DJANGO_API_BASE_URL}/products/orders/${cartId}/complete_order/`;
+  // FIX: Removed '/products/' from the URL path
+  const url = `${DJANGO_API_BASE_URL}/orders/${cartId}/complete_order/`;
   const response = await fetchWithSession(url, {
     method: 'POST',
   }, guestSessionKey);
@@ -200,7 +204,8 @@ export async function checkoutCartAPI(cartId: number, guestSessionKey?: string |
  * Fetches the order history for the authenticated user.
  */
 export async function fetchOrdersAPI(): Promise<BackendOrder[]> {
-  const url = `${DJANGO_API_BASE_URL}/products/orders/`;
+  // FIX: Removed '/products/' from the URL path
+  const url = `${DJANGO_API_BASE_URL}/orders/`;
   const response = await fetchWithSession(url, {
     method: 'GET',
   });
