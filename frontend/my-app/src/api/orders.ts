@@ -2,6 +2,8 @@
 import { getSession } from 'next-auth/react';
 
 // Define base URL for your Django API
+// It's expected that NEXT_PUBLIC_DJANGO_API_URL from .env.local or environment variables
+// will include the /api/v1/ suffix.
 const DJANGO_API_BASE_URL = process.env.NEXT_PUBLIC_DJANGO_API_URL || 'http://localhost:8000/api/v1';
 
 // --- Type Definitions for Cart/Order Operations ---
@@ -135,8 +137,9 @@ async function fetchWithSession(url: string, options?: RequestInit, guestSession
  */
 export async function fetchCartAPI(guestSessionKey?: string | null): Promise<BackendOrder | null> {
   try {
-    // FIX: Removed '/products/' from the URL path
-    const response = await fetchWithSession(`${DJANGO_API_BASE_URL}/orders/my_cart/`, {}, guestSessionKey);
+    // FIX: Use URL constructor for robust path concatenation
+    const url = new URL('orders/my_cart/', DJANGO_API_BASE_URL);
+    const response = await fetchWithSession(url.toString(), {}, guestSessionKey);
     return response;
   } catch (error) {
     console.error("Error fetching cart:", error);
@@ -158,9 +161,9 @@ export async function updateEntireCartAPI(cartItems: ProductInCart[], guestSessi
     })),
   };
 
-  // FIX: Removed '/products/' from the URL path
-  const url = `${DJANGO_API_BASE_URL}/orders`;
-  const response = await fetchWithSession(url, {
+  // FIX: Use URL constructor for robust path concatenation
+  const url = new URL('orders/', DJANGO_API_BASE_URL);
+  const response = await fetchWithSession(url.toString(), {
     method: 'POST',
     body: JSON.stringify(payload),
   }, guestSessionKey); // Pass guestSessionKey here
@@ -176,9 +179,9 @@ export async function updateEntireCartAPI(cartItems: ProductInCart[], guestSessi
 export async function clearCartAPI(cartId: number, guestSessionKey?: string | null): Promise<BackendOrder> {
   // Clearing cart is essentially updating with an empty items array.
   // Using PUT on the specific order ID to explicitly clear it.
-  // FIX: Removed '/products/' from the URL path
-  const url = `${DJANGO_API_BASE_URL}/orders/${cartId}/`;
-  const response = await fetchWithSession(url, {
+  // FIX: Use URL constructor for robust path concatenation
+  const url = new URL(`orders/${cartId}/`, DJANGO_API_BASE_URL);
+  const response = await fetchWithSession(url.toString(), {
     method: 'PUT', // Use PUT to update the entire cart (clear it by sending no items)
     body: JSON.stringify({ items: [] }), // Send an empty items array
   }, guestSessionKey);
@@ -192,9 +195,9 @@ export async function clearCartAPI(cartId: number, guestSessionKey?: string | nu
  * @returns The completed BackendOrder.
  */
 export async function checkoutCartAPI(cartId: number, guestSessionKey?: string | null): Promise<BackendOrder> {
-  // FIX: Removed '/products/' from the URL path
-  const url = `${DJANGO_API_BASE_URL}/orders/${cartId}/complete_order/`;
-  const response = await fetchWithSession(url, {
+  // FIX: Use URL constructor for robust path concatenation
+  const url = new URL(`orders/${cartId}/complete_order/`, DJANGO_API_BASE_URL);
+  const response = await fetchWithSession(url.toString(), {
     method: 'POST',
   }, guestSessionKey);
   return response;
@@ -204,9 +207,9 @@ export async function checkoutCartAPI(cartId: number, guestSessionKey?: string |
  * Fetches the order history for the authenticated user.
  */
 export async function fetchOrdersAPI(): Promise<BackendOrder[]> {
-  // FIX: Removed '/products/' from the URL path
-  const url = `${DJANGO_API_BASE_URL}/orders`;
-  const response = await fetchWithSession(url, {
+  // FIX: Use URL constructor for robust path concatenation
+  const url = new URL('orders/', DJANGO_API_BASE_URL);
+  const response = await fetchWithSession(url.toString(), {
     method: 'GET',
   });
   return response.filter((order: BackendOrder) => order.complete === true);
@@ -223,9 +226,10 @@ export async function fetchOrdersAPI(): Promise<BackendOrder[]> {
  * @returns The initiated BackendTransaction details.
  */
 export async function initiateStkPushAPI(payload: { orderId: number; phoneNumber: string }, guestSessionKey?: string | null): Promise<BackendTransaction> {
-  const url = `${DJANGO_API_BASE_URL}/payments/stk-push/`;
+  // This URL was already correct as it's directly under /payments/
+  const url = new URL('payments/stk-push/', DJANGO_API_BASE_URL); // Ensure it also uses URL constructor for consistency
   console.log("Initiating STK Push with payload:", payload);
-  const response = await fetchWithSession(url, {
+  const response = await fetchWithSession(url.toString(), {
     method: 'POST',
     body: JSON.stringify({
       order_id: payload.orderId,
@@ -242,9 +246,10 @@ export async function initiateStkPushAPI(payload: { orderId: number; phoneNumber
  * @returns The BackendTransaction with updated status.
  */
 export async function fetchTransactionStatusAPI(transactionId: number, guestSessionKey?: string | null): Promise<BackendTransaction> {
-  const url = `${DJANGO_API_BASE_URL}/payments/status/?transaction_id=${transactionId}`;
+  // This URL was already correct as it's directly under /payments/
+  const url = new URL(`payments/status/?transaction_id=${transactionId}`, DJANGO_API_BASE_URL); // Ensure it also uses URL constructor for consistency
   console.log("Fetching transaction status for ID:", transactionId);
-  const response = await fetchWithSession(url, {
+  const response = await fetchWithSession(url.toString(), {
     method: 'GET',
   }, guestSessionKey);
   return response;
