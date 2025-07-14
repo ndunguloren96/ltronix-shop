@@ -9,29 +9,16 @@ import {
   AlertDescription,
 } from '@chakra-ui/react';
 import { notFound } from 'next/navigation';
-import { fetchProductById } from '../../../api/products';
+// FIX: Import Product interface directly from src/api/products
+import { fetchProductById, Product } from '../../../api/products';
 import ProductDetailClientContent from './client_content';
 
-interface Product {
-  id: string;
-  name: string;
-  description: string;
-  price: string;
-  digital: boolean;
-  image_url?: string;
-  category?: string;
-  stock: number;
-  brand?: string;
-  sku?: string;
-  rating: string;
-  reviews_count: number;
-  created_at: string;
-  updated_at: string;
-}
+// FIX: Removed duplicate Product interface definition here.
+// It is now imported from '../../../api/products'.
 
 // Define the resolved params type
 interface ResolvedProductDetailPageParams {
-  id: string;
+  id: string; // Next.js dynamic routes capture IDs as strings
 }
 
 // Define the component's props type, where params and searchParams are Promises
@@ -43,16 +30,16 @@ interface ProductDetailPageProps {
 export default async function ProductDetailPage({ params, searchParams }: ProductDetailPageProps) {
   // Await params to get the actual object
   const resolvedParams = await params;
-  const productId = resolvedParams.id;
+  const productIdString = resolvedParams.id; // It comes as a string from the URL
 
-  // If you need searchParams, you'd await them too:
-  // const resolvedSearchParams = await searchParams;
-  // const mySearchParam = resolvedSearchParams?.someKey;
+  // FIX: Convert productId to a number before passing it to fetchProductById
+  const productId = Number(productIdString);
+
   let product: Product | null = null;
   let error: Error | null = null;
 
   try {
-    product = await fetchProductById(productId);
+    product = await fetchProductById(productId); // fetchProductById now expects a number
   } catch (err) {
     console.error(`Error fetching product ${productId}:`, err);
     error = err as Error;
