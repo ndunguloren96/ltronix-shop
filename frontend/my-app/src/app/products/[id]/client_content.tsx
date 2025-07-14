@@ -27,7 +27,8 @@ import Link from 'next/link';
 
 // Define the Product interface (should match the data passed from the server component)
 interface Product {
-  id: string;
+  // FIX: Changed id from string to number to match backend and other frontend interfaces
+  id: number;
   name: string;
   description: string;
   price: string;
@@ -53,7 +54,7 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
   const { data: session, status } = useSession();
 
   const [quantity, setQuantity] = React.useState(1);
-  const localCartItems = useCartStore((state) => state.items); // CORRECTED: This directly extracts the items array.
+  const localCartItems = useCartStore((state) => state.items);
   const setLocalCartItems = useCartStore((state) => state.setItems);
   const guestSessionKey = useCartStore((state) => state.guestSessionKey);
   const setGuestSessionKey = useCartStore((state) => state.setGuestSessionKey);
@@ -93,9 +94,10 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
 
       queryClient.setQueryData<BackendOrder>(['cart'], (oldCart) => {
         const updatedBackendItems: BackendOrderItem[] = newCartItems.map(item => ({
-          id: oldCart?.items.find(pi => pi.product.id === item.id)?.id || Math.random(),
+          // FIX: Ensure id is number here for optimistic update
+          id: oldCart?.items.find(pi => pi.product.id === item.id)?.id || Math.random(), // Keep Math.random() for temporary client-side ID
           product: {
-            id: item.id,
+            id: item.id, // This `item.id` is already a number from ProductInCart
             name: item.name,
             price: item.price.toFixed(2),
             image_url: item.image_url,
@@ -149,7 +151,7 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
         setLocalCartItems([]);
       }
     },
-    onSettled: async (data, _error, _variables, _context) => { // _error, _variables, _context are unused
+    onSettled: async (data, _error, _variables, _context) => {
         if (data && data.session_key && !guestSessionKey) {
             setGuestSessionKey(data.session_key);
             console.log("Guest session key received from backend and set:", data.session_key);
@@ -211,22 +213,24 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
     }
 
     const itemToAddOrUpdate: ProductInCart = {
-      id: product.id,
+      // FIX: Convert product.id to number as ProductInCart expects number
+      id: Number(product.id),
       name: product.name,
       price: priceAsNumber,
       quantity: quantity,
       image_url: product.image_url,
     };
 
-    // CORRECTED: Use `localCartItems` directly as it's already the array
-    const currentLocalCartItems = localCartItems; 
+    const currentLocalCartItems = localCartItems;
 
-    const existingLocalItem = currentLocalCartItems.find(item => item.id === product.id);
+    // FIX: Ensure comparison is with number id
+    const existingLocalItem = currentLocalCartItems.find(item => item.id === itemToAddOrUpdate.id);
 
     let updatedLocalCartItems: ProductInCart[];
     if (existingLocalItem) {
       updatedLocalCartItems = currentLocalCartItems.map(item =>
-        item.id === product.id ? { ...item, quantity: item.quantity + quantity } : item
+        // FIX: Ensure comparison is with number id
+        item.id === itemToAddOrUpdate.id ? { ...item, quantity: item.quantity + quantity } : item
       );
     } else {
       updatedLocalCartItems = [...currentLocalCartItems, { ...itemToAddOrUpdate, quantity: quantity }];
