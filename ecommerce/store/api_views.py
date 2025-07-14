@@ -157,11 +157,13 @@ class OrderViewSet(
                 for item in items_payload
                 if item.get("product_id") is not None
             ]
+            # FIX: Ensure the product IDs are converted to int for DB lookup in exclude
             order.orderitem_set.exclude(
-                product__id__in=current_product_ids_in_payload
+                product__id__in=[int(pid) for pid in current_product_ids_in_payload]
             ).delete()
 
             product_ids = [item_data["product_id"] for item_data in items_payload if item_data.get("product_id")]
+            # FIX: Ensure products_map keys are strings (str(p.id)) for consistent lookup
             products_map = {str(p.id): p for p in Product.objects.filter(id__in=product_ids)}
 
             for item_data in items_payload:
@@ -177,7 +179,8 @@ class OrderViewSet(
                     print(f"Skipping invalid item data: {item_data}")
                     continue
 
-                product = products_map.get(product_id)
+                # FIX: Convert product_id to string for lookup in products_map
+                product = products_map.get(str(product_id))
                 if not product:
                     return Response(
                         {"detail": f"Product with ID '{product_id}' not found."},
@@ -320,9 +323,19 @@ class OrderViewSet(
             )
 
         with transaction.atomic():
-            instance.orderitem_set.all().delete()
+            # FIX: Ensure product IDs are converted to int for DB lookup before deleting
+            current_product_ids_in_payload = [
+                item.get("product_id")
+                for item in items_payload
+                if item.get("product_id") is not None
+            ]
+            instance.orderitem_set.exclude(
+                product__id__in=[int(pid) for pid in current_product_ids_in_payload]
+            ).delete()
+
 
             product_ids = [item_data["product_id"] for item_data in items_payload if item_data.get("product_id")]
+            # FIX: Ensure products_map keys are strings (str(p.id)) for consistent lookup
             products_map = {str(p.id): p for p in Product.objects.filter(id__in=product_ids)}
 
             items_to_create = []
@@ -340,7 +353,8 @@ class OrderViewSet(
                     print(f"Skipping invalid item data during update: {item_data}")
                     continue
 
-                product = products_map.get(product_id)
+                # FIX: Convert product_id to string for lookup in products_map
+                product = products_map.get(str(product_id))
                 if not product:
                     return Response(
                         {"detail": f"Product with ID '{product_id}' not found."},
@@ -549,3 +563,4 @@ class MyCartView(APIView):
         if not user.is_authenticated and hasattr(order, "session_key"):
             response_data["session_key"] = order.session_key
         return Response(response_data)
+
