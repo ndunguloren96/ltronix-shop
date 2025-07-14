@@ -35,7 +35,8 @@ import {
   BackendOrder,
   ProductInCart,
   BackendOrderItem,
-} from '@/api/orders';
+}
+ from '@/api/orders';
 import { useCartStore } from '@/store/useCartStore';
 
 // Define the context interface for useMutation
@@ -279,12 +280,14 @@ export default function CartPage() {
     router.push('/checkout');
   };
 
-  const handleRemoveItem = (id: string) => {
+  // FIX: Change 'id' parameter type from string to number
+  const handleRemoveItem = (id: number) => {
     const updatedItems = localCartItems.filter((item) => item.id !== id);
     updateCartMutation.mutate(updatedItems);
   };
 
-  const handleQuantityChange = (id: string, value: string) => {
+  // FIX: Change 'id' parameter type from string to number
+  const handleQuantityChange = (id: number, value: string) => {
     const newQuantity = parseInt(value, 10);
     if (!isNaN(newQuantity) && newQuantity >= 0) {
       let updatedItems: ProductInCart[];
@@ -414,6 +417,7 @@ export default function CartPage() {
                       maxW="100px"
                       value={item.quantity}
                       min={0}
+                      // FIX: Pass item.id (number) to handleQuantityChange
                       onChange={(valueAsString) =>
                         handleQuantityChange(item.id, valueAsString)
                       }
@@ -435,6 +439,7 @@ export default function CartPage() {
                     size="sm"
                     colorScheme="red"
                     variant="ghost"
+                    // FIX: Pass item.id (number) to handleRemoveItem
                     onClick={() => handleRemoveItem(item.id)}
                     isLoading={updateCartMutation.isPending}
                     isDisabled={updateCartMutation.isPending}
