@@ -13,7 +13,8 @@ import {
 import NextLink from 'next/link';
 
 interface ProductCardProps {
-  id: string;
+  // FIX: Changed id from string to number
+  id: number;
   name: string;
   description: string;
   image_file?: string; // <-- CHANGE THIS: Renamed from imageUrl to image_file
@@ -37,7 +38,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   };
 
   return (
-    <ChakraLink as={NextLink} href={`/products/${id}`} passHref _hover={{ textDecoration: 'none' }}>
+    // FIX: Ensure id is converted to string for the NextLink href
+    <ChakraLink as={NextLink} href={`/products/${id.toString()}`} passHref _hover={{ textDecoration: 'none' }}>
       <Box maxW="sm" borderWidth="1px" borderRadius="lg" overflow="hidden" boxShadow="md" bg="white" cursor="pointer">
         <Box position="relative" height="200px" width="100%" display="block">
           {image_file ? ( // <-- Use image_file here
@@ -67,3 +69,4 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     </ChakraLink>
   );
 };
+

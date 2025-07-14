@@ -17,7 +17,8 @@ if (!DJANGO_API_BASE_URL) {
 
 // --- Type Definitions ---
 export interface Product {
-    id: string;
+    // FIX: Changed id from string to number to match Django backend
+    id: number;
     name: string;
     price: string;
     description: string;
@@ -104,7 +105,11 @@ export async function fetchProducts(): Promise<Product[]> {
     // --- CRITICAL CHANGE HERE ---
     // Cast the response to the PaginatedProductsResponse interface
     const data: PaginatedProductsResponse = await response.json();
-    return data.results; // Return only the 'results' array
+    // FIX: Ensure product IDs are numbers when returned
+    return data.results.map(product => ({
+        ...product,
+        id: Number(product.id) // Explicitly convert id to number
+    }));
     // --- END CRITICAL CHANGE ---
 
   } catch (err: any) {
@@ -135,7 +140,7 @@ export async function fetchProducts(): Promise<Product[]> {
  * Fetches a single product by its ID from the Django backend.
  */
 export async function fetchProductById(
-  id: number | string
+  id: number // FIX: Changed id type to number
 ): Promise<Product> {
   // Ensure the base URL is defined before proceeding
   if (!DJANGO_API_BASE_URL) {
@@ -180,7 +185,12 @@ export async function fetchProductById(
       );
     }
 
-    return await response.json();
+    const data: Product = await response.json();
+    // FIX: Ensure product ID is a number when returned for single product fetch
+    return {
+        ...data,
+        id: Number(data.id)
+    };
   } catch (err: any) {
     clearTimeout(timeoutId); // Clear timeout on error
     console.error(`Error fetching product ${id}:`, err);
@@ -203,3 +213,4 @@ export async function fetchProductById(
     throw error; // Re-throw other unexpected errors
   }
 }
+

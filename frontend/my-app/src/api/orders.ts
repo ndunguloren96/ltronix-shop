@@ -8,7 +8,8 @@ const DJANGO_API_BASE_URL = process.env.NEXT_PUBLIC_DJANGO_API_URL || 'http://lo
 
 // --- Type Definitions for Cart/Order Operations ---
 export interface ProductInCart {
-  id: string;
+  // FIX: Changed id from string to number
+  id: number; // Product ID
   name: string;
   price: number;
   quantity: number;
@@ -17,7 +18,8 @@ export interface ProductInCart {
 
 export interface OrderItemPayload {
   id?: number;
-  product_id: string;
+  // FIX: Changed product_id from string to number
+  product_id: number;
   quantity: number;
 }
 
@@ -30,7 +32,8 @@ export interface OrderPayload {
 export interface BackendOrderItem {
   id: number;
   product: {
-    id: string;
+    // FIX: Changed product.id from string to number
+    id: number;
     name: string;
     price: string;
     image_url?: string;
@@ -156,7 +159,8 @@ export async function fetchCartAPI(guestSessionKey?: string | null): Promise<Bac
 export async function updateEntireCartAPI(cartItems: ProductInCart[], guestSessionKey?: string | null): Promise<BackendOrder> {
   const payload: OrderPayload = {
     items: cartItems.map(item => ({
-      product_id: item.id,
+      // FIX: Ensure product_id is a number
+      product_id: Number(item.id), // Explicitly convert to number
       quantity: item.quantity,
     })),
   };
@@ -254,3 +258,4 @@ export async function fetchTransactionStatusAPI(transactionId: number, guestSess
   }, guestSessionKey);
   return response;
 }
+

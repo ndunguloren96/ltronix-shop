@@ -4,7 +4,8 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import { v4 as uuidv4 } from 'uuid'; // Import uuid for generating session keys
 
 interface CartItem {
-    id: string; // Product ID
+    // FIX: Changed id from string to number (Product ID)
+    id: number; // Product ID
     name: string;
     price: number;
     quantity: number;
@@ -14,9 +15,10 @@ interface CartItem {
 interface CartState {
     items: CartItem[];
     guestSessionKey: string | null; // Session key for unauthenticated users
+    // FIX: Ensure id is number for addItem, removeItem, updateItemQuantity
     addItem: (item: Omit<CartItem, 'quantity'> & { image_url?: string }) => void;
-    removeItem: (id: string) => void;
-    updateItemQuantity: (id: string, quantity: number) => void;
+    removeItem: (id: number) => void;
+    updateItemQuantity: (id: number, quantity: number) => void;
     clearCart: () => void;
     setItems: (items: CartItem[]) => void;
     setGuestSessionKey: (key: string | null) => void;
@@ -32,10 +34,12 @@ export const useCartStore = create<CartState>()(
 
             addItem: (item) =>
                 set((state) => {
+                    // FIX: Ensure comparison is with number id
                     const existingItem = state.items.find((i) => i.id === item.id);
                     if (existingItem) {
                         return {
                             items: state.items.map((i) =>
+                                // FIX: Ensure comparison is with number id
                                 i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i
                             ),
                         };
@@ -46,12 +50,14 @@ export const useCartStore = create<CartState>()(
 
             removeItem: (id) =>
                 set((state) => ({
+                    // FIX: Ensure comparison is with number id
                     items: state.items.filter((item) => item.id !== id),
                 })),
 
             updateItemQuantity: (id, quantity) =>
                 set((state) => ({
                     items: state.items.map((item) =>
+                        // FIX: Ensure comparison is with number id
                         item.id === id ? { ...item, quantity: quantity } : item
                     ),
                 })),
@@ -83,3 +89,4 @@ export const useCartStore = create<CartState>()(
         }
     )
 );
+
