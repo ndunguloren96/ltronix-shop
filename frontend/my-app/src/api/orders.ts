@@ -159,7 +159,7 @@ export async function updateEntireCartAPI(cartItems: ProductInCart[], guestSessi
   };
 
   // FIX: Removed '/products/' from the URL path
-  const url = `${DJANGO_API_BASE_URL}/orders/`;
+  const url = `${DJANGO_API_BASE_URL}/orders`;
   const response = await fetchWithSession(url, {
     method: 'POST',
     body: JSON.stringify(payload),
@@ -205,7 +205,7 @@ export async function checkoutCartAPI(cartId: number, guestSessionKey?: string |
  */
 export async function fetchOrdersAPI(): Promise<BackendOrder[]> {
   // FIX: Removed '/products/' from the URL path
-  const url = `${DJANGO_API_BASE_URL}/orders/`;
+  const url = `${DJANGO_API_BASE_URL}/orders`;
   const response = await fetchWithSession(url, {
     method: 'GET',
   });
