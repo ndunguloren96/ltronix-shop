@@ -17,21 +17,13 @@ import Fuse from 'fuse.js'; // Import Fuse.js
 // CRITICAL FIX: Changed import path to a relative path for better module resolution.
 // Given your project structure: frontend/my-app/src/app/search/page.tsx
 // to reach: frontend/my-app/src/components/ProductCard.tsx
-// You need to go up two directories (../../) then into components/
 import { ProductCard } from '../../components/ProductCard';
+// FIX: Import the Product interface and fetchProducts function from your API file
+import { Product, fetchProducts as fetchAllProductsAPI } from '@/api/products';
 
-// Define a Product type to match your product structure (adjust if needed)
-interface Product {
-  id: string;
-  name: string;
-  description: string;
-  category: string;
-  brand: string;
-  price: number;
-  image_file: string; // Changed from imageUrl to image_file
-  stock: number;
-  // Add any other fields you want to search through or display
-}
+
+// FIX: Removed duplicate Product interface definition here.
+// It is now imported from '@/api/products'.
 
 export default function SearchResultsPage() {
   const searchParams = useSearchParams();
@@ -42,30 +34,22 @@ export default function SearchResultsPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchProducts = async () => {
+    const loadProducts = async () => {
       try {
         setLoading(true);
-        // Fetch all products from your API endpoint
-        // It's crucial to use the full API URL for client-side fetches
-        // as relative paths might not resolve correctly or might hit Next.js API routes
-        // if not explicitly defined. For direct backend access, use the full URL.
-        const apiUrl = process.env.NEXT_PUBLIC_DJANGO_API_URL || 'http://localhost/api/v1/';
-        const response = await fetch(`${apiUrl}products/`); // Adjust this URL if your API is on a different path
-        
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data: Product[] = await response.json();
+        // FIX: Use the centralized fetchProducts function from '@/api/products'
+        // This function already handles the base URL, pagination, and returns Product[] with number IDs.
+        const data = await fetchAllProductsAPI();
         setProducts(data);
       } catch (err) {
-        console.error('Failed to fetch products:', err);
-        setError('Failed to load products. Please try again later.');
+        console.error('Failed to fetch products for search:', err);
+        setError('Failed to load products for search. Please try again later.');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchProducts();
+    loadProducts();
   }, []); // Empty dependency array means this runs once on mount
 
   // Memoize Fuse.js instance and search results to prevent re-creation on every render
@@ -122,11 +106,11 @@ export default function SearchResultsPage() {
           {filteredProducts.map((product) => (
             <ProductCard
               key={product.id}
-              id={product.id}
+              id={product.id} // This is now correctly a number
               name={product.name}
               description={product.description}
               image_file={product.image_file} // Changed from imageUrl to image_file
-              price={product.price.toString()}
+              price={product.price.toString()} // Price is a number in Product, convert to string for ProductCard
               stock={product.stock} // Assuming stock is available on the Product type
             />
           ))}
