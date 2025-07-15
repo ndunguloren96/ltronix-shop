@@ -13,7 +13,8 @@ WORKDIR /app
 
 # Install system dependencies required for psycopg2 (PostgreSQL client library) and git
 # These commands MUST run as root (default user in Dockerfile at this point).
-RUN apt-get update && \
+RUN set -eux; \
+    apt-get update && \
     apt-get install -y --no-install-recommends gcc libpq-dev git && \
     rm -rf /var/lib/apt/lists/*
 
@@ -22,11 +23,14 @@ COPY requirements.txt .
 
 # Install Python dependencies
 # These commands also typically require root privileges or a writable environment.
-RUN pip install --no-cache-dir -r requirements.txt
+RUN set -eux; \
+    pip install --no-cache-dir -r requirements.txt; \
+    pip freeze # FIX: Add pip freeze to inspect installed packages
 
 # Create a non-root user and set permissions
 # This should happen AFTER all system and pip installs that require root.
-RUN adduser --system --group appuser && \
+RUN set -eux; \
+    adduser --system --group appuser && \
     mkdir -p /app/ecommerce/staticfiles /app/ecommerce/media && \
     chown -R appuser:appuser /app
 
