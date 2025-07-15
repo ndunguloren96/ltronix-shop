@@ -1,11 +1,12 @@
 // src/types/next-auth.d.ts
-import { DefaultSession, DefaultUser } from "next-auth";
+
+import NextAuth, { DefaultSession, DefaultUser } from "next-auth";
 import { JWT as DefaultJWT } from "next-auth/jwt";
 
 // Define the shape of your custom DjangoUser data
 export interface DjangoUser {
-  pk: number;
-  id: number;
+  pk: number; // Primary key, often same as id
+  id: number; // The actual ID from Django's User model
   email: string;
   first_name?: string;
   middle_name?: string;
@@ -23,10 +24,10 @@ declare module "next-auth" {
   /**
    * Returned by `useSession`, `getSession` and received as a prop on the `SessionProvider` React Context
    */
-  interface Session {
+  interface Session extends DefaultSession {
     user: {
       /** The user's unique ID from the authentication provider. */
-      id?: string; // <--- ADD THIS LINE
+      id: string; // FIX: This must be a string for NextAuth's internal consistency
       /** The user's JWT access token from Django. */
       accessToken?: string;
       /** Custom Django user object. */
@@ -34,7 +35,13 @@ declare module "next-auth" {
     } & DefaultSession["user"]; // Inherit default user properties (name, email, image)
   }
 
-  
+  interface User extends DefaultUser {
+    // Add custom properties here that you expect from your Django backend
+    // FIX: This must be a string for NextAuth's internal consistency
+    id: string; 
+    accessToken?: string;
+    djangoUser?: DjangoUser;
+  }
 }
 
 declare module "next-auth/jwt" {
@@ -43,7 +50,7 @@ declare module "next-auth/jwt" {
    */
   interface JWT extends DefaultJWT {
     /** The user's unique ID. Added to JWT if available from provider or custom logic. */
-    id?: string; // <--- ADD THIS LINE if your JWT also carries a direct 'id'
+    id?: string; // FIX: This must be a string for NextAuth's internal consistency
     /** The user's JWT access token from Django. */
     accessToken?: string;
     /** Custom Django user object. */
@@ -51,3 +58,4 @@ declare module "next-auth/jwt" {
     // Add any other custom properties you store in the JWT
   }
 }
+

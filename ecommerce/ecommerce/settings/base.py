@@ -1,9 +1,4 @@
-"""
 # ecommerce/settings/base.py
-
-Base Django settings for ecommerce project.
-Optimized for performance, maintainability, and fast startup.
-"""
 
 import os
 import warnings
@@ -46,13 +41,11 @@ INSTALLED_APPS = [
     "allauth",
     "allauth.account",
     "allauth.socialaccount",
-    "allauth.socialaccount.providers.google",
-    "oauth2_provider",
-    # "social_django", # COMMENTED OUT: Temporarily disable social_django
-    # "drf_social_oauth2", # COMMENTED OUT: Temporarily disable drf_social_oauth2
+    "allauth.socialaccount.providers.google", # Keep Google provider for allauth
+    "oauth2_provider", # Keep if you're using Django OAuth Toolkit for your own API clients
     "rest_framework",
-    "rest_framework.authtoken",
-    "rest_framework_simplejwt",
+    "rest_framework.authtoken", # Keep if you use Django Token Authentication directly
+    "rest_framework_simplejwt", # Keep for JWTs
     "dj_rest_auth",
     "dj_rest_auth.registration",
     "drf_spectacular",
@@ -62,7 +55,7 @@ INSTALLED_APPS = [
     "store.apps.StoreConfig",
     "payment",
     "django_daraja",
-    "users",
+    "users", # Your custom users app
     "emails",
     "storages",
 ]
@@ -77,7 +70,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "allauth.account.middleware.AccountMiddleware",
+    "allauth.account.middleware.AccountMiddleware", # Keep for allauth
 ]
 
 ROOT_URLCONF = "ecommerce.urls"
@@ -93,8 +86,6 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
-                # "social_django.context_processors.backends", # COMMENTED OUT
-                # "social_django.context_processors.login_redirect", # COMMENTED OUT
             ]
         },
     },
@@ -116,15 +107,12 @@ AUTH_PASSWORD_VALIDATORS = [
 
 AUTHENTICATION_BACKENDS = (
     "django.contrib.auth.backends.ModelBackend",
-    "allauth.account.auth_backends.AuthenticationBackend",
-   # "social_core.backends.google.GoogleOAuth2",
-    # "drf_social_oauth2.backends.DjangoOAuth2", # COMMENTED OUT
+    "allauth.account.auth_backends.AuthenticationBackend", # Keep for allauth
 )
 
 SITE_ID = 1
 
 # --- AllAuth specific settings ---
-# CRITICAL FIX: Tell AllAuth to only use email for login
 ACCOUNT_LOGIN_METHODS = ["email"]
 ACCOUNT_USERNAME_REQUIRED = False
 ACCOUNT_EMAIL_REQUIRED = True
@@ -132,7 +120,15 @@ ACCOUNT_AUTHENTICATION_METHOD = "email"
 ACCOUNT_UNIQUE_EMAIL = True
 ACCOUNT_EMAIL_VERIFICATION = "optional" # or "mandatory" depending on your flow
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None # Ensure this is None for email-only login
-ACCOUNT_SIGNUP_FIELDS = ["email", "password"] # Simplified for clarity
+ACCOUNT_SIGNUP_FIELDS = ["email", "password"] # Simplified to match default registration
+
+# FIX: Add ACCOUNT_ADAPTER for dj-rest-auth to correctly handle social logins
+ACCOUNT_ADAPTER = "dj_rest_auth.registration.adapters.AllAuthAccountAdapter"
+SOCIALACCOUNT_ADAPTER = "dj_rest_auth.social_serializers.SocialAccountAdapter"
+
+# Redirect after login/logout (can be overridden by frontend)
+LOGIN_REDIRECT_URL = "/"
+LOGOUT_REDIRECT_URL = "/"
 
 # --- Internationalization
 LANGUAGE_CODE = "en-us"
@@ -156,7 +152,6 @@ MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR.parent, "mediafiles")
 
 # --- WhiteNoise & static files configuration
-# FIX: Correct STATICFILES_DIRS to point to the 'static' folder at the ecommerce project root
 STATICFILES_DIRS = [os.path.join(BASE_DIR.parent, "static")]
 
 
@@ -164,10 +159,10 @@ STATICFILES_DIRS = [os.path.join(BASE_DIR.parent, "static")]
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework.authentication.SessionAuthentication",
-        "rest_framework.authentication.TokenAuthentication",
-        "dj_rest_auth.jwt_auth.JWTCookieAuthentication",
-        "oauth2_provider.contrib.rest_framework.OAuth2Authentication",
-        # "drf_social_oauth2.authentication.SocialAuthentication", # COMMENTED OUT
+        "rest_framework.authentication.TokenAuthentication", # Keep if you use this explicitly
+        "dj_rest_auth.jwt_auth.JWTCookieAuthentication", # Primary for JWTs from dj-rest-auth
+        "rest_framework_simplejwt.authentication.JWTAuthentication", # For general JWT validation
+        "oauth2_provider.contrib.rest_framework.OAuth2Authentication", # Keep if using Django OAuth Toolkit
     ),
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.AllowAny",),
     "DEFAULT_RENDERER_CLASSES": (
@@ -221,43 +216,56 @@ EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
 ACCOUNT_AUTHENTICATION_METHOD = "email"
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None
 ACCOUNT_USERNAME_REQUIRED = False
-ACCOUNT_SIGNUP_FIELDS = ["email", "password1", "password2"]
+ACCOUNT_SIGNUP_FIELDS = ["email", "password"] # Simplified to match default registration
 
 # --- dj-rest-auth / JWT
 REST_AUTH = {
     "USE_JWT": True,
-    "SESSION_LOGIN": True,
+    "SESSION_LOGIN": True, # Keep this if you want session authentication for browsable API
     "JWT_AUTH_COOKIE": "my-app-jwt-access",
     "JWT_AUTH_REFRESH_COOKIE": "my-app-jwt-refresh",
     "USER_DETAILS_SERIALIZER": "users.serializers.UserDetailsSerializer",
-    "REGISTER_SERIALIZER": "users.serializers.CustomRegisterSerializer",
+    "REGISTER_SERIALIZER": "users.serializers.CustomRegisterSerializer", # FIX: Point to your custom serializer
     "PASSWORD_RESET_USE_SITECONTROL": True,
     "PASSWORD_RESET_CONFIRM_URL": env(
         "DJANGO_PASSWORD_RESET_CONFIRM_URL",
         default="http://localhost:3000/auth/password-reset-confirm/{uid}/{token}"
     ),
     "OLD_PASSWORD_FIELD_ENABLED": True,
+    # FIX: Add social login settings for dj-rest-auth
+    "SOCIAL_ACCOUNT_ADAPTER": "dj_rest_auth.social_serializers.SocialAccountAdapter",
+    "GOOGLE_CLIENT_ID": env("GOOGLE_CLIENT_ID", default=""), # Ensure this matches your Google client ID
+    "GOOGLE_CLIENT_SECRET": env("GOOGLE_CLIENT_SECRET", default=""), # Ensure this matches your Google client secret
 }
 
 # --- Simple JWT
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5), # Consider increasing for better UX
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
     "AUTH_HEADER_TYPES": ("Bearer",),
     "SIGNING_KEY": SECRET_KEY,
+    # FIX: Add token serialization for dj-rest-auth
+    "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
+    "USER_ID_FIELD": "id", # Ensure this matches your User model's primary key field
+    "USER_ID_CLAIM": "user_id", # Claim name in the token
 }
 
-# --- Social Auth (Google)
-SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = env("SOCIAL_AUTH_GOOGLE_OAUTH2_KEY")
-SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = env("SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET")
-SOCIAL_AUTH_GOOGLE_OAUTH2_SCOPE = ["openid", "email", "profile"]
-SOCIAL_AUTH_GOOGLE_OAUTH2_REDIRECT_URI = env(
-    "SOCIAL_AUTH_GOOGLE_OAUTH2_REDIRECT_URI",
-    default="http://localhost:8000/api/auth/complete/google-oauth2/"
-)
-SOCIAL_AUTH_REDIRECT_IS_HTTPS = env.bool("SOCIAL_AUTH_REDIRECT_IS_HTTPS", default=False)
+# --- Social Auth (Google via AllAuth)
+# These settings are for django-allauth, not python-social-auth
+SOCIALACCOUNT_PROVIDERS = {
+    "google": {
+        "APP": {
+            "client_id": env("GOOGLE_CLIENT_ID"),
+            "secret": env("GOOGLE_CLIENT_SECRET"),
+            "key": "", # Not used for Google
+        },
+        "SCOPE": ["profile", "email"],
+        "AUTH_PARAMS": {"access_type": "offline"}, # Important for refresh tokens if needed
+    }
+}
+# Removed SOCIAL_AUTH_GOOGLE_OAUTH2_REDIRECT_URI as it's for python-social-auth
 
 OAUTH2_PROVIDER = {
     "SCOPES": {
@@ -310,20 +318,14 @@ LOGGING = {
             "class": "logging.StreamHandler",
             "formatter": "json",
         },
-        # "watchtower": {  # Uncomment if you use AWS CloudWatch
-        #     "level": "INFO",
-        #     "class": "watchtower.CloudWatchLogHandler",
-        #     "formatter": "json",
-        #     "log_group": "ltronix-shop-backend",
-        # },
     },
     "root": {
-        "handlers": ["console"],  # Add "watchtower" here if enabled
+        "handlers": ["console"],
         "level": "INFO",
     },
     "loggers": {
         "django": {
-            "handlers": ["console"],  # Add "watchtower" here if enabled
+            "handlers": ["console"],
             "level": "INFO",
             "propagate": False,
         },
@@ -335,6 +337,12 @@ LOGGING = {
         "sentry_sdk": {
             "handlers": ["console"],
             "level": "ERROR",
+            "propagate": False,
+        },
+        # FIX: Add logger for allauth
+        "allauth": {
+            "handlers": ["console"],
+            "level": "INFO",
             "propagate": False,
         },
     },

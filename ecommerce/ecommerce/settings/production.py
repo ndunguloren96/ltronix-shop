@@ -1,6 +1,4 @@
-"""
-Production Django settings for ecommerce project.
-"""
+# ecommerce/settings/production.py
 
 from .base import *
 
@@ -50,12 +48,10 @@ if USE_S3:
     AWS_S3_FILE_OVERWRITE = False
     AWS_DEFAULT_ACL = None
     DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
-    # FIX: Remove '/media/' from MEDIA_URL. S3 URLs are directly based on bucket and file path.
-    # The 'upload_to' in models.py handles the subdirectory.
-    MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/" 
+    MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/"
 
 # REST + Social Auth
 REST_AUTH["PASSWORD_RESET_CONFIRM_URL"] = env("DJANGO_PASSWORD_RESET_CONFIRM_URL")
-SOCIAL_AUTH_GOOGLE_OAUTH2_REDIRECT_URI = env("SOCIAL_AUTH_GOOGLE_OAUTH2_REDIRECT_URI")
-SOCIAL_AUTH_REDIRECT_IS_HTTPS = True
+# Removed SOCIAL_AUTH_GOOGLE_OAUTH2_REDIRECT_URI as it's for python-social-auth
+# SOCIAL_AUTH_REDIRECT_IS_HTTPS = True # This is also for python-social-auth
 

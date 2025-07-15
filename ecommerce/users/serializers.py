@@ -13,12 +13,12 @@ User = get_user_model()
 
 # Your existing UserDetailsSerializer
 class UserDetailsSerializer(serializers.ModelSerializer):
-    middle_name = serializers.CharField(source='profile.middle_name', required=False, allow_blank=True) # Corrected truncation
+    middle_name = serializers.CharField(source='profile.middle_name', required=False, allow_blank=True)
 
     class Meta:
         model = User
         fields = (
-            "id",
+            "id", # Ensure 'id' is included for NextAuth.js
             "email",
             "first_name",
             "middle_name",
@@ -30,7 +30,7 @@ class UserDetailsSerializer(serializers.ModelSerializer):
             "is_active",
             "date_joined",
         )
-        read_only_fields = ("email", "date_joined", "is_staff", "is_active")
+        read_only_fields = ("id", "email", "date_joined", "is_staff", "is_active") # 'id' should be read-only
 
     def update(self, instance, validated_data):
         profile_data = validated_data.pop('profile', {})
@@ -39,30 +39,32 @@ class UserDetailsSerializer(serializers.ModelSerializer):
         # Update User fields
         instance.first_name = validated_data.get('first_name', instance.first_name)
         instance.last_name = validated_data.get('last_name', instance.last_name)
-        instance.phone_number = validated_data.get('phone_number', instance.phone_number) # Corrected truncation
+        instance.phone_number = validated_data.get('phone_number', instance.phone_number)
         instance.gender = validated_data.get('gender', instance.gender)
-        instance.date_of_birth = validated_data.get('date_of_birth', instance.date_of_birth) # Corrected truncation
+        instance.date_of_birth = validated_data.get('date_of_birth', instance.date_of_birth)
         instance.save()
         # Update or create UserProfile
         profile, created = UserProfile.objects.get_or_create(user=instance)
-        profile.middle_name = middle_name if middle_name is not None else profile.middle_name # Corrected truncation
+        profile.middle_name = middle_name if middle_name is not None else profile.middle_name
         profile.save()
 
         return instance
 
 
 # Custom Register Serializer for email-only registration
+# IMPORTANT: This serializer does NOT inherit from dj_rest_auth.registration.serializers.RegisterSerializer.
+# It is assumed that CustomRegisterView explicitly uses this serializer and handles token generation.
 class CustomRegisterSerializer(
     serializers.Serializer
-):  # *** IMPORTANT: No longer inherits from DefaultRegisterSerializer ***
-    email = serializers.EmailField(required=True, allow_blank=False, max_length=254) # Corrected truncation
+):
+    email = serializers.EmailField(required=True, allow_blank=False, max_length=254)
     password = serializers.CharField(
         write_only=True, required=True, style={"input_type": "password"}
     )
-    first_name = serializers.CharField(required=False, allow_blank=True, max_length=150) # Corrected truncation
-    middle_name = serializers.CharField(required=False, allow_blank=True, max_length=150) # Corrected truncation
-    last_name = serializers.CharField(required=False, allow_blank=True, max_length=150) # Corrected truncation
-    phone_number = serializers.CharField(required=False, allow_blank=True, max_length=20) # Corrected truncation
+    first_name = serializers.CharField(required=False, allow_blank=True, max_length=150)
+    middle_name = serializers.CharField(required=False, allow_blank=True, max_length=150)
+    last_name = serializers.CharField(required=False, allow_blank=True, max_length=150)
+    phone_number = serializers.CharField(required=False, allow_blank=True, max_length=20)
     gender = serializers.CharField(required=False, allow_blank=True, max_length=1)
     date_of_birth = serializers.DateField(required=False, allow_null=True)
 
@@ -93,6 +95,8 @@ class CustomRegisterSerializer(
 
     def validate_email(self, email):
         email = get_adapter().clean_email(email)
+        if User.objects.filter(email=email).exists():
+            raise serializers.ValidationError("A user with that email already exists.")
         return email
 
     def validate_password_confirm(self, value):
@@ -103,7 +107,6 @@ class CustomRegisterSerializer(
 
     @transaction.atomic
     def save(self, request):
-        adapter = get_adapter()
         # Create user directly
         user = User.objects.create_user(
             email=self.validated_data["email"],
@@ -125,8 +128,7 @@ class CustomRegisterSerializer(
         setup_user_email(request, user, [])
 
         # Create customer profile linked to the new user
-        from store.models import \
-            Customer  # Import here to avoid circular dependency
+        from store.models import Customer  # Import here to avoid circular dependency
 
         Customer.objects.get_or_create(user=user)
 
@@ -156,7 +158,7 @@ class EmailChangeSerializer(serializers.Serializer):
 
         if not user or not user.check_password(data['current_password']):
             raise serializers.ValidationError({"current_password": "Wrong password."})
-        
+            
         # Ensure the new email is different from the current email
         if user and user.email == data['new_email']:
             raise serializers.ValidationError({"new_email": "The new email cannot be the same as the current email."})
@@ -183,3 +185,5 @@ class EmailChangeSerializer(serializers.Serializer):
             setup_user_email(request, user, [])
 
         return user
+
+
