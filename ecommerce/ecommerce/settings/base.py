@@ -3,7 +3,7 @@
 import os
 import warnings
 from datetime import timedelta
-from pathlib import Path # Import Path
+from pathlib import Path
 
 # Suppress dj_rest_auth deprecation warnings
 warnings.filterwarnings(
@@ -17,7 +17,7 @@ from environ import Env
 from sentry_sdk.integrations.django import DjangoIntegration
 
 # --- Build paths
-BASE_DIR = Path(__file__).resolve().parent.parent # Use Path
+BASE_DIR = Path(__file__).resolve().parent.parent
 env = Env()
 env.read_env(os.path.join(BASE_DIR.parent, ".env"))
 
@@ -252,8 +252,8 @@ SIMPLE_JWT = {
 SOCIALACCOUNT_PROVIDERS = {
     "google": {
         "APP": {
-            "client_id": env("GOOGLE_CLIENT_ID"),
-            "secret": env("GOOGLE_CLIENT_SECRET"),
+            "client_id": env("GOOGLE_CLIENT_ID", default=""), # FIX: Added default=""
+            "secret": env("GOOGLE_CLIENT_SECRET", default=""), # FIX: Added default=""
             "key": "", # Not used for Google
         },
         "SCOPE": ["profile", "email"],
