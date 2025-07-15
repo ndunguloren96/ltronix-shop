@@ -24,7 +24,9 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     # API base path
     path("api/v1/", include([
-        path("store/", include("store.api_urls")), # Assuming store.api_urls defines product/cart endpoints
+        # FIX: Removed the "store/" prefix here.
+        # Now, products/ and orders/ from store.api_urls will be directly under /api/v1/
+        path("", include("store.api_urls")), # This will make /api/v1/products/ and /api/v1/orders/
         path("payments/", include("payment.api_urls")), # Corrected from "payment/" to "payments/" for consistency
         # dj-rest-auth URLs
         path("auth/", include("dj_rest_auth.urls")), # Login, Logout, User details, Password Reset/Change
