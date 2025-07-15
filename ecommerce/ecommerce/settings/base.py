@@ -123,11 +123,12 @@ ACCOUNT_EMAIL_VERIFICATION = "optional" # or "mandatory" depending on your flow
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None # Ensure this is None for email-only login
 ACCOUNT_SIGNUP_FIELDS = ["email", "password"] # Simplified to match default registration
 
-# FIX: Corrected adapter paths for dj-rest-auth 7.x.x
-# These are now direct string paths to the adapter classes.
-ACCOUNT_ADAPTER = "dj_rest_auth.app_settings.AllAuthAccountAdapter"
-SOCIALACCOUNT_ADAPTER = "dj_rest_auth.app_settings.SocialAccountAdapter"
-
+# FIX: Remove explicit dj_rest_auth adapter paths.
+# dj-rest-auth 7.x.x typically relies on allauth's default adapters or your custom ones.
+# If you have a custom adapter in users/adapters.py, you would set it like:
+# ACCOUNT_ADAPTER = "users.adapters.MyCustomAccountAdapter"
+# SOCIALACCOUNT_ADAPTER = "users.adapters.MyCustomSocialAccountAdapter"
+# For now, we remove these lines to let allauth's defaults be used implicitly or by dj-rest-auth.
 
 # Redirect after login/logout (can be overridden by frontend)
 LOGIN_REDIRECT_URL = "/"
@@ -230,10 +231,8 @@ REST_AUTH = {
         default="http://localhost:3000/auth/password-reset-confirm/{uid}/{token}"
     ),
     "OLD_PASSWORD_FIELD_ENABLED": True,
-    # FIX: Add social login settings for dj-rest-auth
-    # These settings are for dj-rest-auth to know which social apps to use.
-    # The actual adapter is set via SOCIALACCOUNT_ADAPTER at the top level.
-    "SOCIAL_ACCOUNT_ADAPTER": "dj_rest_auth.social_serializers.SocialAccountAdapter", # This is redundant if set globally
+    # FIX: Remove redundant SOCIAL_ACCOUNT_ADAPTER from REST_AUTH
+    # "SOCIAL_ACCOUNT_ADAPTER": "dj_rest_auth.social_serializers.SocialAccountAdapter",
     "GOOGLE_CLIENT_ID": env("GOOGLE_CLIENT_ID", default=""), # Ensure this matches your Google client ID
     "GOOGLE_CLIENT_SECRET": env("GOOGLE_CLIENT_SECRET", default=""), # Ensure this matches your Google client secret
 }
