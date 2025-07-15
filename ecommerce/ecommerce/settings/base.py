@@ -3,7 +3,7 @@
 import os
 import warnings
 from datetime import timedelta
-from pathlib import Path
+from pathlib import Path # Import Path
 
 # Suppress dj_rest_auth deprecation warnings
 warnings.filterwarnings(
@@ -17,7 +17,7 @@ from environ import Env
 from sentry_sdk.integrations.django import DjangoIntegration
 
 # --- Build paths
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent # Use Path
 env = Env()
 env.read_env(os.path.join(BASE_DIR.parent, ".env"))
 
@@ -138,22 +138,17 @@ USE_TZ = True
 
 # --- Static & media
 STATIC_URL = "/static/"
-STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")  # where 'collectstatic' dumps files
-
+STATIC_ROOT = BASE_DIR / "staticfiles" # Use Path object
 # Allow Django and WhiteNoise to gather static files from your custom static folder
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR.parent, "static"),  # e.g., /project_root/static/
+    BASE_DIR.parent / "static", # Use Path object for project-level static files
 ]
 
 # Use WhiteNoise for efficient static file serving
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 MEDIA_URL = "/media/"
-MEDIA_ROOT = os.path.join(BASE_DIR.parent, "mediafiles")
-
-# --- WhiteNoise & static files configuration
-STATICFILES_DIRS = [os.path.join(BASE_DIR.parent, "static")]
-
+MEDIA_ROOT = BASE_DIR.parent / "mediafiles" # Use Path object
 
 # --- DRF settings
 REST_FRAMEWORK = {
