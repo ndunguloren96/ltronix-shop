@@ -4,7 +4,7 @@ import os
 import warnings
 from datetime import timedelta
 from pathlib import Path
-from django.core.exceptions import ImproperlyConfigured # Import ImproperlyConfigured
+from django.core.exceptions import ImproperlyConfigured # Keep this import, might be useful elsewhere
 
 # Suppress dj_rest_auth deprecation warnings
 warnings.filterwarnings(
@@ -16,18 +16,6 @@ warnings.filterwarnings(
 import sentry_sdk
 from environ import Env
 from sentry_sdk.integrations.django import DjangoIntegration
-
-# FIX: Explicitly try to import adapters to catch ModuleNotFoundError early
-try:
-    from dj_rest_auth.registration.adapters import AllAuthAccountAdapter
-    from dj_rest_auth.social_serializers import SocialAccountAdapter as DjRestAuthSocialAccountAdapter
-except ImportError as e:
-    raise ImproperlyConfigured(
-        f"Could not import dj_rest_auth adapters. "
-        f"Ensure 'dj-rest-auth' is installed correctly and its version is compatible. "
-        f"Original error: {e}"
-    ) from e
-
 
 # --- Build paths
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -135,9 +123,11 @@ ACCOUNT_EMAIL_VERIFICATION = "optional" # or "mandatory" depending on your flow
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None # Ensure this is None for email-only login
 ACCOUNT_SIGNUP_FIELDS = ["email", "password"] # Simplified to match default registration
 
-# FIX: Add ACCOUNT_ADAPTER for dj-rest-auth to correctly handle social logins
-ACCOUNT_ADAPTER = "dj_rest_auth.registration.adapters.AllAuthAccountAdapter"
-SOCIALACCOUNT_ADAPTER = "dj_rest_auth.social_serializers.SocialAccountAdapter"
+# FIX: Corrected adapter paths for dj-rest-auth 7.x.x
+# These are now direct string paths to the adapter classes.
+ACCOUNT_ADAPTER = "dj_rest_auth.app_settings.AllAuthAccountAdapter"
+SOCIALACCOUNT_ADAPTER = "dj_rest_auth.app_settings.SocialAccountAdapter"
+
 
 # Redirect after login/logout (can be overridden by frontend)
 LOGIN_REDIRECT_URL = "/"
@@ -241,7 +231,9 @@ REST_AUTH = {
     ),
     "OLD_PASSWORD_FIELD_ENABLED": True,
     # FIX: Add social login settings for dj-rest-auth
-    "SOCIAL_ACCOUNT_ADAPTER": "dj_rest_auth.social_serializers.SocialAccountAdapter",
+    # These settings are for dj-rest-auth to know which social apps to use.
+    # The actual adapter is set via SOCIALACCOUNT_ADAPTER at the top level.
+    "SOCIAL_ACCOUNT_ADAPTER": "dj_rest_auth.social_serializers.SocialAccountAdapter", # This is redundant if set globally
     "GOOGLE_CLIENT_ID": env("GOOGLE_CLIENT_ID", default=""), # Ensure this matches your Google client ID
     "GOOGLE_CLIENT_SECRET": env("GOOGLE_CLIENT_SECRET", default=""), # Ensure this matches your Google client secret
 }
