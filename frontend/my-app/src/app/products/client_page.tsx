@@ -30,16 +30,30 @@ import {
   AlertIcon,
   AlertDescription,
 } from '@chakra-ui/react';
-// CRITICAL FIX: Changed import path to a relative path for better module resolution.
-// Given your project structure: frontend/my-app/src/app/products/client_page.tsx
-// to reach: frontend/my-app/src/components/ProductCard.tsx
-// You need to go up two directories (../../) then into components/
 import { ProductCard } from '../../components/ProductCard';
 import { SearchIcon } from '@chakra-ui/icons';
 import Fuse from 'fuse.js';
 
 import { useQuery } from '@tanstack/react-query';
-import { fetchProducts, Product } from '../../api/products';
+import { fetchProducts } from '../../api/products';
+
+// FIX: Update Product interface to use image_file as the property name
+interface Product {
+  id: number;
+  name: string;
+  description: string;
+  price: string;
+  digital: boolean;
+  image_file?: string; // FIX: Changed to image_file
+  category?: string;
+  stock: number;
+  brand?: string;
+  sku?: string;
+  rating: string;
+  reviews_count: number;
+  created_at: string;
+  updated_at: string;
+}
 
 
 const getNumericPrice = (priceString: string): number => {
@@ -341,7 +355,7 @@ export default function ProductsClientPage({ isHomePage }: ProductsClientPagePro
                   id={product.id}
                   name={product.name}
                   description={product.description}
-                  image_file={product.image_file} // <-- Ensure image_file is passed here
+                  image_file={product.image_file} // FIX: Ensure image_file is passed here
                   price={product.price}
                   stock={product.stock}
                 />
@@ -364,3 +378,4 @@ export default function ProductsClientPage({ isHomePage }: ProductsClientPagePro
     </Container>
   );
 }
+
