@@ -33,7 +33,8 @@ interface Product {
   description: string;
   price: string;
   digital: boolean;
-  image_url?: string;
+  // FIX: Ensure this matches the serializer output (now explicitly image_url)
+  image_url?: string; 
   category?: string;
   stock: number;
   brand?: string;
@@ -181,11 +182,11 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
   const handleAddToCart = () => {
     if (status === 'unauthenticated' && !guestSessionKey) {
       toast({
-          title: 'Initializing Guest Session',
-          description: 'Creating a temporary session for your cart. Please try adding to cart again.',
-          status: 'info',
-          duration: 3000,
-          isClosable: true,
+            title: 'Initializing Guest Session',
+            description: 'Creating a temporary session for your cart. Please try adding to cart again.',
+            status: 'info',
+            duration: 3000,
+            isClosable: true,
       });
       return;
     }
@@ -246,14 +247,14 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
         <Box flex={{ base: 'none', md: '1' }} maxW={{ base: 'full', md: '50%' }}>
           {product.image_url ? (
             <Image
-              src={product.image_url}
+              src={product.image_url} // This will now receive the correct S3 URL
               alt={product.name}
               width={500}
               height={500}
               style={{ objectFit: 'contain' }}
               priority={false}
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-              unoptimized={true}
+              unoptimized={true} // Keep unoptimized as S3 serves raw images. Next.js Image optimization would be redundant/costly.
             />
           ) : (
             <Box w="100%" h="500px" bg="gray.200" display="flex" alignItems="center" justifyContent="center">
@@ -377,3 +378,4 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
     </Box>
   );
 }
+

@@ -7,6 +7,8 @@ from .models import Customer, Order, OrderItem, Product
 
 # --- Read-only Product Serializer (for nested use in OrderItem) ---
 class ProductSerializer(serializers.ModelSerializer):
+    # FIX: Use SerializerMethodField to explicitly expose the image_url property
+    image_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
@@ -15,7 +17,8 @@ class ProductSerializer(serializers.ModelSerializer):
             "name",
             "description",
             "price",
-            "image_file",  # Directly exposing the ImageField
+            "digital",
+            "image_url",  # Now using the SerializerMethodField
             "brand",
             "sku",
             "rating",
@@ -26,7 +29,11 @@ class ProductSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["id", "image_file", "created_at", "updated_at"]
+        read_only_fields = ["id", "image_url", "created_at", "updated_at"] # Changed from image_file
+
+    # Method to get the image_url from the Product model's property
+    def get_image_url(self, obj):
+        return obj.image_url
 
 
 # --- Writable OrderItem Serializer (for handling input to Order) ---
@@ -115,3 +122,4 @@ class OrderSerializer(serializers.ModelSerializer):
     # the creation/update of Order and OrderItems directly in its `create` and `update` methods.
     # The serializer's role is primarily to validate the top-level Order fields and
     # serialize the output.
+
