@@ -1,5 +1,6 @@
 // frontend/my-app/src/api/orders.ts
 import { getSession } from 'next-auth/react';
+import { Product } from './products'; // Import Product interface for consistency
 
 // Define base URL for your Django API
 // It's expected that NEXT_PUBLIC_DJANGO_API_URL from .env.local or environment variables
@@ -8,17 +9,15 @@ const DJANGO_API_BASE_URL = process.env.NEXT_PUBLIC_DJANGO_API_URL || 'http://lo
 
 // --- Type Definitions for Cart/Order Operations ---
 export interface ProductInCart {
-  // FIX: Changed id from string to number
   id: number; // Product ID
   name: string;
   price: number;
   quantity: number;
-  image_url?: string;
+  image_file?: string; // FIX: Changed to image_file
 }
 
 export interface OrderItemPayload {
   id?: number;
-  // FIX: Changed product_id from string to number
   product_id: number;
   quantity: number;
 }
@@ -32,11 +31,10 @@ export interface OrderPayload {
 export interface BackendOrderItem {
   id: number;
   product: {
-    // FIX: Changed product.id from string to number
     id: number;
     name: string;
-    price: string;
-    image_url?: string;
+    price: string; // Price from backend is a string
+    image_file?: string; // FIX: Changed to image_file
   };
   quantity: number;
   get_total: string;
@@ -159,13 +157,11 @@ export async function fetchCartAPI(guestSessionKey?: string | null): Promise<Bac
 export async function updateEntireCartAPI(cartItems: ProductInCart[], guestSessionKey?: string | null): Promise<BackendOrder> {
   const payload: OrderPayload = {
     items: cartItems.map(item => ({
-      // FIX: Ensure product_id is a number
       product_id: Number(item.id), // Explicitly convert to number
       quantity: item.quantity,
     })),
   };
 
-  // FIX: Use URL constructor for robust path concatenation
   const url = new URL('orders/', DJANGO_API_BASE_URL);
   const response = await fetchWithSession(url.toString(), {
     method: 'POST',
@@ -181,9 +177,6 @@ export async function updateEntireCartAPI(cartItems: ProductInCart[], guestSessi
  * @returns The updated BackendOrder (cleared cart).
  */
 export async function clearCartAPI(cartId: number, guestSessionKey?: string | null): Promise<BackendOrder> {
-  // Clearing cart is essentially updating with an empty items array.
-  // Using PUT on the specific order ID to explicitly clear it.
-  // FIX: Use URL constructor for robust path concatenation
   const url = new URL(`orders/${cartId}/`, DJANGO_API_BASE_URL);
   const response = await fetchWithSession(url.toString(), {
     method: 'PUT', // Use PUT to update the entire cart (clear it by sending no items)
@@ -199,7 +192,6 @@ export async function clearCartAPI(cartId: number, guestSessionKey?: string | nu
  * @returns The completed BackendOrder.
  */
 export async function checkoutCartAPI(cartId: number, guestSessionKey?: string | null): Promise<BackendOrder> {
-  // FIX: Use URL constructor for robust path concatenation
   const url = new URL(`orders/${cartId}/complete_order/`, DJANGO_API_BASE_URL);
   const response = await fetchWithSession(url.toString(), {
     method: 'POST',
@@ -211,7 +203,6 @@ export async function checkoutCartAPI(cartId: number, guestSessionKey?: string |
  * Fetches the order history for the authenticated user.
  */
 export async function fetchOrdersAPI(): Promise<BackendOrder[]> {
-  // FIX: Use URL constructor for robust path concatenation
   const url = new URL('orders/', DJANGO_API_BASE_URL);
   const response = await fetchWithSession(url.toString(), {
     method: 'GET',
@@ -230,8 +221,7 @@ export async function fetchOrdersAPI(): Promise<BackendOrder[]> {
  * @returns The initiated BackendTransaction details.
  */
 export async function initiateStkPushAPI(payload: { orderId: number; phoneNumber: string }, guestSessionKey?: string | null): Promise<BackendTransaction> {
-  // This URL was already correct as it's directly under /payments/
-  const url = new URL('payments/stk-push/', DJANGO_API_BASE_URL); // Ensure it also uses URL constructor for consistency
+  const url = new URL('payments/stk-push/', DJANGO_API_BASE_URL); 
   console.log("Initiating STK Push with payload:", payload);
   const response = await fetchWithSession(url.toString(), {
     method: 'POST',
@@ -250,8 +240,7 @@ export async function initiateStkPushAPI(payload: { orderId: number; phoneNumber
  * @returns The BackendTransaction with updated status.
  */
 export async function fetchTransactionStatusAPI(transactionId: number, guestSessionKey?: string | null): Promise<BackendTransaction> {
-  // This URL was already correct as it's directly under /payments/
-  const url = new URL(`payments/status/?transaction_id=${transactionId}`, DJANGO_API_BASE_URL); // Ensure it also uses URL constructor for consistency
+  const url = new URL(`payments/status/?transaction_id=${transactionId}`, DJANGO_API_BASE_URL); 
   console.log("Fetching transaction status for ID:", transactionId);
   const response = await fetchWithSession(url.toString(), {
     method: 'GET',

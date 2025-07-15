@@ -36,7 +36,7 @@ import {
   ProductInCart,
   BackendOrderItem,
 }
- from '@/api/orders';
+  from '@/api/orders';
 import { useCartStore } from '@/store/useCartStore';
 
 // Define the context interface for useMutation
@@ -80,7 +80,7 @@ export default function CartPage() {
                 name: item.product.name,
                 price: parseFloat(item.product.price),
                 quantity: item.quantity,
-                image_url: item.product.image_url, // This was already correct here
+                image_file: item.product.image_file, // FIX: Use image_file here
               }))
             );
           } else {
@@ -130,7 +130,7 @@ export default function CartPage() {
       return Promise.resolve(null);
     },
     enabled: status !== 'loading',
-    staleTime: 0,
+    staleTime: 0, // Always consider cart data stale
     refetchOnWindowFocus: true,
     refetchOnMount: true,
   });
@@ -148,7 +148,7 @@ export default function CartPage() {
           name: item.product.name,
           price: parseFloat(item.product.price),
           quantity: item.quantity,
-          image_url: item.product.image_url, // This was already correct here
+          image_file: item.product.image_file, // FIX: Use image_file here
         }))
       );
       // If backend returned a session key for an unauthenticated user, update local store
@@ -174,7 +174,7 @@ export default function CartPage() {
       setLocalCartItems(newFrontendCartItems);
       return { previousCart };
     },
-    onError: (err, _newFrontendCartItems, context) => {
+    onError: (err, _newFrontendCartItems, context) => { // _newFrontendCartItems and _context are unused
       console.error("Failed to update cart on backend:", err);
       toast({
         title: 'Error Updating Cart',
@@ -190,14 +190,14 @@ export default function CartPage() {
             name: bi.product.name,
             price: parseFloat(bi.product.price),
             quantity: bi.quantity,
-            image_url: bi.product.image_url, // ***FIXED HERE***
+            image_file: bi.product.image_file, // FIX: Use image_file here
           }))
         );
       } else {
         setLocalCartItems([]);
       }
     },
-    onSuccess: (_data) => {
+    onSuccess: (_data) => { // _data is unused
       // Always update Zustand from backend's canonical cart
       setLocalCartItems(
         _data.items.map((backendItem) => ({
@@ -205,7 +205,7 @@ export default function CartPage() {
           name: backendItem.product.name,
           price: parseFloat(backendItem.product.price),
           quantity: backendItem.quantity,
-          image_url: backendItem.product.image_url, // ***FIXED HERE***
+          image_file: backendItem.product.image_file, // FIX: Use image_file here
         }))
       );
       // If the backend returned a session_key, update it in local storage (e.g., first guest item added)
@@ -344,8 +344,7 @@ export default function CartPage() {
         <Alert status="info" mb={6} borderRadius="md">
           <AlertIcon />
           <AlertDescription>
-            You are currently Browse as a guest. Your cart is saved locally.
-            {' '}
+            You are currently Browse as a guest. Your cart is saved locally. {' '}
             <Link href="/auth/login" passHref>
               <ChakraLink color="blue.600" fontWeight="bold">Login</ChakraLink>
             </Link>
@@ -399,7 +398,7 @@ export default function CartPage() {
               >
                 <HStack spacing={4} align="center">
                   <Image
-                    src={item.image_url || "https://placehold.co/100x100?text=No+Image"}
+                    src={item.image_file || "https://placehold.co/100x100?text=No+Image"} // FIX: Use item.image_file here
                     alt={item.name}
                     boxSize="100px"
                     objectFit="cover"
@@ -417,7 +416,6 @@ export default function CartPage() {
                       maxW="100px"
                       value={item.quantity}
                       min={0}
-                      // FIX: Pass item.id (number) to handleQuantityChange
                       onChange={(valueAsString) =>
                         handleQuantityChange(item.id, valueAsString)
                       }
@@ -439,7 +437,6 @@ export default function CartPage() {
                     size="sm"
                     colorScheme="red"
                     variant="ghost"
-                    // FIX: Pass item.id (number) to handleRemoveItem
                     onClick={() => handleRemoveItem(item.id)}
                     isLoading={updateCartMutation.isPending}
                     isDisabled={updateCartMutation.isPending}
@@ -514,3 +511,4 @@ export default function CartPage() {
     </Box>
   );
 }
+

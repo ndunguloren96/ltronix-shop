@@ -25,16 +25,14 @@ import { updateEntireCartAPI, BackendOrder, ProductInCart, BackendOrderItem } fr
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 
-// Define the Product interface (should match the data passed from the server component)
+// FIX: Define the Product interface locally to use image_file, consistent with backend
 interface Product {
-  // FIX: Changed id from string to number to match backend and other frontend interfaces
   id: number;
   name: string;
   description: string;
   price: string;
   digital: boolean;
-  // FIX: Ensure this matches the serializer output (now explicitly image_url)
-  image_url?: string; 
+  image_file?: string; // FIX: Changed to image_file
   category?: string;
   stock: number;
   brand?: string;
@@ -95,13 +93,12 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
 
       queryClient.setQueryData<BackendOrder>(['cart'], (oldCart) => {
         const updatedBackendItems: BackendOrderItem[] = newCartItems.map(item => ({
-          // FIX: Ensure id is number here for optimistic update
           id: oldCart?.items.find(pi => pi.product.id === item.id)?.id || Math.random(), // Keep Math.random() for temporary client-side ID
           product: {
             id: item.id, // This `item.id` is already a number from ProductInCart
             name: item.name,
             price: item.price.toFixed(2),
-            image_url: item.image_url,
+            image_file: item.image_file, // FIX: Use image_file here
           },
           quantity: item.quantity,
           get_total: (item.price * item.quantity).toFixed(2),
@@ -146,7 +143,7 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
       if (context?.previousCart) {
         setLocalCartItems(context.previousCart.items.map(bi => ({
             id: bi.product.id, name: bi.product.name, price: parseFloat(bi.product.price),
-            quantity: bi.quantity, image_url: bi.product.image_url
+            quantity: bi.quantity, image_file: bi.product.image_file // FIX: Use image_file here
         })));
       } else {
         setLocalCartItems([]);
@@ -165,7 +162,7 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
         name: backendItem.product.name,
         price: parseFloat(backendItem.product.price),
         quantity: backendItem.quantity,
-        image_url: backendItem.product.image_url,
+        image_file: backendItem.product.image_file, // FIX: Use image_file here
       }));
       setLocalCartItems(transformedItems);
 
@@ -214,23 +211,20 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
     }
 
     const itemToAddOrUpdate: ProductInCart = {
-      // FIX: Convert product.id to number as ProductInCart expects number
       id: Number(product.id),
       name: product.name,
       price: priceAsNumber,
       quantity: quantity,
-      image_url: product.image_url,
+      image_file: product.image_file, // FIX: Use image_file here
     };
 
     const currentLocalCartItems = localCartItems;
 
-    // FIX: Ensure comparison is with number id
     const existingLocalItem = currentLocalCartItems.find(item => item.id === itemToAddOrUpdate.id);
 
     let updatedLocalCartItems: ProductInCart[];
     if (existingLocalItem) {
       updatedLocalCartItems = currentLocalCartItems.map(item =>
-        // FIX: Ensure comparison is with number id
         item.id === itemToAddOrUpdate.id ? { ...item, quantity: item.quantity + quantity } : item
       );
     } else {
@@ -245,16 +239,16 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
       <Flex direction={{ base: 'column', md: 'row' }} gap={8}>
         {/* Product Image */}
         <Box flex={{ base: 'none', md: '1' }} maxW={{ base: 'full', md: '50%' }}>
-          {product.image_url ? (
+          {product.image_file ? ( // FIX: Use product.image_file here
             <Image
-              src={product.image_url} // This will now receive the correct S3 URL
+              src={product.image_file} // FIX: Use product.image_file here
               alt={product.name}
               width={500}
               height={500}
               style={{ objectFit: 'contain' }}
               priority={false}
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-              unoptimized={true} // Keep unoptimized as S3 serves raw images. Next.js Image optimization would be redundant/costly.
+              unoptimized={true} 
             />
           ) : (
             <Box w="100%" h="500px" bg="gray.200" display="flex" alignItems="center" justifyContent="center">
@@ -372,8 +366,6 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
       <Box mt={10} p={5} borderWidth="1px" borderRadius="lg" boxShadow="sm">
         <Heading as="h2" size="lg" mb={4}>Recommended Products</Heading>
         <Text color="gray.600">Placeholder for recommended products based on this item. (Future Integration)</Text>
-        {/* Here you would fetch and display related products, e.g., using another useQuery hook */}
-        {/* Example: <SimpleGrid columns={{ base: 1, md: 3 }} spacing={5}>...</SimpleGrid> */}
       </Box>
     </Box>
   );
