@@ -16,6 +16,10 @@ from users.views import (
 
 from dj_rest_auth.views import PasswordChangeView
 
+# Import Spectacular views directly
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
+
+
 urlpatterns = [
     path("admin/", admin.site.urls),
     # API base path
@@ -25,18 +29,8 @@ urlpatterns = [
         # dj-rest-auth URLs
         path("auth/", include("dj_rest_auth.urls")), # Login, Logout, User details, Password Reset/Change
         path("auth/registration/", include("dj_rest_auth.registration.urls")), # Default registration endpoints
-        # FIX: Explicitly include your CustomRegisterView if it's not handled by dj_rest_auth.registration.urls
-        # If CustomRegisterView is meant to replace dj_rest_auth's default, this is correct.
-        # Otherwise, if it's an *additional* registration method, adjust the path.
-        # Assuming your CustomRegisterView is at /api/v1/auth/registration/
-        # and it handles the full registration process including token generation.
-        # If dj_rest_auth.registration.urls is also used, this specific path will override it.
+        # Explicitly include your CustomRegisterView if it's not handled by dj_rest_auth.registration.urls
         path("auth/registration/", CustomRegisterView.as_view(), name="rest_register"),
-        
-        # dj-rest-auth social login URLs (for Google via AllAuth)
-        # These are usually handled by dj_rest_auth.urls and allauth.urls combined.
-        # No need to explicitly define /auth/google/ or /auth/google/connect/ here
-        # as dj_rest_auth.urls handles social login endpoints when allauth is installed.
         
         # AllAuth URLs (crucial for social login callbacks from Google)
         # This needs to be accessible for Google to redirect to, usually under /accounts/
@@ -47,8 +41,9 @@ urlpatterns = [
         path("auth/email/change/", EmailChangeView.as_view(), name="rest_email_change"),
         path("auth/account/delete/", AccountDeleteView.as_view(), name="rest_account_delete"),
 
-        # Schema and Swagger UI
-        path("schema/", include("drf_spectacular.urls")), # Simpler way to include Spectacular URLs
+        # Schema and Swagger UI - FIX: Use direct views from drf_spectacular
+        path("schema/", SpectacularAPIView.as_view(), name="schema"),
+        path("schema/swagger-ui/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
     ])),
     # Direct URL for M-Pesa STK Push Confirmation Callback (webhook)
     path(
