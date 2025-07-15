@@ -4,6 +4,7 @@ import os
 import warnings
 from datetime import timedelta
 from pathlib import Path
+from django.core.exceptions import ImproperlyConfigured # Import ImproperlyConfigured
 
 # Suppress dj_rest_auth deprecation warnings
 warnings.filterwarnings(
@@ -15,6 +16,18 @@ warnings.filterwarnings(
 import sentry_sdk
 from environ import Env
 from sentry_sdk.integrations.django import DjangoIntegration
+
+# FIX: Explicitly try to import adapters to catch ModuleNotFoundError early
+try:
+    from dj_rest_auth.registration.adapters import AllAuthAccountAdapter
+    from dj_rest_auth.social_serializers import SocialAccountAdapter as DjRestAuthSocialAccountAdapter
+except ImportError as e:
+    raise ImproperlyConfigured(
+        f"Could not import dj_rest_auth adapters. "
+        f"Ensure 'dj-rest-auth' is installed correctly and its version is compatible. "
+        f"Original error: {e}"
+    ) from e
+
 
 # --- Build paths
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -252,8 +265,8 @@ SIMPLE_JWT = {
 SOCIALACCOUNT_PROVIDERS = {
     "google": {
         "APP": {
-            "client_id": env("GOOGLE_CLIENT_ID", default=""), # FIX: Added default=""
-            "secret": env("GOOGLE_CLIENT_SECRET", default=""), # FIX: Added default=""
+            "client_id": env("GOOGLE_CLIENT_ID", default=""),
+            "secret": env("GOOGLE_CLIENT_SECRET", default=""),
             "key": "", # Not used for Google
         },
         "SCOPE": ["profile", "email"],
