@@ -9,14 +9,16 @@ interface CartItem {
     name: string;
     price: number;
     quantity: number;
-    image_url?: string;
+    // FIX: Changed from image_url to image_file for consistency with backend and other frontend components
+    image_file?: string; 
 }
 
 interface CartState {
     items: CartItem[];
     guestSessionKey: string | null; // Session key for unauthenticated users
     // FIX: Ensure id is number for addItem, removeItem, updateItemQuantity
-    addItem: (item: Omit<CartItem, 'quantity'> & { image_url?: string }) => void;
+    // FIX: Changed item type in addItem to use image_file
+    addItem: (item: Omit<CartItem, 'quantity'> & { image_file?: string }) => void;
     removeItem: (id: number) => void;
     updateItemQuantity: (id: number, quantity: number) => void;
     clearCart: () => void;
@@ -44,6 +46,7 @@ export const useCartStore = create<CartState>()(
                             ),
                         };
                     } else {
+                        // Ensure the item added has the correct image_file property
                         return { items: [...state.items, { ...item, quantity: 1 }] };
                     }
                 }),
