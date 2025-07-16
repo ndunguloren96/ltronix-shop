@@ -7,9 +7,9 @@ import { Toaster } from 'react-hot-toast';
 import { SessionProvider } from 'next-auth/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
-import { ErrorBoundary } from '../components/ErrorBoundary';
-// FIX: Revert to default import for theme, as src/theme.ts has a default export
-import theme from '../theme';
+import { ErrorBoundary } from '../components/ErrorBoundary'; // Your existing ErrorBoundary
+import theme from '../theme'; // Your Chakra UI theme
+import { CartInitializer } from '../components/CartInitializer'; // NEW IMPORT
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -29,7 +29,7 @@ const queryClient = new QueryClient({
 
 interface AppProvidersProps {
   children: React.ReactNode;
-  session: any;
+  session: any; // Session object from getServerSession
 }
 
 export function AppProviders({ children, session }: AppProvidersProps) {
@@ -39,6 +39,8 @@ export function AppProviders({ children, session }: AppProvidersProps) {
         <ChakraProvider theme={theme}>
           <ErrorBoundary>
             {children}
+            {/* NEW: Render CartInitializer here. It will run side effects related to cart sync. */}
+            <CartInitializer />
           </ErrorBoundary>
           <Toaster
             position="bottom-center"
@@ -56,4 +58,3 @@ export function AppProviders({ children, session }: AppProvidersProps) {
     </SessionProvider>
   );
 }
-

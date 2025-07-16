@@ -1,14 +1,11 @@
-# ecommerce/store/api_urls.py
-from django.urls import include, path
+from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-
-from .api_views import MyCartView, OrderViewSet, ProductViewSet
+from . import api_views
 
 router = DefaultRouter()
-router.register(r"products", ProductViewSet, basename="product")
-router.register(r"orders", OrderViewSet, basename="order")
+router.register(r'products', api_views.ProductViewSet, basename='product')
+router.register(r'orders', api_views.OrderViewSet, basename='order')
 
 urlpatterns = [
-    path("", include(router.urls)),  # products/ and orders/ now available directly at /api/v1/
-    path("orders/my_cart/", MyCartView.as_view(), name="my-cart"),  # Custom view remains
+    path('', include(router.urls)),
 ]
