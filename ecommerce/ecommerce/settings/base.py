@@ -177,12 +177,12 @@ REST_FRAMEWORK = {
 from corsheaders.defaults import default_headers
 
 CORS_ALLOW_ALL_ORIGINS = False
-CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=["http://localhost:3000"])
+CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=["http://localhost:3000", "https://ltronix-shop.vercel.app"])
 CORS_ALLOW_METHODS = ["DELETE", "GET", "OPTIONS", "PATCH", "POST", "PUT"]
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_HEADERS = list(default_headers) + ["x-session-key"]
 
-CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=["http://localhost:3000"])
+CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=["http://localhost:3000", "https://ltronix-shop.vercel.app"])
 CSRF_COOKIE_HTTPONLY = True
 CSRF_COOKIE_SECURE = env.bool("CSRF_COOKIE_SECURE", default=True)
 CSRF_COOKIE_SAMESITE = "Lax"
@@ -228,7 +228,7 @@ REST_AUTH = {
     "PASSWORD_RESET_USE_SITECONTROL": True,
     "PASSWORD_RESET_CONFIRM_URL": env(
         "DJANGO_PASSWORD_RESET_CONFIRM_URL",
-        default="http://localhost:3000/auth/password-reset-confirm/{uid}/{token}"
+        default="https://ltronix-shop.vercel.app/auth/password-reset-confirm/{uid}/{token}"
     ),
     "OLD_PASSWORD_FIELD_ENABLED": True,
     # FIX: Remove redundant SOCIAL_ACCOUNT_ADAPTER from REST_AUTH

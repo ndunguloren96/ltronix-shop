@@ -12,7 +12,7 @@ import type { DjangoUser } from "@/types/next-auth"; // Ensure this path is corr
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET;
-const DJANGO_API_BASE_URL = process.env.NEXT_PUBLIC_DJANGO_API_URL || 'http://127.0.0.1:8000/api/v1'; // Ensure this is correctly set
+const DJANGO_API_BASE_URL = process.env.NEXT_PUBLIC_DJANGO_API_URL || 'http://localhost:8000/api/v1'; // Ensure this is correctly set
 
 export const authOptions: AuthOptions = {
   providers: [

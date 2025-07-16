@@ -3,7 +3,7 @@ import { getSession } from "next-auth/react";
 import toast from "react-hot-toast";
 
 // Ensure this matches your Django API URL from .env
-const DJANGO_API_BASE_URL = (process.env.NEXT_PUBLIC_DJANGO_API_URL || 'http://127.0.0.1:8000/api/v1').replace(/\/$/, '');
+const DJANGO_API_BASE_URL = (process.env.NEXT_PUBLIC_DJANGO_API_URL || 'http://localhost:8000/api/v1').replace(/\/$/, '');
 
 interface CartItemBackend {
   product_id: number;
