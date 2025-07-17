@@ -12,7 +12,8 @@ import type { DjangoUser } from "@/types/next-auth"; // Ensure this path is corr
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET;
-// FIX: Ensure DJANGO_API_BASE_URL does NOT have a trailing slash
+// Ensure this is correctly set and matches your Django backend's API base URL
+// It should NOT have a trailing slash for consistent URL construction
 const DJANGO_API_BASE_URL = (process.env.NEXT_PUBLIC_DJANGO_API_URL || 'http://localhost:8000/api/v1').replace(/\/$/, '');
 
 export const authOptions: AuthOptions = {
@@ -114,9 +115,9 @@ export const authOptions: AuthOptions = {
           console.log("JWT Callback (Credentials): User signed in. ID:", userId, "Email:", credentialsUser.email);
         } else if (account.provider === "google") {
           console.log("JWT Callback (Google): Attempting Django social auth...");
-          // Call Django's dj-rest-auth Google social login endpoint
+          // FIX: Call Django's dj-rest-auth Google social login endpoint using 'social/google/'
           try {
-            const djangoSocialAuthRes = await fetch(`${DJANGO_API_BASE_URL}/auth/google/`, {
+            const djangoSocialAuthRes = await fetch(`${DJANGO_API_BASE_URL}/auth/social/google/`, { // Changed endpoint
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               // For Google, dj-rest-auth expects the 'access_token' obtained from Google
