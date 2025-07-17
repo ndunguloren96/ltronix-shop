@@ -42,11 +42,10 @@ import {
   fetchTransactionStatusAPI,
 } from '@/api/cart';
 
-// Import types from src/types/order.ts
+// FIX: Import types from src/types/order.ts
 import {
-  BackendOrder, // Renamed from BackendOrder to BackendCart in src/api/cart.ts, but still BackendOrder in types
+  BackendCart, // Use BackendCart alias
   BackendTransaction,
-  BackendCart // Explicitly import BackendCart alias
 } from '@/types/order';
 
 import { useCartStore } from '@/store/useCartStore';

@@ -46,8 +46,13 @@ export interface BackendOrder {
 }
 
 // FIX: Explicitly export BackendCart as an alias of BackendOrder
-// This line is crucial and must be present in your src/types/order.ts
 export type BackendCart = BackendOrder;
+
+// FIX: Ensure CartItemBackend is exported here, as it's used in src/api/cart.ts
+export interface CartItemBackend {
+  product_id: number;
+  quantity: number;
+}
 
 // --- Type definition for M-Pesa Transaction ---
 export interface BackendTransaction {

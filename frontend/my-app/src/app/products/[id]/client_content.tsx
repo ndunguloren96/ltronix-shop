@@ -13,10 +13,8 @@ import {
   HStack,
   VStack,
   useToast,
-  Input,
-  InputGroup,
-  InputRightElement,
-  NumberInput, // Added NumberInput components
+  // Removed Input and InputGroup as NumberInput replaces them for quantity
+  NumberInput,
   NumberInputField,
   NumberInputStepper,
   NumberIncrementStepper,
@@ -28,9 +26,9 @@ import { useCartStore } from '@/store/useCartStore';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 // FIX: Import createOrUpdateCart from '@/api/cart'
 import { createOrUpdateCart } from '@/api/cart';
-// Import types from src/types/order.ts and src/types/product.ts
+// FIX: Import types from src/types/order.ts and src/types/product.ts
 import { BackendOrder, ProductInCart, BackendOrderItem } from '@/types/order'; // BackendOrder and BackendOrderItem might be used for optimistic updates
-import { Product } from '@/types/product'; // Assuming Product interface is here or in src/types/product.ts
+import { Product } from '@/types/product'; // Import Product interface from types/product.ts
 
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
@@ -78,7 +76,7 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
   const priceAsNumber = parseFloat(product.price);
 
   const addToCartMutation = useMutation<BackendOrder, Error, ProductInCart[], { previousCart?: BackendOrder }>({
-    mutationFn: (items) => createOrUpdateCart(items, guestSessionKey), // Use createOrUpdateCart
+    mutationFn: (items) => createOrUpdateCart(items, guestSessionKey),
     onMutate: async (newCartItems: ProductInCart[]) => {
       await queryClient.cancelQueries({ queryKey: ['cart'] });
       const previousCart = queryClient.getQueryData<BackendOrder>(['cart']);
@@ -303,13 +301,13 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
           <Divider />
 
           <HStack width="full">
-            <NumberInput // Changed from InputGroup with Input to NumberInput
+            <NumberInput
               size="lg"
               maxWidth="150px"
               value={quantity}
               min={1}
-              onChange={(valueString) => setQuantity(parseInt(valueString) || 1)} // Parse to int, default to 1
-              onBlur={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))} // Ensure valid number on blur
+              onChange={(valueString) => setQuantity(parseInt(valueString) || 1)}
+              onBlur={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
               keepWithinRange={false}
               clampValueOnBlur={false}
             >

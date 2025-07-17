@@ -30,19 +30,16 @@ import Link from 'next/link'; // For Next.js Link component
 
 // FIX: Import cart-related functions from '@/api/cart'
 import {
-  fetchUserCart, // Renamed from fetchCartAPI to fetchUserCart in src/api/cart.ts
-  createOrUpdateCart, // Replaces updateEntireCartAPI in src/api/cart.ts
+  fetchUserCart,
+  createOrUpdateCart,
   clearCartAPI,
-  // initiateStkPushAPI, // M-Pesa functions are typically on checkout page or separate modal
-  // BackendTransaction, // M-Pesa types are typically on checkout page or separate modal
-} from '@/api/cart'; // Corrected import path for cart-related functions
+} from '@/api/cart';
 
-// Import types from src/types/order.ts
+// FIX: Import types from '@/types/order'
 import {
   BackendOrder,
   ProductInCart,
   BackendOrderItem,
-  BackendTransaction // Keep BackendTransaction if M-Pesa logic is here
 } from '@/types/order';
 
 import { useCartStore } from '@/store/useCartStore';
@@ -90,10 +87,10 @@ export default function CartPage() {
     queryFn: () => {
       // Only attempt to fetch if session status is known AND (authenticated OR (unauthenticated AND guestSessionKey is set))
       if (status === 'authenticated') {
-        return fetchUserCart(); // Use fetchUserCart
+        return fetchUserCart();
       }
       if (status === 'unauthenticated' && currentSessionKey) {
-        return fetchUserCart(currentSessionKey); // Use fetchUserCart
+        return fetchUserCart(currentSessionKey);
       }
       return Promise.resolve(null); // Do not fetch if unauthenticated and no guestSessionKey yet
     },
@@ -141,7 +138,7 @@ export default function CartPage() {
    * This prevents UI from showing stale or unmerged cart data after removing, clearing, or updating items.
    */
   const updateCartMutation = useMutation<BackendOrder, Error, ProductInCart[], UpdateCartContext>({
-    mutationFn: (items) => createOrUpdateCart(items, currentSessionKey), // Use createOrUpdateCart
+    mutationFn: (items) => createOrUpdateCart(items, currentSessionKey),
     onMutate: async (newFrontendCartItems: ProductInCart[]) => {
       await queryClient.cancelQueries({ queryKey: ['cart', status, currentSessionKey] });
       const previousCart = queryClient.getQueryData<BackendOrder>(['cart', status, currentSessionKey]);

@@ -2,6 +2,7 @@
 import { getSession } from "next-auth/react";
 import toast from "react-hot-toast";
 // CORRECTED IMPORT: Ensure all necessary types are imported from src/types/order.ts
+// This import will now correctly find CartItemBackend after the fix in src/types/order.ts
 import { BackendCart, BackendTransaction, CartItemBackend, OrderItemPayload, OrderPayload, BackendOrderItem } from '../types/order';
 
 
