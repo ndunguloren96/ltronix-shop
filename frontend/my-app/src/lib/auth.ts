@@ -12,8 +12,8 @@ import type { DjangoUser } from "@/types/next-auth"; // Ensure this path is corr
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET;
-// Ensure this is correctly set and matches your Django backend's API base URL
-const DJANGO_API_BASE_URL = process.env.NEXT_PUBLIC_DJANGO_API_URL || 'http://localhost:8000/api/v1';
+// FIX: Ensure DJANGO_API_BASE_URL does NOT have a trailing slash
+const DJANGO_API_BASE_URL = (process.env.NEXT_PUBLIC_DJANGO_API_URL || 'http://localhost:8000/api/v1').replace(/\/$/, '');
 
 export const authOptions: AuthOptions = {
   providers: [
