@@ -36,7 +36,8 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
-import { fetchOrdersAPI, BackendOrder } from '@/api/orders';
+import { fetchOrdersAPI } from '@/api/orders'; // Only import the function
+import { BackendCart } from '@/types/order'; // FIX: Import BackendCart from types/order.ts
 
 export default function OrderHistoryPage() {
   const router = useRouter();
@@ -49,7 +50,7 @@ export default function OrderHistoryPage() {
     isError,
     error,
     isFetching, // Useful to show background refetching
-  } = useQuery<BackendOrder[], Error>({
+  } = useQuery<BackendCart[], Error>({ // FIX: Use BackendCart here
     queryKey: ['orders'],
     queryFn: fetchOrdersAPI,
     enabled: status === 'authenticated', // Only fetch if user is authenticated
@@ -108,6 +109,7 @@ export default function OrderHistoryPage() {
           height="200px"
           borderRadius="lg"
           boxShadow="md"
+          m={8}
         >
           <AlertIcon boxSize="40px" mr={0} />
           <AlertTitle mt={4} mb={1} fontSize="lg">
@@ -117,10 +119,11 @@ export default function OrderHistoryPage() {
             {error?.message || 'An unexpected error occurred while fetching your order history.'}
             <br />
             Please ensure your Django backend is running and reachable.
+            <br />
+            <Button onClick={() => window.location.reload()} mt={4} colorScheme="brand">
+              Try Again
+            </Button>
           </AlertDescription>
-          <Button onClick={() => window.location.reload()} mt={4} colorScheme="brand">
-            Try Again
-          </Button>
         </Alert>
       </Center>
     );
