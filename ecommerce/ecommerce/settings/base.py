@@ -224,7 +224,9 @@ REST_AUTH = {
     "SESSION_LOGIN": True, # Keep this if you want session authentication for browsable API
     "JWT_AUTH_COOKIE": "my-app-jwt-access",
     "JWT_AUTH_REFRESH_COOKIE": "my-app-jwt-refresh",
-    "USER_DETAILS_SERIALIZER": "users.serializers.UserDetailsSerializer", # Confirmed correct
+    # FIX: Set JWT_AUTH_HTTPONLY to False to make tokens available in response body
+    "JWT_AUTH_HTTPONLY": False, # <--- THIS IS THE CRUCIAL CHANGE
+    "USER_DETAILS_SERIALIZER": "users.serializers.UserDetailsSerializer",
     "REGISTER_SERIALIZER": "users.serializers.CustomRegisterSerializer",
     "PASSWORD_RESET_USE_SITECONTROL": True,
     "PASSWORD_RESET_CONFIRM_URL": env(
@@ -246,7 +248,7 @@ SIMPLE_JWT = {
     "SIGNING_KEY": SECRET_KEY,
     "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
     "USER_ID_FIELD": "id",
-    "USER_ID_CLAIM": "user_id", # Confirmed correct
+    "USER_ID_CLAIM": "user_id",
 }
 
 # --- Social Auth (Google via AllAuth)
@@ -339,5 +341,4 @@ LOGGING = {
             "propagate": False,
         },
     },
-}
 
