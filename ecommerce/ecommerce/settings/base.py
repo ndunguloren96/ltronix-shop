@@ -160,7 +160,8 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.AllowAny",),
     "DEFAULT_RENDERER_CLASSES": (
         "rest_framework.renderers.JSONRenderer",
-        "rest_framework.renderers.BrowsableAPIRouter", # Corrected from BrowsableAPIRenderer to BrowsableAPIRouter if that's what you intended
+        # FIX: Corrected from BrowsableAPIRouter to BrowsableAPIRenderer
+        "rest_framework.renderers.BrowsableAPIRenderer",
     ),
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_PAGINATION_CLASS": "ecommerce.pagination.StandardResultsSetPagination",
