@@ -18,12 +18,14 @@ import Fuse from 'fuse.js'; // Import Fuse.js
 // Given your project structure: frontend/my-app/src/app/search/page.tsx
 // to reach: frontend/my-app/src/components/ProductCard.tsx
 import { ProductCard } from '../../components/ProductCard';
-// FIX: Import the Product interface and fetchProducts function from your API file
-import { Product, fetchProducts as fetchAllProductsAPI } from '@/api/products';
+// FIX: Import the Product interface from '@/types/product'
+import { Product } from '@/types/product'; // Corrected import path for Product
+// Import fetchProducts function from your API file
+import { fetchProducts as fetchAllProductsAPI } from '@/api/products';
 
 
 // FIX: Removed duplicate Product interface definition here.
-// It is now imported from '@/api/products'.
+// It is now imported from '@/types/product'.
 
 export default function SearchResultsPage() {
   const searchParams = useSearchParams();
@@ -125,3 +127,4 @@ export default function SearchResultsPage() {
     </Container>
   );
 }
+
