@@ -39,6 +39,8 @@ export default function LoginPage() {
             errorMessage = 'Incorrect email or password. Please try again.';
         } else if (result.error.includes('timeout')) {
             errorMessage = 'Network timeout during login. Please check your connection.';
+        } else if (result.error.includes('Invalid credentials')) { // From our custom error in auth.ts
+            errorMessage = 'Invalid email or password. Please try again.';
         }
         // Add more specific parsing here if result.error contains more structured info
         // e.g., if (result.error.includes('UserNotFound')) ...
@@ -150,3 +152,4 @@ export default function LoginPage() {
     </Flex>
   );
 }
+

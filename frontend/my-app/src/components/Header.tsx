@@ -1,7 +1,7 @@
 // frontend/my-app/src/components/Header.tsx
 'use client';
 
-import React, { useState, useCallback } from 'react'; // Added useCallback
+import React, { useState, useCallback } from 'react';
 import {
   Box,
   Flex,
@@ -21,7 +21,7 @@ import {
   InputGroup,
   InputRightElement,
   Badge,
-  Link as ChakraLink, // Aliasing Chakra UI's Link to avoid conflict with Next.js Link
+  Link as ChakraLink,
   useMediaQuery,
   Drawer,
   DrawerOverlay,
@@ -30,6 +30,7 @@ import {
   DrawerHeader,
   DrawerBody,
   VStack,
+  Spinner, // Added Spinner for loading state
 } from '@chakra-ui/react';
 import {
   HamburgerIcon,
@@ -39,14 +40,14 @@ import {
   SearchIcon,
 } from '@chakra-ui/icons';
 import { useRouter, usePathname } from 'next/navigation';
-import NextLink from 'next/link'; // Renamed Next.js Link to NextLink to prevent conflict with ChakraLink
+import NextLink from 'next/link';
 import { BsCartFill } from 'react-icons/bs';
 import { signOut, useSession } from 'next-auth/react';
 
 // Import your Zustand cart store
 import { useCartStore } from '@/store/useCartStore';
 
-// NavItem interface definition (moved here for self-containment)
+// NavItem interface definition
 interface NavItem {
   label: string;
   subLabel?: string;
@@ -54,7 +55,7 @@ interface NavItem {
   href?: string;
 }
 
-// NAV_ITEMS array definition (moved here for self-containment)
+// NAV_ITEMS array definition
 const NAV_ITEMS: Array<NavItem> = [
   { label: 'Home', href: '/' },
   {
@@ -90,7 +91,7 @@ export default function Header() {
   const { isOpen, onToggle, onOpen, onClose } = useDisclosure();
   const router = useRouter();
   const pathname = usePathname();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSession(); // NextAuth.js session status and data
   const [searchQuery, setSearchQuery] = useState('');
 
   // Chakra UI's 'md' breakpoint is 48em (768px). This hook determines if the screen is wider than that.
@@ -243,7 +244,9 @@ export default function Header() {
           {/* Authentication Buttons (desktop) - Hidden on auth pages and mobile */}
           {!isOnAuthPage && isLargerThanMd && (
             <>
-              {status === 'authenticated' ? (
+              {status === 'loading' ? (
+                <Spinner size="sm" /> // Show spinner while session is loading
+              ) : status === 'authenticated' ? (
                 <>
                   <Button as={ChakraLink} fontSize={'sm'} fontWeight={400} variant={'link'} href="/account" aria-label="Account settings">
                     Account
@@ -335,7 +338,9 @@ export default function Header() {
               {/* Authentication Buttons for Mobile - Hidden on auth pages */}
               {!isOnAuthPage && (
                 <>
-                  {status === 'authenticated' ? (
+                  {status === 'loading' ? (
+                    <Spinner size="sm" /> // Show spinner while session is loading
+                  ) : status === 'authenticated' ? (
                     <>
                       <Button as={ChakraLink} fontSize="xl" width="full" onClick={onClose} href="/account" aria-label="Account settings (mobile)">
                         Account

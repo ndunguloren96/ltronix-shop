@@ -12,7 +12,8 @@ import type { DjangoUser } from "@/types/next-auth"; // Ensure this path is corr
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET;
-const DJANGO_API_BASE_URL = process.env.NEXT_PUBLIC_DJANGO_API_URL || 'http://localhost:8000/api/v1'; // Ensure this is correctly set
+// Ensure this is correctly set and matches your Django backend's API base URL
+const DJANGO_API_BASE_URL = process.env.NEXT_PUBLIC_DJANGO_API_URL || 'http://localhost:8000/api/v1';
 
 export const authOptions: AuthOptions = {
   providers: [
@@ -24,11 +25,12 @@ export const authOptions: AuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
+          console.error("Credentials authorize: Missing email or password.");
           return null;
         }
 
         try {
-          // FIX: Make actual API call to Django's dj-rest-auth login endpoint
+          // Make actual API call to Django's dj-rest-auth login endpoint
           const response = await fetch(`${DJANGO_API_BASE_URL}/auth/login/`, {
             method: 'POST',
             headers: {
@@ -42,15 +44,13 @@ export const authOptions: AuthOptions = {
 
           if (!response.ok) {
             const errorData = await response.json();
-            console.error("Django Credentials Login Error:", errorData);
-            // Throw an error to display to the user, or return null
+            console.error("Django Credentials Login Error (status:", response.status, "):", errorData);
+            // Throw an error to propagate to the frontend for toast messages
             throw new Error(errorData.detail || errorData.non_field_errors?.[0] || 'Invalid credentials');
           }
 
           const data = await response.json();
           // Assuming Django returns a structure like { user: { id, email, first_name, last_name }, access_token, refresh_token }
-          // Adjust 'data.user' and 'data.access_token' based on your actual Django response structure.
-          // For dj-rest-auth with JWT, it typically returns { access_token, refresh_token, user: { id, email, ... } }
           const user = data.user; // This is your Django user object
           const accessToken = data.access_token; // JWT access token
 
@@ -65,9 +65,10 @@ export const authOptions: AuthOptions = {
               djangoUser: user as DjangoUser, // Cast to your custom DjangoUser type
             };
           }
+          console.warn("Credentials authorize: User or accessToken missing from Django response.");
           return null;
         } catch (error: any) {
-          console.error("Credentials authorize failed:", error);
+          console.error("Credentials authorize failed:", error.message || error);
           throw new Error(error.message || 'Authentication failed');
         }
       },
@@ -77,7 +78,7 @@ export const authOptions: AuthOptions = {
           GoogleProvider({
             clientId: GOOGLE_CLIENT_ID,
             clientSecret: GOOGLE_CLIENT_SECRET,
-            // FIX: Add authorization parameters for offline access to get refresh token
+            // Add authorization parameters for offline access to get refresh token
             authorization: {
               params: {
                 prompt: "consent",
@@ -110,8 +111,10 @@ export const authOptions: AuthOptions = {
           accessToken = credentialsUser.accessToken;
           djangoUser = credentialsUser.djangoUser;
           userId = credentialsUser.id; // Get ID from credentials user
+          console.log("JWT Callback (Credentials): User signed in. ID:", userId, "Email:", credentialsUser.email);
         } else if (account.provider === "google") {
-          // FIX: Call Django's dj-rest-auth Google social login endpoint
+          console.log("JWT Callback (Google): Attempting Django social auth...");
+          // Call Django's dj-rest-auth Google social login endpoint
           try {
             const djangoSocialAuthRes = await fetch(`${DJANGO_API_BASE_URL}/auth/google/`, {
               method: 'POST',
@@ -126,8 +129,10 @@ export const authOptions: AuthOptions = {
               accessToken = data.access_token;
               djangoUser = data.user; // Your full Django user object
               userId = data.user.id.toString(); // Get ID from Django user
+              console.log("JWT Callback (Google): Django social auth successful. User ID:", userId, "Email:", djangoUser?.email);
             } else {
-              console.error("Django social auth failed:", await djangoSocialAuthRes.json());
+              const errorData = await djangoSocialAuthRes.json();
+              console.error("Django social auth failed (status:", djangoSocialAuthRes.status, "):", errorData);
             }
           } catch (error) {
             console.error("Error during Django social auth:", error);
@@ -154,7 +159,7 @@ export const authOptions: AuthOptions = {
       if (token.id) {
         session.user.id = token.id; // Ensure session.user.id is set
       }
-
+      console.log("Session Callback: Session updated. User ID:", session.user.id, "Authenticated:", !!session.user.accessToken);
       return session;
     },
   },

@@ -38,7 +38,7 @@ export default function SignupPage() {
 
     try {
       // Make a direct POST request to your Django backend's signup endpoint
-      const signupRes = await fetch(`${DJANGO_API_BASE_URL}/auth/signup/`, {
+      const signupRes = await fetch(`${DJANGO_API_BASE_URL}/auth/registration/`, { // Ensure this is the correct registration endpoint
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -47,22 +47,47 @@ export default function SignupPage() {
         body: JSON.stringify({
           email,
           password,
-          password2: confirmPassword, // CRITICAL FIX: Changed from 'password_confirm' to 'password2'
-                                       // to match CustomRegisterSerializer's expectation from your provided backend code.
-                                       // Also consider adding first_name and last_name here if they become mandatory
-                                       // in your backend serializer.
+          password2: confirmPassword, // CRITICAL FIX: Changed from 'password_confirm' to 'password2' to match CustomRegisterSerializer's expectation
         }),
       });
 
       if (signupRes.ok) {
         toast({
           title: 'Signup Successful',
-          description: 'Your account has been created. Please log in.',
+          description: 'Your account has been created. Attempting to log you in...',
           status: 'success',
           duration: 3000,
           isClosable: true,
         });
-        router.push('/auth/login');
+
+        // Automatically attempt to sign in after successful registration
+        const signInResult = await signIn('credentials', {
+          redirect: false,
+          email,
+          password,
+        });
+
+        if (signInResult?.ok) {
+          toast({
+            title: 'Login Successful',
+            description: 'You have been automatically logged in.',
+            status: 'success',
+            duration: 3000,
+            isClosable: true,
+          });
+          router.push('/'); // Redirect to home page after successful login
+        } else {
+          console.error('Automatic login after signup failed:', signInResult?.error);
+          toast({
+            title: 'Login Failed',
+            description: 'Account created, but automatic login failed. Please try logging in manually.',
+            status: 'warning',
+            duration: 7000,
+            isClosable: true,
+          });
+          router.push('/auth/login'); // Redirect to login page if auto-login fails
+        }
+
       } else {
         const errorData = await signupRes.json();
         console.error('Django signup failed (Status:', signupRes.status, '):', errorData);
@@ -165,3 +190,4 @@ export default function SignupPage() {
     </Flex>
   );
 }
+
