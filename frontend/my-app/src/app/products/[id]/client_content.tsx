@@ -75,7 +75,8 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
   const priceAsNumber = parseFloat(product.price);
 
   const addToCartMutation = useMutation<BackendOrder, Error, ProductInCart[], { previousCart?: BackendOrder }>({
-    // FIX: Map ProductInCart[] to CartItemBackend[]
+    // mutationFn expects ProductInCart[], but createOrUpdateCart expects CartItemBackend[]
+    // So, we map ProductInCart[] to CartItemBackend[] here.
     mutationFn: (items) => createOrUpdateCart(
       items.map(item => ({ product_id: item.id, quantity: item.quantity })),
       guestSessionKey
@@ -224,10 +225,8 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
       updatedLocalCartItems = [...currentLocalCartItems, { ...itemToAddOrUpdate, quantity: quantity }];
     }
 
-    // FIX: Map ProductInCart[] to CartItemBackend[]
-    addToCartMutation.mutate(
-      updatedLocalCartItems.map(item => ({ product_id: item.id, quantity: item.quantity }))
-    );
+    // FIX: Pass updatedLocalCartItems directly, as addToCartMutation expects ProductInCart[]
+    addToCartMutation.mutate(updatedLocalCartItems);
   };
 
   return (
