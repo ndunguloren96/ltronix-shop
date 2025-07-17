@@ -9,12 +9,13 @@ import {
   AlertDescription,
 } from '@chakra-ui/react';
 import { notFound } from 'next/navigation';
-// FIX: Import Product interface directly from src/api/products
-import { fetchProductById, Product } from '../../../api/products';
+// FIX: Import Product interface directly from src/types/product.ts
+import { Product } from '../../../types/product'; // Corrected import path for Product
+import { fetchProductById } from '../../../api/products'; // Only import the function from api/products
 import ProductDetailClientContent from './client_content';
 
 // FIX: Removed duplicate Product interface definition here.
-// It is now imported from '../../../api/products'.
+// It is now imported from '../../../types/product.ts'.
 
 // Define the resolved params type
 interface ResolvedProductDetailPageParams {
@@ -80,3 +81,4 @@ export default async function ProductDetailPage({ params, searchParams }: Produc
     </Container>
   );
 }
+
