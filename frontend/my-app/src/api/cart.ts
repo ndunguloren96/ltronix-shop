@@ -1,77 +1,23 @@
 // src/api/cart.ts
 import { getSession } from "next-auth/react";
 import toast from "react-hot-toast";
+// CORRECTED IMPORT: Ensure all necessary types are imported from src/types/order.ts
+import { BackendCart, BackendTransaction, CartItemBackend, OrderItemPayload, OrderPayload, BackendOrderItem } from '../types/order';
+
 
 // Ensure this matches your Django API URL from .env
-const DJANGO_API_BASE_URL = process.env.NEXT_PUBLIC_DJANGO_API_URL || 'http://127.0.0.1:8000/api/v1';
-
-// --- Type Definitions for Cart/Order Operations ---
-// These should ideally be in a shared types file (e.g., src/types/cart.ts)
-// but are kept here for context based on the provided conflict.
-export interface ProductInCart {
-  id: number; // Product ID
-  name: string;
-  price: number;
-  quantity: number;
-  image_file?: string;
-}
-
-export interface OrderItemPayload {
-  id?: number;
-  product_id: number;
-  quantity: number;
-}
-
-export interface OrderPayload {
-  items: OrderItemPayload[];
-  complete?: boolean;
-  transaction_id?: string;
-}
-
-export interface BackendOrderItem {
-  id: number;
-  product: {
-    id: number;
-    name: string;
-    price: string; // Price from backend is a string
-    image_file?: string;
-  };
-  quantity: number;
-  get_total: string;
-}
-
-export interface BackendOrder {
-  id: number | null; // Can be null for newly created guest carts
-  customer: number | null;
-  session_key: string | null; // Important for guest carts
-  date_ordered: string;
-  complete: boolean;
-  transaction_id: string | null;
-  get_cart_total: string;
-  get_cart_items: number;
-  shipping: boolean;
-  items: BackendOrderItem[];
-}
-
-// Renamed from BackendOrder to BackendCart for clarity in frontend context
-export type BackendCart = BackendOrder;
-
-export interface CartItemBackend {
-  product_id: number;
-  quantity: number;
-}
-
+const DJANGO_API_BASE_URL = process.env.NEXT_PUBLIC_DJANGO_API_URL || 'http://localhost:8000/api/v1';
 
 /**
  * Helper function to make API requests, intelligently attaching
  * Authorization header for authenticated users or X-Session-Key for guests.
  * Prioritizes authenticated user.
  */
-async function fetchWithCartAuth(
+async function fetchWithCartAuth<T>(
   url: string,
   options?: RequestInit,
   guestSessionKey?: string | null
-) {
+): Promise<T> {
   const session = await getSession(); // Get the current NextAuth session
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -122,7 +68,7 @@ async function fetchWithCartAuth(
   }
 
   if (response.status === 204) {
-    return null;
+    return null as T; // Handle No Content
   }
 
   return response.json();
@@ -138,7 +84,7 @@ export async function fetchUserCart(guestSessionKey?: string | null): Promise<Ba
   try {
     // Use URL constructor for robust path concatenation
     const url = new URL('orders/my_cart/', DJANGO_API_BASE_URL);
-    const response = await fetchWithCartAuth(url.toString(), { method: 'GET' }, guestSessionKey);
+    const response = await fetchWithCartAuth<BackendCart | null>(url.toString(), { method: 'GET' }, guestSessionKey);
     return response;
   } catch (error) {
     console.error("API: Failed to fetch user cart:", error);
@@ -158,7 +104,7 @@ export async function createOrUpdateCart(items: CartItemBackend[], guestSessionK
   console.log("API: Creating or updating cart...");
   try {
     const url = new URL('orders/', DJANGO_API_BASE_URL); // POST to /orders/ handles create/update
-    const data = await fetchWithCartAuth(
+    const data = await fetchWithCartAuth<BackendCart>(
       url.toString(),
       {
         method: 'POST',
@@ -182,7 +128,7 @@ export async function mergeGuestCart(guestKey: string, cartItems: CartItemBacken
   console.log(`API: Merging guest cart (${guestKey}) with user cart...`);
   try {
     const url = new URL('orders/merge_guest_cart/', DJANGO_API_BASE_URL); // Backend endpoint for merging
-    const data = await fetchWithCartAuth(url.toString(), {
+    const data = await fetchWithCartAuth<BackendCart>(url.toString(), {
       method: 'POST',
       body: JSON.stringify({ guest_session_key: guestKey, items: cartItems }),
     });
@@ -207,7 +153,7 @@ export async function mergeGuestCart(guestKey: string, cartItems: CartItemBacken
 export async function initiateStkPushAPI(payload: { orderId: number; phoneNumber: string }, guestSessionKey?: string | null): Promise<BackendTransaction> {
   const url = new URL('payments/stk-push/', DJANGO_API_BASE_URL);
   console.log("Initiating STK Push with payload:", payload);
-  const response = await fetchWithCartAuth(url.toString(), {
+  const response = await fetchWithCartAuth<BackendTransaction>(url.toString(), {
     method: 'POST',
     body: JSON.stringify({
       order_id: payload.orderId,
@@ -226,7 +172,7 @@ export async function initiateStkPushAPI(payload: { orderId: number; phoneNumber
 export async function fetchTransactionStatusAPI(transactionId: number, guestSessionKey?: string | null): Promise<BackendTransaction> {
   const url = new URL(`payments/status/?transaction_id=${transactionId}`, DJANGO_API_BASE_URL);
   console.log("Fetching transaction status for ID:", transactionId);
-  const response = await fetchWithCartAuth(url.toString(), {
+  const response = await fetchWithCartAuth<BackendTransaction>(url.toString(), {
     method: 'GET',
   }, guestSessionKey);
   return response;
@@ -240,7 +186,7 @@ export async function fetchTransactionStatusAPI(transactionId: number, guestSess
  */
 export async function clearCartAPI(cartId: number, guestSessionKey?: string | null): Promise<BackendCart> {
   const url = new URL(`orders/${cartId}/`, DJANGO_API_BASE_URL);
-  const response = await fetchWithCartAuth(url.toString(), {
+  const response = await fetchWithCartAuth<BackendCart>(url.toString(), {
     method: 'PUT', // Use PUT to update the entire cart (clear it by sending no items)
     body: JSON.stringify({ items: [] }), // Send an empty items array
   }, guestSessionKey);
@@ -255,7 +201,7 @@ export async function clearCartAPI(cartId: number, guestSessionKey?: string | nu
  */
 export async function checkoutCartAPI(cartId: number, guestSessionKey?: string | null): Promise<BackendCart> {
   const url = new URL(`orders/${cartId}/complete_order/`, DJANGO_API_BASE_URL);
-  const response = await fetchWithCartAuth(url.toString(), {
+  const response = await fetchWithCartAuth<BackendCart>(url.toString(), {
     method: 'POST',
   }, guestSessionKey);
   return response;
@@ -266,8 +212,9 @@ export async function checkoutCartAPI(cartId: number, guestSessionKey?: string |
  */
 export async function fetchOrdersAPI(): Promise<BackendCart[]> {
   const url = new URL('orders/', DJANGO_API_BASE_URL);
-  const response = await fetchWithCartAuth(url.toString(), {
+  const response = await fetchWithCartAuth<BackendCart[]>(url.toString(), {
     method: 'GET',
   });
   return response.filter((order: BackendCart) => order.complete === true);
 }
+
