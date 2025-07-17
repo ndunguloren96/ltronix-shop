@@ -1,4 +1,4 @@
-// frontend/my-app/src/store/useCartStore.ts
+// src/store/useCartStore.ts
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 // Removed uuidv4 import here, as key generation is now managed externally by CartInitializer.
