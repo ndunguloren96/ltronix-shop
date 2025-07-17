@@ -8,4 +8,5 @@ router.register(r'orders', api_views.OrderViewSet, basename='order')
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('orders/my_cart/', api_views.OrderViewSet.as_view({'get': 'my_cart'}), name='my-cart'),
 ]

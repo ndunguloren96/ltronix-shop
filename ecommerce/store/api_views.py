@@ -36,13 +36,6 @@ class OrderViewSet(
     mixins.ListModelMixin,
     viewsets.GenericViewSet,
 ):
-    """
-    API endpoint that allows orders (and shopping carts) to be managed.
-    - An 'Order' represents a shopping cart when `complete` is False.
-    - For authenticated users, the cart is linked to `request.user`.
-    - For unauthenticated (guest) users, the cart is linked to `session_key`.
-    """
-
     queryset = Order.objects.all().order_by("-date_ordered")
     serializer_class = OrderSerializer
     permission_classes = [AllowAny]
@@ -61,109 +54,28 @@ class OrderViewSet(
             )
         ).prefetch_related('orderitem_set__product')
 
-        if self.action == "list" and user.is_authenticated:
+        if user.is_authenticated:
             customer, _ = Customer.objects.get_or_create(user=user)
-            return queryset.filter(customer=customer, complete=True)
+            if self.action == 'list':
+                return queryset.filter(customer=customer, complete=True)
+            return queryset.filter(customer=customer)
+        elif session_key:
+            return queryset.filter(session_key=session_key)
+        
+        return queryset.none()
 
-        if self.action in ["retrieve", "update", "destroy", "complete_order"]:
-            if user.is_authenticated:
-                customer, _ = Customer.objects.get_or_create(user=user)
-                return queryset.filter(customer=customer)
-            elif session_key:
-                return queryset.filter(session_key=session_key)
-            return queryset.none()
-
-        return queryset.all()
-
-    def create(self, request, *args, **kwargs):
-        """
-        Creates or updates a shopping cart (Order with complete=False).
-        Handles both authenticated and unauthenticated users.
-        The request body should contain 'items': [{product_id: '...', quantity: X}]
-        """
-        user = request.user
-        session_key = request.headers.get("X-Session-Key")
-        items_payload = request.data.get("items", [])
-
-        if not isinstance(items_payload, list):
-            return Response(
-                {"items": "Must be a list of items."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
+        def _update_cart_items(self, order, items_payload):
         with transaction.atomic():
-            order = None
-            customer = None
-            created = False  # Always define this variable
-
-            if user.is_authenticated:
-                customer, _ = Customer.objects.get_or_create(user=user)
-                order, created = Order.objects.get_or_create(
-                    customer=customer, complete=False
-                )
-
-                if session_key:
-                    guest_order = Order.objects.filter(
-                        session_key=session_key, complete=False
-                    ).prefetch_related('orderitem_set__product').first()
-                    if guest_order and guest_order.id != order.id:
-                        # Merge guest cart items into user's cart
-                        existing_order_items = {item.product_id: item for item in order.orderitem_set.all()}
-                        items_to_create = []
-                        items_to_update = []
-
-                        for guest_item in guest_order.orderitem_set.all():
-                            if guest_item.product_id in existing_order_items:
-                                existing_item = existing_order_items[guest_item.product_id]
-                                existing_item.quantity = F("quantity") + guest_item.quantity
-                                items_to_update.append(existing_item)
-                            else:
-                                items_to_create.append(
-                                    OrderItem(
-                                        product=guest_item.product,
-                                        order=order,
-                                        quantity=guest_item.quantity,
-                                    )
-                                )
-                        if items_to_update:
-                            OrderItem.objects.bulk_update(items_to_update, ['quantity'])
-                        if items_to_create:
-                            OrderItem.objects.bulk_create(items_to_create)
-
-                        guest_order.delete()
-                        print(
-                            f"Merged guest cart ({session_key}) into user's cart ({user.email})"
-                        )
-
-            elif session_key:
-                order, created = Order.objects.get_or_create(
-                    session_key=session_key, complete=False
-                )
-            else:
-                new_session_key = str(uuid.uuid4())
-                order = Order.objects.create(
-                    session_key=new_session_key, complete=False
-                )
-                created = True
-
-            if not order:
-                return Response(
-                    {"detail": "Unable to find or create cart."},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
             current_product_ids_in_payload = [
                 item.get("product_id")
                 for item in items_payload
                 if item.get("product_id") is not None
             ]
-            # FIX: Ensure the product IDs are converted to int for DB lookup in exclude
             order.orderitem_set.exclude(
                 product__id__in=[int(pid) for pid in current_product_ids_in_payload]
             ).delete()
 
             product_ids = [item_data["product_id"] for item_data in items_payload if item_data.get("product_id")]
-            # FIX: Ensure products_map keys are strings (str(p.id)) for consistent lookup
             products_map = {str(p.id): p for p in Product.objects.filter(id__in=product_ids)}
 
             for item_data in items_payload:
@@ -176,10 +88,8 @@ class OrderViewSet(
                     or not isinstance(quantity, int)
                     or quantity < 0
                 ):
-                    print(f"Skipping invalid item data: {item_data}")
                     continue
 
-                # FIX: Convert product_id to string for lookup in products_map
                 product = products_map.get(str(product_id))
                 if not product:
                     return Response(
@@ -195,127 +105,11 @@ class OrderViewSet(
                     order=order, product=product, defaults={"quantity": quantity}
                 )
 
-            order.refresh_from_db()
-
-            serializer = self.get_serializer(order)
-            response_data = serializer.data
-            if not user.is_authenticated and order.session_key:
-                response_data["session_key"] = order.session_key
-
-            # Always use "created" (never uninitialized)
-            return Response(
-                response_data,
-                status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
-            )
-
-    @action(detail=False, methods=["get"], permission_classes=[AllowAny])
-    def my_cart(self, request):
-        """
-        Retrieves the authenticated user's current incomplete order (shopping cart)
-        or a guest user's cart based on session_key.
-        """
+    def create(self, request, *args, **kwargs):
         user = request.user
-        session_key_from_header = request.headers.get("X-Session-Key")
-
-        order = None
-        customer = None
-
-        if user.is_authenticated:
-            customer, _ = Customer.objects.get_or_create(user=user)
-            order = Order.objects.annotate(
-                cart_total=Sum(F('orderitem__quantity') * F('orderitem__product__price')),
-                cart_items_count=Sum('orderitem__quantity'),
-                has_shipping_items=Case(
-                    When(orderitem__product__digital=False, then=Value(True)),
-                    default=Value(False),
-                    output_field=BooleanField()
-                )
-            ).prefetch_related('orderitem_set__product').filter(customer=customer, complete=False).first()
-            if not order and session_key_from_header:
-                guest_order = Order.objects.filter(
-                    session_key=session_key_from_header, complete=False
-                ).first()
-                if guest_order:
-                    guest_order.customer = customer
-                    guest_order.session_key = None
-                    guest_order.save()
-                    order = guest_order
-                    print(
-                        f"Authenticated user {user.email} adopted guest cart: {session_key_from_header}"
-                    )
-
-        elif session_key_from_header:
-            order = Order.objects.annotate(
-                cart_total=Sum(F('orderitem__quantity') * F('orderitem__product__price')),
-                cart_items_count=Sum('orderitem__quantity'),
-                has_shipping_items=Case(
-                    When(orderitem__product__digital=False, then=Value(True)),
-                    default=Value(False),
-                    output_field=BooleanField()
-                )
-            ).prefetch_related('orderitem_set__product').filter(
-                session_key=session_key_from_header, complete=False
-            ).first()
-
-        if not order:
-            if not user.is_authenticated:
-                new_session_key = (
-                    session_key_from_header
-                    if session_key_from_header
-                    else str(uuid.uuid4())
-                )
-                order = Order.objects.create(
-                    session_key=new_session_key, complete=False
-                )
-                print(f"Created new guest cart for session: {new_session_key}")
-            else:
-                pass
-
-        serializer = self.get_serializer(order)
-        response_data = serializer.data
-
-        if not user.is_authenticated and order.session_key:
-            response_data["session_key"] = order.session_key
-
-        return Response(response_data, status=status.HTTP_200_OK)
-
-    def update(self, request, *args, **kwargs):
-        """
-        Updates a shopping cart (Order with complete=False).
-        Similar to `create` but targets an existing order.
-        Handles both authenticated and unauthenticated users.
-        """
-        instance = self.get_object()
-        user = request.user
-        session_key_from_header = request.headers.get("X-Session-Key")
-
-        if instance.complete:
-            return Response(
-                {"detail": "Cannot update a completed order."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        if user.is_authenticated:
-            if not instance.customer or instance.customer.user != user:
-                return Response(
-                    {"detail": "You do not have permission to update this order."},
-                    status=status.HTTP_403_FORBIDDEN,
-                )
-        elif session_key_from_header:
-            if instance.session_key != session_key_from_header:
-                return Response(
-                    {
-                        "detail": "You do not have permission to update this guest order."
-                    },
-                    status=status.HTTP_403_FORBIDDEN,
-                )
-        else:
-            return Response(
-                {"detail": "Authentication credentials were not provided."},
-                status=status.HTTP_401_UNAUTHORIZED,
-            )
-
+        session_key = request.headers.get("X-Session-Key")
         items_payload = request.data.get("items", [])
+
         if not isinstance(items_payload, list):
             return Response(
                 {"items": "Must be a list of items."},
@@ -323,61 +117,89 @@ class OrderViewSet(
             )
 
         with transaction.atomic():
-            # FIX: Ensure product IDs are converted to int for DB lookup before deleting
-            current_product_ids_in_payload = [
-                item.get("product_id")
-                for item in items_payload
-                if item.get("product_id") is not None
-            ]
-            instance.orderitem_set.exclude(
-                product__id__in=[int(pid) for pid in current_product_ids_in_payload]
-            ).delete()
+            order, created = self._get_or_create_cart(user, session_key)
 
+            if user.is_authenticated and session_key:
+                self._merge_guest_cart(user, session_key, order)
 
-            product_ids = [item_data["product_id"] for item_data in items_payload if item_data.get("product_id")]
-            # FIX: Ensure products_map keys are strings (str(p.id)) for consistent lookup
-            products_map = {str(p.id): p for p in Product.objects.filter(id__in=product_ids)}
+            self._update_cart_items(order, items_payload)
 
+            order.refresh_from_db()
+
+            serializer = self.get_serializer(order)
+            response_data = serializer.data
+            if not user.is_authenticated and order.session_key:
+                response_data["session_key"] = order.session_key
+
+            return Response(
+                response_data,
+                status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+            )
+
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        items_payload = request.data.get("items", [])
+
+        if not isinstance(items_payload, list):
+            return Response(
+                {"items": "Must be a list of items."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        self._update_cart_items(instance, items_payload)
+
+        instance.refresh_from_db()
+
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def _get_or_create_cart(self, user, session_key):
+        if user.is_authenticated:
+            customer, _ = Customer.objects.get_or_create(user=user)
+            order, created = Order.objects.get_or_create(
+                customer=customer, complete=False
+            )
+        elif session_key:
+            order, created = Order.objects.get_or_create(
+                session_key=session_key, complete=False
+            )
+        else:
+            new_session_key = str(uuid.uuid4())
+            order = Order.objects.create(
+                session_key=new_session_key, complete=False
+            )
+            created = True
+        return order, created
+
+    def _merge_guest_cart(self, user, session_key, user_cart):
+        guest_order = Order.objects.filter(
+            session_key=session_key, complete=False
+        ).prefetch_related('orderitem_set__product').first()
+
+        if guest_order and guest_order.id != user_cart.id:
+            existing_order_items = {item.product_id: item for item in user_cart.orderitem_set.all()}
             items_to_create = []
+            items_to_update = []
 
-            for item_data in items_payload:
-                product_id = item_data.get("product_id")
-                quantity = item_data.get("quantity")
-
-                if (
-                    not product_id
-                    or quantity is None
-                    or not isinstance(quantity, int)
-                    or quantity < 0
-                ):
-                    print(f"Skipping invalid item data during update: {item_data}")
-                    continue
-
-                # FIX: Convert product_id to string for lookup in products_map
-                product = products_map.get(str(product_id))
-                if not product:
-                    return Response(
-                        {"detail": f"Product with ID '{product_id}' not found."},
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
-
-                if quantity > 0:
+            for guest_item in guest_order.orderitem_set.all():
+                if guest_item.product_id in existing_order_items:
+                    existing_item = existing_order_items[guest_item.product_id]
+                    existing_item.quantity = F("quantity") + guest_item.quantity
+                    items_to_update.append(existing_item)
+                else:
                     items_to_create.append(
                         OrderItem(
-                            order=instance, product=product, quantity=quantity
+                            product=guest_item.product,
+                            order=user_cart,
+                            quantity=guest_item.quantity,
                         )
                     )
+            if items_to_update:
+                OrderItem.objects.bulk_update(items_to_update, ['quantity'])
             if items_to_create:
                 OrderItem.objects.bulk_create(items_to_create)
 
-            instance.refresh_from_db()
-
-        serializer = self.get_serializer(instance)
-        response_data = serializer.data
-        if not user.is_authenticated and instance.session_key:
-            response_data["session_key"] = instance.session_key
-
-        return Response(response_data, status=status.HTTP_200_OK)
+            guest_order.delete()
 
     @action(
         detail=True,
@@ -530,37 +352,5 @@ class OrderViewSet(
         return super().destroy(request, *args, **kwargs)
 
 
-# --- Standalone MyCartView for direct endpoint integration (/orders/my_cart/) ---
-class MyCartView(APIView):
-    """
-    Standalone view for /orders/my_cart/ endpoint to retrieve the current (incomplete) cart.
-    Mirrors the logic of OrderViewSet.my_cart for use as an independent APIView.
-    """
 
-    permission_classes = [AllowAny]
-
-    def get(self, request, *args, **kwargs):
-        user = request.user
-        session_key_from_header = request.headers.get("X-Session-Key")
-
-        order = None
-        if user.is_authenticated:
-            customer, _ = Customer.objects.get_or_create(user=user)
-            order = Order.objects.filter(customer=customer, complete=False).first()
-        elif session_key_from_header:
-            order = Order.objects.filter(
-                session_key=session_key_from_header, complete=False
-            ).first()
-        else:
-            # Create a session for the guest if it does not exist
-            if not request.session.session_key:
-                request.session.create()
-            session_key = request.session.session_key
-            order = Order.objects.create(session_key=session_key, complete=False)
-
-        serializer = OrderSerializer(order)
-        response_data = serializer.data
-        if not user.is_authenticated and hasattr(order, "session_key"):
-            response_data["session_key"] = order.session_key
-        return Response(response_data)
 
