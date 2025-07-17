@@ -140,7 +140,8 @@ export default function CartPage() {
    * This prevents UI from showing stale or unmerged cart data after removing, clearing, or updating items.
    */
   const updateCartMutation = useMutation<BackendOrder, Error, ProductInCart[], UpdateCartContext>({
-    // FIX: Map ProductInCart[] to CartItemBackend[]
+    // mutationFn expects ProductInCart[], but createOrUpdateCart expects CartItemBackend[]
+    // So, we map ProductInCart[] to CartItemBackend[] here.
     mutationFn: (items) => createOrUpdateCart(
       items.map(item => ({ product_id: item.id, quantity: item.quantity })),
       currentSessionKey
@@ -256,10 +257,8 @@ export default function CartPage() {
   };
 
   const handleRemoveItem = (id: number) => {
-    // FIX: Map ProductInCart[] to CartItemBackend[]
-    const updatedItems: CartItemBackend[] = localCartItems
-      .filter((item) => item.id !== id)
-      .map(item => ({ product_id: item.id, quantity: item.quantity }));
+    // FIX: Ensure updatedItems is ProductInCart[] for mutate input
+    const updatedItems: ProductInCart[] = localCartItems.filter((item) => item.id !== id);
     updateCartMutation.mutate(updatedItems);
   };
 
@@ -274,10 +273,8 @@ export default function CartPage() {
           item.id === id ? { ...item, quantity: newQuantity } : item
         );
       }
-      // FIX: Map ProductInCart[] to CartItemBackend[]
-      updateCartMutation.mutate(
-        updatedItems.map(item => ({ product_id: item.id, quantity: item.quantity }))
-      );
+      // FIX: Ensure updatedItems is ProductInCart[] for mutate input
+      updateCartMutation.mutate(updatedItems);
     }
   };
 
