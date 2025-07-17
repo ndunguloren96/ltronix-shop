@@ -10,7 +10,8 @@ import { signIn } from 'next-auth/react';
 import NextLink from 'next/link'; // Alias Next.js Link for clarity with ChakraLink
 
 // Define your Django backend URL from environment variables
-const DJANGO_API_BASE_URL = process.env.NEXT_PUBLIC_DJANGO_API_URL || 'http://127.0.0.1:8000/api/v1';
+// It should NOT have a trailing slash for consistent URL construction
+const DJANGO_API_BASE_URL = (process.env.NEXT_PUBLIC_DJANGO_API_URL || 'http://127.0.0.1:8000/api/v1').replace(/\/$/, '');
 
 export default function SignupPage() {
   const [email, setEmail] = useState('');
@@ -38,7 +39,8 @@ export default function SignupPage() {
 
     try {
       // Make a direct POST request to your Django backend's signup endpoint
-      const signupRes = await fetch(`${DJANGO_API_BASE_URL}/auth/registration/`, { // Ensure this is the correct registration endpoint
+      // FIX: Ensure the endpoint string does NOT start with a leading slash
+      const signupRes = await fetch(`${DJANGO_API_BASE_URL}/auth/registration/`, { // Removed leading slash from 'auth/registration/'
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
