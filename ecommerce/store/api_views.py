@@ -1,4 +1,3 @@
-# ecommerce/store/api_views.py
 import uuid
 
 from django.db import transaction
@@ -65,7 +64,6 @@ class OrderViewSet(
         
         return queryset.none()
 
-    # FIX: Corrected indentation for _update_cart_items and its content
     def _update_cart_items(self, order, items_payload):
         with transaction.atomic():
             current_product_ids_in_payload = [
@@ -286,18 +284,25 @@ class OrderViewSet(
         user = request.user
         session_key = request.headers.get("X-Session-Key")
 
+        # FIX: Added print statements for debugging
+        print(f"DEBUG: my_cart called. User authenticated: {user.is_authenticated}, Session Key: {session_key}")
+
         if user.is_authenticated:
             customer, _ = Customer.objects.get_or_create(user=user)
             order = Order.objects.filter(customer=customer, complete=False).first()
+            print(f"DEBUG: Authenticated user cart lookup. Customer: {customer.id if customer else 'None'}, Order found: {order.id if order else 'None'}")
         elif session_key:
             order = Order.objects.filter(session_key=session_key, complete=False).first()
+            print(f"DEBUG: Guest cart lookup. Session Key: {session_key}, Order found: {order.id if order else 'None'}")
         else:
+            print("DEBUG: No user authenticated and no session key provided.")
             return Response(
                 {"detail": "No active cart found for this session/user."},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
         if not order:
+            print("DEBUG: No active cart found after lookup.")
             return Response(
                 {"detail": "No active cart found."},
                 status=status.HTTP_404_NOT_FOUND,
@@ -307,6 +312,7 @@ class OrderViewSet(
         response_data = serializer.data
         if not user.is_authenticated and order.session_key:
             response_data["session_key"] = order.session_key # Return session key for guest
+            print(f"DEBUG: Returning guest cart with session key: {order.session_key}")
 
         return Response(response_data)
 

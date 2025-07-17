@@ -24,23 +24,20 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     # API base path
     path("api/v1/", include([
-        # FIX: Removed the "store/" prefix here.
-        # Now, products/ and orders/ from store.api_urls will be directly under /api/v1/
         path("", include("store.api_urls")), # This will make /api/v1/products/ and /api/v1/orders/
-        path("payments/", include("payment.api_urls")), # Corrected from "payment/" to "payments/" for consistency
+        path("payments/", include("payment.api_urls")),
         # dj-rest-auth URLs
         path("auth/", include("dj_rest_auth.urls")), # Login, Logout, User details, Password Reset/Change
         path("auth/registration/", include("dj_rest_auth.registration.urls")), # Default registration endpoints
         # Explicitly include your CustomRegisterView if it's not handled by dj_rest_auth.registration.urls
-        # This line ensures your CustomRegisterView is used for /auth/registration/
         path("auth/registration/", CustomRegisterView.as_view(), name="rest_register"),
         
         # AllAuth URLs (crucial for social login callbacks from Google)
         # This needs to be accessible for Google to redirect to, usually under /accounts/
         path("accounts/", include("allauth.urls")),
-        # FIX: Removed explicit include for allauth.socialaccount.providers.google.urls
-        # as dj_rest_auth.registration.urls should handle social endpoints like /auth/social/google/
-        # path("auth/google/", include("allauth.socialaccount.providers.google.urls")),
+        # FIX: Explicitly include dj_rest_auth social URLs
+        # This provides endpoints like /auth/social/google/ for token exchange
+        path("auth/social/", include("dj_rest_auth.social_urls")),
 
 
         # Custom user-related views
@@ -48,7 +45,7 @@ urlpatterns = [
         path("auth/email/change/", EmailChangeView.as_view(), name="rest_email_change"),
         path("auth/account/delete/", AccountDeleteView.as_view(), name="rest_account_delete"),
 
-        # Schema and Swagger UI - FIX: Use direct views from drf_spectacular
+        # Schema and Swagger UI
         path("schema/", SpectacularAPIView.as_view(), name="schema"),
         path("schema/swagger-ui/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
     ])),

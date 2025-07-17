@@ -12,6 +12,13 @@ warnings.filterwarnings(
     message=r"app_settings\.(USERNAME|EMAIL)_REQUIRED is deprecated",
     module="dj_rest_auth.registration.serializers",
 )
+# FIX: Suppress the specific ACCOUNT_AUTHENTICATION_METHOD warning
+warnings.filterwarnings(
+    "ignore",
+    message=r"app_settings\.AUTHENTICATION_METHOD is deprecated",
+    module="allauth.account.app_settings",
+)
+
 
 import sentry_sdk
 from environ import Env
@@ -114,12 +121,12 @@ AUTHENTICATION_BACKENDS = (
 SITE_ID = 1
 
 # --- AllAuth specific settings ---
+# FIX: Use ACCOUNT_LOGIN_METHODS instead of ACCOUNT_AUTHENTICATION_METHOD
 ACCOUNT_LOGIN_METHODS = ["email"]
 ACCOUNT_USERNAME_REQUIRED = False
 ACCOUNT_EMAIL_REQUIRED = True
-ACCOUNT_AUTHENTICATION_METHOD = "email"
+# ACCOUNT_AUTHENTICATION_METHOD = "email" # Deprecated, replaced by ACCOUNT_LOGIN_METHODS
 ACCOUNT_UNIQUE_EMAIL = True
-# FIX: Changed email verification to 'none' for immediate login after signup
 ACCOUNT_EMAIL_VERIFICATION = "none" # or "mandatory" depending on your flow
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None # Ensure this is None for email-only login
 ACCOUNT_SIGNUP_FIELDS = ["email", "password"] # Simplified to match default registration
@@ -160,7 +167,6 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.AllowAny",),
     "DEFAULT_RENDERER_CLASSES": (
         "rest_framework.renderers.JSONRenderer",
-        # FIX: Corrected from BrowsableAPIRouter to BrowsableAPIRenderer
         "rest_framework.renderers.BrowsableAPIRenderer",
     ),
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
@@ -172,13 +178,11 @@ REST_FRAMEWORK = {
 from corsheaders.defaults import default_headers
 
 CORS_ALLOW_ALL_ORIGINS = False
-# FIX: Added render.com URL to allowed origins
 CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=["http://localhost:3000", "https://ltronix-shop.vercel.app", "https://ltronix-shop.onrender.com"])
 CORS_ALLOW_METHODS = ["DELETE", "GET", "OPTIONS", "PATCH", "POST", "PUT"]
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_HEADERS = list(default_headers) + ["x-session-key"]
 
-# FIX: Added render.com URL to trusted origins
 CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=["http://localhost:3000", "https://ltronix-shop.vercel.app", "https://ltronix-shop.onrender.com"])
 CSRF_COOKIE_HTTPONLY = True
 CSRF_COOKIE_SECURE = env.bool("CSRF_COOKIE_SECURE", default=True)
@@ -209,7 +213,7 @@ EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")
 EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
 
 # AllAuth: disable username field if using custom User with only email
-ACCOUNT_AUTHENTICATION_METHOD = "email"
+# ACCOUNT_AUTHENTICATION_METHOD = "email" # Deprecated, replaced by ACCOUNT_LOGIN_METHODS
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None
 ACCOUNT_USERNAME_REQUIRED = False
 ACCOUNT_SIGNUP_FIELDS = ["email", "password"] # Simplified to match default registration
@@ -220,50 +224,43 @@ REST_AUTH = {
     "SESSION_LOGIN": True, # Keep this if you want session authentication for browsable API
     "JWT_AUTH_COOKIE": "my-app-jwt-access",
     "JWT_AUTH_REFRESH_COOKIE": "my-app-jwt-refresh",
-    "USER_DETAILS_SERIALIZER": "users.serializers.UserDetailsSerializer",
-    "REGISTER_SERIALIZER": "users.serializers.CustomRegisterSerializer", # FIX: Point to your custom serializer
+    "USER_DETAILS_SERIALIZER": "users.serializers.UserDetailsSerializer", # Confirmed correct
+    "REGISTER_SERIALIZER": "users.serializers.CustomRegisterSerializer",
     "PASSWORD_RESET_USE_SITECONTROL": True,
     "PASSWORD_RESET_CONFIRM_URL": env(
         "DJANGO_PASSWORD_RESET_CONFIRM_URL",
         default="https://ltronix-shop.vercel.app/auth/password-reset-confirm/{uid}/{token}"
     ),
     "OLD_PASSWORD_FIELD_ENABLED": True,
-    # FIX: Removed redundant SOCIAL_ACCOUNT_ADAPTER from REST_AUTH
-    # "SOCIAL_ACCOUNT_ADAPTER": "dj_rest_auth.social_serializers.SocialAccountAdapter",
-    "GOOGLE_CLIENT_ID": env("GOOGLE_CLIENT_ID", default=""), # Ensure this matches your Google client ID
-    "GOOGLE_CLIENT_SECRET": env("GOOGLE_CLIENT_SECRET", default=""), # Ensure this matches your Google client secret
+    "GOOGLE_CLIENT_ID": env("GOOGLE_CLIENT_ID", default=""),
+    "GOOGLE_CLIENT_SECRET": env("GOOGLE_CLIENT_SECRET", default=""),
 }
 
 # --- Simple JWT
 SIMPLE_JWT = {
-    # FIX: Increased token lifetime for better UX
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15), # Consider increasing for better UX
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
     "AUTH_HEADER_TYPES": ("Bearer",),
     "SIGNING_KEY": SECRET_KEY,
-    # FIX: Add token serialization for dj-rest-auth
     "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
-    "USER_ID_FIELD": "id", # Ensure this matches your User model's primary key field
-    "USER_ID_CLAIM": "user_id", # Claim name in the token
+    "USER_ID_FIELD": "id",
+    "USER_ID_CLAIM": "user_id", # Confirmed correct
 }
 
 # --- Social Auth (Google via AllAuth)
-# These settings are for django-allauth, not python-social-auth
 SOCIALACCOUNT_PROVIDERS = {
     "google": {
         "APP": {
             "client_id": env("GOOGLE_CLIENT_ID", default=""),
             "secret": env("GOOGLE_CLIENT_SECRET", default=""),
-            "key": "", # Not used for Google
+            "key": "",
         },
         "SCOPE": ["profile", "email"],
-        # FIX: Ensure offline access is requested for refresh tokens
-        "AUTH_PARAMS": {"access_type": "offline"}, # Important for refresh tokens if needed
+        "AUTH_PARAMS": {"access_type": "offline"},
     }
 }
-# Removed SOCIAL_AUTH_GOOGLE_OAUTH2_REDIRECT_URI as it's for python-social-auth
 
 OAUTH2_PROVIDER = {
     "SCOPES": {
@@ -295,7 +292,6 @@ if SENTRY_DSN:
         traces_sample_rate=0.5,
     )
 
-# FIX: Add DEFAULT_AUTO_FIELD for Django 3.2+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 LOGGING = {
@@ -337,7 +333,6 @@ LOGGING = {
             "level": "ERROR",
             "propagate": False,
         },
-        # FIX: Add logger for allauth
         "allauth": {
             "handlers": ["console"],
             "level": "INFO",
