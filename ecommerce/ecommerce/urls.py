@@ -35,9 +35,8 @@ urlpatterns = [
         # AllAuth URLs (crucial for social login callbacks from Google)
         # This needs to be accessible for Google to redirect to, usually under /accounts/
         path("accounts/", include("allauth.urls")),
-        # FIX: Explicitly include dj_rest_auth social URLs
-        # This provides endpoints like /auth/social/google/ for token exchange
-        path("auth/social/", include("dj_rest_auth.social_urls")),
+        # FIX: Removed the problematic line causing ModuleNotFoundError
+        # path("auth/social/", include("dj_rest_auth.social_urls")),
 
 
         # Custom user-related views
