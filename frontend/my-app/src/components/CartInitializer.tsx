@@ -47,11 +47,11 @@ export function CartInitializer() {
             );
             // Update local cart with the merged data from the backend
             setItems(mergedBackendCart.items.map((item: any) => ({
-                id: item.product_id,
-                name: item.name, // Ensure backend returns these, or fetch product details separately
-                price: item.price,
+                id: item.product.id, // Use item.product.id as the product ID
+                name: item.product.name,
+                price: parseFloat(item.product.price), // Convert price to number
                 quantity: item.quantity,
-                image_file: item.image_file,
+                image_file: item.product.image_file,
             })));
             setGuestSessionKey(null); // CRITICAL: Clear guest key after successful merge
             console.log('CartInitializer: Guest cart merged successfully, local guest key cleared.');
@@ -61,11 +61,11 @@ export function CartInitializer() {
             try {
               const userBackendCart = await fetchUserCart();
               setItems(userBackendCart.items.map((item: any) => ({
-                id: item.product_id,
-                name: item.name,
-                price: item.price,
+                id: item.product.id, // Use item.product.id as the product ID
+                name: item.product.name,
+                price: parseFloat(item.product.price), // Convert price to number
                 quantity: item.quantity,
-                image_file: item.image_file,
+                image_file: item.product.image_file,
               })));
               setGuestSessionKey(null); // Still clear the guest key to avoid re-attempting merge
               console.log('CartInitializer: Fallback: Fetched user cart after merge failure.');
@@ -81,11 +81,11 @@ export function CartInitializer() {
           try {
             const userBackendCart = await fetchUserCart();
             setItems(userBackendCart.items.map((item: any) => ({
-                id: item.product_id,
-                name: item.name,
-                price: item.price,
+                id: item.product.id, // Use item.product.id as the product ID
+                name: item.product.name,
+                price: parseFloat(item.product.price), // Convert price to number
                 quantity: item.quantity,
-                image_file: item.image_file,
+                image_file: item.product.image_file,
             })));
             setGuestSessionKey(null); // Ensure guest key is null for authenticated users
             console.log('CartInitializer: Fetched authenticated user cart.');
