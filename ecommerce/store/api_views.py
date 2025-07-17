@@ -64,7 +64,8 @@ class OrderViewSet(
         
         return queryset.none()
 
-        def _update_cart_items(self, order, items_payload):
+    # FIX: Corrected indentation for _update_cart_items and its content
+    def _update_cart_items(self, order, items_payload):
         with transaction.atomic():
             current_product_ids_in_payload = [
                 item.get("product_id")
@@ -271,6 +272,99 @@ class OrderViewSet(
         serializer = self.get_serializer(order)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path="my_cart",
+        permission_classes=[AllowAny], # Allow guest access
+    )
+    def my_cart(self, request):
+        """
+        Retrieves the authenticated user's current active cart or a guest cart.
+        """
+        user = request.user
+        session_key = request.headers.get("X-Session-Key")
+
+        if user.is_authenticated:
+            customer, _ = Customer.objects.get_or_create(user=user)
+            order = Order.objects.filter(customer=customer, complete=False).first()
+        elif session_key:
+            order = Order.objects.filter(session_key=session_key, complete=False).first()
+        else:
+            return Response(
+                {"detail": "No active cart found for this session/user."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if not order:
+            return Response(
+                {"detail": "No active cart found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        serializer = self.get_serializer(order)
+        response_data = serializer.data
+        if not user.is_authenticated and order.session_key:
+            response_data["session_key"] = order.session_key # Return session key for guest
+
+        return Response(response_data)
+
+    @action(
+        detail=False,
+        methods=["post"],
+        url_path="merge_guest_cart",
+        permission_classes=[IsAuthenticated], # Only authenticated users can merge
+    )
+    def merge_guest_cart(self, request):
+        """
+        Merges a guest cart into an authenticated user's cart.
+        Requires authentication.
+        """
+        user = request.user
+        guest_session_key = request.data.get("guest_session_key")
+        guest_items_payload = request.data.get("items", [])
+
+        if not user.is_authenticated:
+            return Response(
+                {"detail": "Authentication required to merge carts."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+        if not guest_session_key:
+            return Response(
+                {"detail": "Guest session key is required for merging."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if not isinstance(guest_items_payload, list):
+            return Response(
+                {"items": "Guest items must be a list."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        with transaction.atomic():
+            user_customer, _ = Customer.objects.get_or_create(user=user)
+            user_cart, _ = Order.objects.get_or_create(customer=user_customer, complete=False)
+
+            guest_order = Order.objects.filter(
+                session_key=guest_session_key, complete=False
+            ).prefetch_related('orderitem_set__product').first()
+
+            if guest_order and guest_order.id != user_cart.id:
+                # Use the existing _merge_guest_cart helper
+                self._merge_guest_cart(user, guest_session_key, user_cart)
+                guest_order.delete() # Ensure the old guest cart is deleted
+
+            # After merging, update the user_cart with any new items from the payload
+            # This handles cases where the user might have added items to their
+            # authenticated cart *before* the merge request.
+            self._update_cart_items(user_cart, guest_items_payload)
+
+
+            user_cart.refresh_from_db() # Refresh to get latest totals
+
+            serializer = self.get_serializer(user_cart)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+
     def list(self, request, *args, **kwargs):
         """
         Retrieves the authenticated user's complete order history.
@@ -350,7 +444,3 @@ class OrderViewSet(
             )
 
         return super().destroy(request, *args, **kwargs)
-
-
-
-
