@@ -60,15 +60,21 @@ export function CartInitializer() {
             // Even if merge fails, try to load the user's existing cart from backend
             try {
               const userBackendCart = await fetchUserCart();
-              setItems(userBackendCart.items.map((item: any) => ({
-                id: item.product.id, // Use item.product.id as the product ID
-                name: item.product.name,
-                price: parseFloat(item.product.price), // Convert price to number
-                quantity: item.quantity,
-                image_file: item.product.image_file,
-              })));
-              setGuestSessionKey(null); // Still clear the guest key to avoid re-attempting merge
-              console.log('CartInitializer: Fallback: Fetched user cart after merge failure.');
+              // FIX: Add null check for userBackendCart
+              if (userBackendCart) {
+                setItems(userBackendCart.items.map((item: any) => ({
+                  id: item.product.id, // Use item.product.id as the product ID
+                  name: item.product.name,
+                  price: parseFloat(item.product.price), // Convert price to number
+                  quantity: item.quantity,
+                  image_file: item.product.image_file,
+                })));
+                setGuestSessionKey(null); // Still clear the guest key to avoid re-attempting merge
+                console.log('CartInitializer: Fallback: Fetched user cart after merge failure.');
+              } else {
+                console.log('CartInitializer: Fallback: No user cart found after merge failure, clearing local cart.');
+                clearCart();
+              }
             } catch (fetchError) {
               console.error('CartInitializer: Failed to fetch user cart after merge failure:', fetchError);
               clearCart(); // Clear local cart if cannot fetch user cart
@@ -80,15 +86,21 @@ export function CartInitializer() {
           console.log('CartInitializer: Authenticated user, no local guest cart to merge. Fetching user cart...');
           try {
             const userBackendCart = await fetchUserCart();
-            setItems(userBackendCart.items.map((item: any) => ({
+            // FIX: Add null check for userBackendCart
+            if (userBackendCart) {
+              setItems(userBackendCart.items.map((item: any) => ({
                 id: item.product.id, // Use item.product.id as the product ID
                 name: item.product.name,
                 price: parseFloat(item.product.price), // Convert price to number
                 quantity: item.quantity,
                 image_file: item.product.image_file,
-            })));
-            setGuestSessionKey(null); // Ensure guest key is null for authenticated users
-            console.log('CartInitializer: Fetched authenticated user cart.');
+              })));
+              setGuestSessionKey(null); // Ensure guest key is null for authenticated users
+              console.log('CartInitializer: Fetched authenticated user cart.');
+            } else {
+              console.log('CartInitializer: No authenticated user cart found, clearing local cart.');
+              clearCart(); // Clear local cart if no cart found on backend
+            }
           } catch (error) {
             console.error('CartInitializer: Error fetching authenticated user cart:', error);
             clearCart(); // Clear local cart if fetching fails (e.g., no cart on backend)
