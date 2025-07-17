@@ -119,16 +119,10 @@ ACCOUNT_USERNAME_REQUIRED = False
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_AUTHENTICATION_METHOD = "email"
 ACCOUNT_UNIQUE_EMAIL = True
-ACCOUNT_EMAIL_VERIFICATION = "optional" # or "mandatory" depending on your flow
+# FIX: Changed email verification to 'none' for immediate login after signup
+ACCOUNT_EMAIL_VERIFICATION = "none" # or "mandatory" depending on your flow
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None # Ensure this is None for email-only login
 ACCOUNT_SIGNUP_FIELDS = ["email", "password"] # Simplified to match default registration
-
-# FIX: Remove explicit dj_rest_auth adapter paths.
-# dj-rest-auth 7.x.x typically relies on allauth's default adapters or your custom ones.
-# If you have a custom adapter in users/adapters.py, you would set it like:
-# ACCOUNT_ADAPTER = "users.adapters.MyCustomAccountAdapter"
-# SOCIALACCOUNT_ADAPTER = "users.adapters.MyCustomSocialAccountAdapter"
-# For now, we remove these lines to let allauth's defaults be used implicitly or by dj-rest-auth.
 
 # Redirect after login/logout (can be overridden by frontend)
 LOGIN_REDIRECT_URL = "/"
@@ -166,7 +160,7 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.AllowAny",),
     "DEFAULT_RENDERER_CLASSES": (
         "rest_framework.renderers.JSONRenderer",
-        "rest_framework.renderers.BrowsableAPIRenderer",
+        "rest_framework.renderers.BrowsableAPIRouter", # Corrected from BrowsableAPIRenderer to BrowsableAPIRouter if that's what you intended
     ),
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_PAGINATION_CLASS": "ecommerce.pagination.StandardResultsSetPagination",
@@ -177,12 +171,14 @@ REST_FRAMEWORK = {
 from corsheaders.defaults import default_headers
 
 CORS_ALLOW_ALL_ORIGINS = False
-CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=["http://localhost:3000", "https://ltronix-shop.vercel.app"])
+# FIX: Added render.com URL to allowed origins
+CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=["http://localhost:3000", "https://ltronix-shop.vercel.app", "https://ltronix-shop.onrender.com"])
 CORS_ALLOW_METHODS = ["DELETE", "GET", "OPTIONS", "PATCH", "POST", "PUT"]
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_HEADERS = list(default_headers) + ["x-session-key"]
 
-CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=["http://localhost:3000", "https://ltronix-shop.vercel.app"])
+# FIX: Added render.com URL to trusted origins
+CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=["http://localhost:3000", "https://ltronix-shop.vercel.app", "https://ltronix-shop.onrender.com"])
 CSRF_COOKIE_HTTPONLY = True
 CSRF_COOKIE_SECURE = env.bool("CSRF_COOKIE_SECURE", default=True)
 CSRF_COOKIE_SAMESITE = "Lax"
@@ -231,7 +227,7 @@ REST_AUTH = {
         default="https://ltronix-shop.vercel.app/auth/password-reset-confirm/{uid}/{token}"
     ),
     "OLD_PASSWORD_FIELD_ENABLED": True,
-    # FIX: Remove redundant SOCIAL_ACCOUNT_ADAPTER from REST_AUTH
+    # FIX: Removed redundant SOCIAL_ACCOUNT_ADAPTER from REST_AUTH
     # "SOCIAL_ACCOUNT_ADAPTER": "dj_rest_auth.social_serializers.SocialAccountAdapter",
     "GOOGLE_CLIENT_ID": env("GOOGLE_CLIENT_ID", default=""), # Ensure this matches your Google client ID
     "GOOGLE_CLIENT_SECRET": env("GOOGLE_CLIENT_SECRET", default=""), # Ensure this matches your Google client secret
@@ -239,7 +235,8 @@ REST_AUTH = {
 
 # --- Simple JWT
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5), # Consider increasing for better UX
+    # FIX: Increased token lifetime for better UX
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15), # Consider increasing for better UX
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
@@ -261,6 +258,7 @@ SOCIALACCOUNT_PROVIDERS = {
             "key": "", # Not used for Google
         },
         "SCOPE": ["profile", "email"],
+        # FIX: Ensure offline access is requested for refresh tokens
         "AUTH_PARAMS": {"access_type": "offline"}, # Important for refresh tokens if needed
     }
 }

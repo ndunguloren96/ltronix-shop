@@ -4,7 +4,8 @@ from .base import *
 
 DEBUG = False
 
-ALLOWED_HOSTS = ['ltronix-shop.onrender.com','*.onrender.com','https://ltronix-shop.vercel.app','localhost','127.0.0.1']
+# FIX: Ensure Render.com and Vercel domains are explicitly allowed
+ALLOWED_HOSTS = ['ltronix-shop.onrender.com', '*.onrender.com', 'ltronix-shop.vercel.app', '*.vercel.app', 'localhost', '127.0.0.1']
 
 DATABASES = {"default": env.db("DATABASE_URL")}
 
@@ -25,6 +26,10 @@ CSRF_COOKIE_SAMESITE = "Lax"
 SECURE_HSTS_SECONDS = env.int("SECURE_HSTS_SECONDS", default=31536000)
 SECURE_HSTS_INCLUDE_SUBDOMAINS = env.bool("SECURE_HSTS_INCLUDE_SUBDOMAINS", default=True)
 SECURE_HSTS_PRELOAD = env.bool("SECURE_HSTS_PRELOAD", default=True)
+
+# FIX: Add SECURE_PROXY_SSL_HEADER for Render.com deployment
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
 
 # CORS & CSRF
 CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS")
