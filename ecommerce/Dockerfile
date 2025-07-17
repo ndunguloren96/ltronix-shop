@@ -32,8 +32,13 @@ RUN set -eux; \
     pip install --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
+# Copy the rest of the application code *before* switching user
+# This ensures all application files are present before changing ownership.
+COPY . /app/
+
 # Create a non-root user and set permissions for /app and the virtual environment
 # Ensure the non-root user (appuser) owns the application directory and the virtual environment.
+# FIX: Ensure chown -R appuser:appuser /app runs AFTER COPY . /app/
 RUN set -eux; \
     adduser --system --group appuser && \
     mkdir -p /app/ecommerce/staticfiles /app/ecommerce/media && \
@@ -43,9 +48,6 @@ RUN set -eux; \
 # Switch to the non-root user for subsequent commands
 USER appuser
 
-# Copy the rest of the application code
-# This should happen after user creation and permission setting, so appuser owns the code.
-COPY . /app/
 
 # Environment variables (build-args) for build time.
 # For production, these should be securely set as environment variables in your hosting platform.
