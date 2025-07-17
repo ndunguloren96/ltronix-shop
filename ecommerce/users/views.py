@@ -52,3 +52,4 @@ class CustomRegisterView(RegisterView):
     # You might want to add permission_classes here if not handled by dj-rest-auth defaults.
     # By default, registration views are usually open, but you can restrict if needed.
     # permission_classes = (permissions.AllowAny,)
+

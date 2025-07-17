@@ -32,11 +32,15 @@ urlpatterns = [
         path("auth/", include("dj_rest_auth.urls")), # Login, Logout, User details, Password Reset/Change
         path("auth/registration/", include("dj_rest_auth.registration.urls")), # Default registration endpoints
         # Explicitly include your CustomRegisterView if it's not handled by dj_rest_auth.registration.urls
+        # This line ensures your CustomRegisterView is used for /auth/registration/
         path("auth/registration/", CustomRegisterView.as_view(), name="rest_register"),
         
         # AllAuth URLs (crucial for social login callbacks from Google)
         # This needs to be accessible for Google to redirect to, usually under /accounts/
         path("accounts/", include("allauth.urls")),
+        # FIX: Add specific URL for Google social authentication
+        path("auth/google/", include("allauth.socialaccount.providers.google.urls")),
+
 
         # Custom user-related views
         path("auth/password/change/", PasswordChangeView.as_view(), name="rest_password_change"),
@@ -59,5 +63,4 @@ urlpatterns = [
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-
 

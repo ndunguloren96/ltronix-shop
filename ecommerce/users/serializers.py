@@ -69,7 +69,8 @@ class CustomRegisterSerializer(
     date_of_birth = serializers.DateField(required=False, allow_null=True)
 
     # AllAuth requires password confirmation during registration
-    password_confirm = serializers.CharField(
+    # FIX: Renamed from password_confirm to password2 to match frontend's signup payload
+    password2 = serializers.CharField( # Changed from password_confirm
         write_only=True,
         required=True,
         style={"input_type": "password"},
@@ -80,7 +81,7 @@ class CustomRegisterSerializer(
         fields = (
             "email",
             "password",
-            "password_confirm",  # Include for validation
+            "password2",  # Changed from password_confirm
             "first_name",
             "middle_name",
             "last_name",
@@ -90,7 +91,7 @@ class CustomRegisterSerializer(
         )
         extra_kwargs = {
             "password": {"write_only": True},
-            "password_confirm": {"write_only": True},
+            "password2": {"write_only": True}, # Changed from password_confirm
         }
 
     def validate_email(self, email):
@@ -99,7 +100,8 @@ class CustomRegisterSerializer(
             raise serializers.ValidationError("A user with that email already exists.")
         return email
 
-    def validate_password_confirm(self, value):
+    # FIX: Renamed validation method to match the new field name
+    def validate_password2(self, value): # Changed from validate_password_confirm
         password = self.initial_data.get("password")
         if password and value != password:
             raise serializers.ValidationError("Passwords do not match.")
@@ -185,5 +187,4 @@ class EmailChangeSerializer(serializers.Serializer):
             setup_user_email(request, user, [])
 
         return user
-
 
