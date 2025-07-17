@@ -13,7 +13,6 @@ import {
   HStack,
   VStack,
   useToast,
-  // Removed Input and InputGroup as NumberInput replaces them for quantity
   NumberInput,
   NumberInputField,
   NumberInputStepper,
@@ -24,10 +23,10 @@ import Image from 'next/image';
 import { CheckCircleIcon, StarIcon } from '@chakra-ui/icons';
 import { useCartStore } from '@/store/useCartStore';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-// FIX: Import createOrUpdateCart from '@/api/cart'
+// Import createOrUpdateCart from '@/api/cart'
 import { createOrUpdateCart } from '@/api/cart';
-// FIX: Import types from src/types/order.ts and src/types/product.ts
-import { BackendOrder, ProductInCart, BackendOrderItem } from '@/types/order'; // BackendOrder and BackendOrderItem might be used for optimistic updates
+// Import types from src/types/order.ts and src/types/product.ts
+import { BackendOrder, ProductInCart, BackendOrderItem, CartItemBackend } from '@/types/order'; // Ensure CartItemBackend is imported
 import { Product } from '@/types/product'; // Import Product interface from types/product.ts
 
 import { useSession } from 'next-auth/react';
@@ -76,7 +75,11 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
   const priceAsNumber = parseFloat(product.price);
 
   const addToCartMutation = useMutation<BackendOrder, Error, ProductInCart[], { previousCart?: BackendOrder }>({
-    mutationFn: (items) => createOrUpdateCart(items, guestSessionKey),
+    // FIX: Map ProductInCart[] to CartItemBackend[]
+    mutationFn: (items) => createOrUpdateCart(
+      items.map(item => ({ product_id: item.id, quantity: item.quantity })),
+      guestSessionKey
+    ),
     onMutate: async (newCartItems: ProductInCart[]) => {
       await queryClient.cancelQueries({ queryKey: ['cart'] });
       const previousCart = queryClient.getQueryData<BackendOrder>(['cart']);
@@ -221,7 +224,10 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
       updatedLocalCartItems = [...currentLocalCartItems, { ...itemToAddOrUpdate, quantity: quantity }];
     }
 
-    addToCartMutation.mutate(updatedLocalCartItems);
+    // FIX: Map ProductInCart[] to CartItemBackend[]
+    addToCartMutation.mutate(
+      updatedLocalCartItems.map(item => ({ product_id: item.id, quantity: item.quantity }))
+    );
   };
 
   return (

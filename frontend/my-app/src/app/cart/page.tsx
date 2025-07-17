@@ -28,18 +28,20 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link'; // For Next.js Link component
 
-// FIX: Import cart-related functions from '@/api/cart'
+// Import cart-related functions from '@/api/cart'
 import {
   fetchUserCart,
   createOrUpdateCart,
   clearCartAPI,
 } from '@/api/cart';
 
-// FIX: Import types from '@/types/order'
+// Import types from '@/types/order'
 import {
   BackendOrder,
   ProductInCart,
   BackendOrderItem,
+  BackendTransaction,
+  CartItemBackend, // Ensure CartItemBackend is imported
 } from '@/types/order';
 
 import { useCartStore } from '@/store/useCartStore';
@@ -138,7 +140,11 @@ export default function CartPage() {
    * This prevents UI from showing stale or unmerged cart data after removing, clearing, or updating items.
    */
   const updateCartMutation = useMutation<BackendOrder, Error, ProductInCart[], UpdateCartContext>({
-    mutationFn: (items) => createOrUpdateCart(items, currentSessionKey),
+    // FIX: Map ProductInCart[] to CartItemBackend[]
+    mutationFn: (items) => createOrUpdateCart(
+      items.map(item => ({ product_id: item.id, quantity: item.quantity })),
+      currentSessionKey
+    ),
     onMutate: async (newFrontendCartItems: ProductInCart[]) => {
       await queryClient.cancelQueries({ queryKey: ['cart', status, currentSessionKey] });
       const previousCart = queryClient.getQueryData<BackendOrder>(['cart', status, currentSessionKey]);
@@ -250,7 +256,10 @@ export default function CartPage() {
   };
 
   const handleRemoveItem = (id: number) => {
-    const updatedItems = localCartItems.filter((item) => item.id !== id);
+    // FIX: Map ProductInCart[] to CartItemBackend[]
+    const updatedItems: CartItemBackend[] = localCartItems
+      .filter((item) => item.id !== id)
+      .map(item => ({ product_id: item.id, quantity: item.quantity }));
     updateCartMutation.mutate(updatedItems);
   };
 
@@ -265,7 +274,10 @@ export default function CartPage() {
           item.id === id ? { ...item, quantity: newQuantity } : item
         );
       }
-      updateCartMutation.mutate(updatedItems);
+      // FIX: Map ProductInCart[] to CartItemBackend[]
+      updateCartMutation.mutate(
+        updatedItems.map(item => ({ product_id: item.id, quantity: item.quantity }))
+      );
     }
   };
 
