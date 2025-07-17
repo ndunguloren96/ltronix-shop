@@ -16,32 +16,24 @@ import {
   Input,
   InputGroup,
   InputRightElement,
+  NumberInput, // Added NumberInput components
+  NumberInputField,
+  NumberInputStepper,
+  NumberIncrementStepper,
+  NumberDecrementStepper,
 } from '@chakra-ui/react';
 import Image from 'next/image';
 import { CheckCircleIcon, StarIcon } from '@chakra-ui/icons';
 import { useCartStore } from '@/store/useCartStore';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { updateEntireCartAPI, BackendOrder, ProductInCart, BackendOrderItem } from '@/api/orders';
+// FIX: Import createOrUpdateCart from '@/api/cart'
+import { createOrUpdateCart } from '@/api/cart';
+// Import types from src/types/order.ts and src/types/product.ts
+import { BackendOrder, ProductInCart, BackendOrderItem } from '@/types/order'; // BackendOrder and BackendOrderItem might be used for optimistic updates
+import { Product } from '@/types/product'; // Assuming Product interface is here or in src/types/product.ts
+
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
-
-// FIX: Define the Product interface locally to use image_file, consistent with backend
-interface Product {
-  id: number;
-  name: string;
-  description: string;
-  price: string;
-  digital: boolean;
-  image_file?: string; // FIX: Changed to image_file
-  category?: string;
-  stock: number;
-  brand?: string;
-  sku?: string;
-  rating: string; // From DecimalField, might be string
-  reviews_count: number;
-  created_at: string;
-  updated_at: string;
-}
 
 interface ProductDetailClientContentProps {
   product: Product;
@@ -86,7 +78,7 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
   const priceAsNumber = parseFloat(product.price);
 
   const addToCartMutation = useMutation<BackendOrder, Error, ProductInCart[], { previousCart?: BackendOrder }>({
-    mutationFn: (items) => updateEntireCartAPI(items, guestSessionKey),
+    mutationFn: (items) => createOrUpdateCart(items, guestSessionKey), // Use createOrUpdateCart
     onMutate: async (newCartItems: ProductInCart[]) => {
       await queryClient.cancelQueries({ queryKey: ['cart'] });
       const previousCart = queryClient.getQueryData<BackendOrder>(['cart']);
@@ -98,7 +90,7 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
             id: item.id, // This `item.id` is already a number from ProductInCart
             name: item.name,
             price: item.price.toFixed(2),
-            image_file: item.image_file, // FIX: Use image_file here
+            image_file: item.image_file,
           },
           quantity: item.quantity,
           get_total: (item.price * item.quantity).toFixed(2),
@@ -143,7 +135,7 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
       if (context?.previousCart) {
         setLocalCartItems(context.previousCart.items.map(bi => ({
             id: bi.product.id, name: bi.product.name, price: parseFloat(bi.product.price),
-            quantity: bi.quantity, image_file: bi.product.image_file // FIX: Use image_file here
+            quantity: bi.quantity, image_file: bi.product.image_file
         })));
       } else {
         setLocalCartItems([]);
@@ -162,7 +154,7 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
         name: backendItem.product.name,
         price: parseFloat(backendItem.product.price),
         quantity: backendItem.quantity,
-        image_file: backendItem.product.image_file, // FIX: Use image_file here
+        image_file: backendItem.product.image_file,
       }));
       setLocalCartItems(transformedItems);
 
@@ -215,7 +207,7 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
       name: product.name,
       price: priceAsNumber,
       quantity: quantity,
-      image_file: product.image_file, // FIX: Use image_file here
+      image_file: product.image_file,
     };
 
     const currentLocalCartItems = localCartItems;
@@ -239,16 +231,16 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
       <Flex direction={{ base: 'column', md: 'row' }} gap={8}>
         {/* Product Image */}
         <Box flex={{ base: 'none', md: '1' }} maxW={{ base: 'full', md: '50%' }}>
-          {product.image_file ? ( // FIX: Use product.image_file here
+          {product.image_file ? (
             <Image
-              src={product.image_file} // FIX: Use product.image_file here
+              src={product.image_file}
               alt={product.name}
               width={500}
               height={500}
               style={{ objectFit: 'contain' }}
               priority={false}
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-              unoptimized={true} 
+              unoptimized={true}
             />
           ) : (
             <Box w="100%" h="500px" bg="gray.200" display="flex" alignItems="center" justifyContent="center">
@@ -311,19 +303,22 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
           <Divider />
 
           <HStack width="full">
-            <InputGroup size="lg" maxWidth="150px">
-              <Input
-                type="number"
-                min={1}
-                value={quantity}
-                onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                onBlur={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))} // Ensure valid number on blur
-                placeholder="Qty"
-                textAlign="center"
-              />
-              <InputRightElement width="4.5rem">
-              </InputRightElement>
-            </InputGroup>
+            <NumberInput // Changed from InputGroup with Input to NumberInput
+              size="lg"
+              maxWidth="150px"
+              value={quantity}
+              min={1}
+              onChange={(valueString) => setQuantity(parseInt(valueString) || 1)} // Parse to int, default to 1
+              onBlur={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))} // Ensure valid number on blur
+              keepWithinRange={false}
+              clampValueOnBlur={false}
+            >
+              <NumberInputField textAlign="center" />
+              <NumberInputStepper>
+                <NumberIncrementStepper />
+                <NumberDecrementStepper />
+              </NumberInputStepper>
+            </NumberInput>
             <Button
               colorScheme="brand"
               size="lg"

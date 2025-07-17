@@ -34,13 +34,21 @@ import { useQuery, useMutation, useQueryClient, UseQueryOptions } from '@tanstac
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link'; // For Next.js Link
+
+// FIX: Import cart and M-Pesa related functions from '@/api/cart'
 import {
-  fetchCartAPI,
+  fetchUserCart, // Renamed from fetchCartAPI to fetchUserCart
   initiateStkPushAPI,
   fetchTransactionStatusAPI,
-  BackendOrder,
+} from '@/api/cart';
+
+// Import types from src/types/order.ts
+import {
+  BackendOrder, // Renamed from BackendOrder to BackendCart in src/api/cart.ts, but still BackendOrder in types
   BackendTransaction,
-} from '@/api/orders'; // Ensure these types and functions are correctly defined in your api/orders.ts
+  BackendCart // Explicitly import BackendCart alias
+} from '@/types/order';
+
 import { useCartStore } from '@/store/useCartStore';
 
 const POLLING_INTERVAL_MS = 3000; // Poll every 3 seconds
@@ -75,15 +83,15 @@ export default function CheckoutPage() {
     isLoading: isLoadingCart,
     isError: isErrorCart,
     error: cartError,
-  } = useQuery<BackendOrder | null, Error>({ // Correctly specify that cart data can be null
+  } = useQuery<BackendCart | null, Error>({ // Use BackendCart here
     queryKey: ['cart', authStatus, guestSessionKey],
     queryFn: async () => {
       // Only fetch if authenticated or if unauthenticated but has a guest session key
       if (authStatus === 'authenticated') {
-        return fetchCartAPI();
+        return fetchUserCart();
       }
       if (authStatus === 'unauthenticated' && guestSessionKey) {
-        return fetchCartAPI(guestSessionKey);
+        return fetchUserCart(guestSessionKey);
       }
       // If conditions are not met, return null to indicate no active cart
       return null;
@@ -96,7 +104,7 @@ export default function CheckoutPage() {
 
   // Mutation for initiating STK Push
   const initiateStkPushMutation = useMutation<BackendTransaction, Error, { orderId: number; phoneNumber: string }>({
-    mutationFn: initiateStkPushAPI,
+    mutationFn: (payload) => initiateStkPushAPI(payload, guestSessionKey), // Pass guestSessionKey to the API function
     onSuccess: (data) => {
       setCurrentTransactionId(data.id);
       onOpen(); // Open the payment modal
@@ -126,23 +134,14 @@ export default function CheckoutPage() {
     queryKey: ['transactionStatus', currentTransactionId],
     queryFn: async () => {
       if (currentTransactionId) {
-        // fetchTransactionStatusAPI should return BackendTransaction or null/undefined
-        // if the transaction is not yet found or in a pending state.
-        return fetchTransactionStatusAPI(currentTransactionId);
+        return fetchTransactionStatusAPI(currentTransactionId, guestSessionKey); // Pass guestSessionKey
       }
       return null; // Return null if no transaction ID is set
     },
     // Query is only enabled if a transaction ID exists and the modal is open
-    enabled: !!currentTransactionId && isOpen, 
+    enabled: !!currentTransactionId && isOpen,
     refetchInterval: POLLING_INTERVAL_MS, // Keep polling every X milliseconds
     retry: (_failureCount: number, error: Error) => {
-      // The retry function is for re-attempting failed API calls.
-      // It should NOT check `transactionStatus.status` here, as `data` (transactionStatus)
-      // might not be updated or available in this context.
-
-      // If the error indicates a non-retriable condition (e.g., a 404 from backend meaning transaction not found)
-      // you could add specific error type checks here. For now, we retry generic errors.
-
       // Check for overall polling timeout
       if (pollingAttempts * POLLING_INTERVAL_MS >= POLLING_TIMEOUT_MS) {
         console.warn("Polling timed out for transaction:", currentTransactionId);
@@ -159,7 +158,7 @@ export default function CheckoutPage() {
         onClose(); // Close modal
         return false; // Do not retry further
       }
-      
+
       setPollingAttempts(prev => prev + 1);
       return true; // Continue retrying on error (e.g., network issues)
     },
@@ -230,8 +229,8 @@ export default function CheckoutPage() {
     // Convert 07/01 to 2547/2541
     if (cleanedPhoneNumber.startsWith('0') && cleanedPhoneNumber.length === 10) {
         formattedPhoneNumber = '254' + cleanedPhoneNumber.substring(1);
-    } 
-    
+    }
+
     // Basic regex for 2547XXXXXXXX or 2541XXXXXXXX
     const kenyanPhoneRegex = /^254(7|1)\d{8}$/;
 
@@ -440,3 +439,4 @@ export default function CheckoutPage() {
     </Box>
   );
 }
+

@@ -28,15 +28,23 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link'; // For Next.js Link component
 
+// FIX: Import cart-related functions from '@/api/cart'
 import {
-  fetchCartAPI,
-  updateEntireCartAPI,
+  fetchUserCart, // Renamed from fetchCartAPI to fetchUserCart in src/api/cart.ts
+  createOrUpdateCart, // Replaces updateEntireCartAPI in src/api/cart.ts
   clearCartAPI,
+  // initiateStkPushAPI, // M-Pesa functions are typically on checkout page or separate modal
+  // BackendTransaction, // M-Pesa types are typically on checkout page or separate modal
+} from '@/api/cart'; // Corrected import path for cart-related functions
+
+// Import types from src/types/order.ts
+import {
   BackendOrder,
   ProductInCart,
   BackendOrderItem,
-}
-  from '@/api/orders';
+  BackendTransaction // Keep BackendTransaction if M-Pesa logic is here
+} from '@/types/order';
+
 import { useCartStore } from '@/store/useCartStore';
 
 // Define the context interface for useMutation
@@ -82,10 +90,10 @@ export default function CartPage() {
     queryFn: () => {
       // Only attempt to fetch if session status is known AND (authenticated OR (unauthenticated AND guestSessionKey is set))
       if (status === 'authenticated') {
-        return fetchCartAPI();
+        return fetchUserCart(); // Use fetchUserCart
       }
       if (status === 'unauthenticated' && currentSessionKey) {
-        return fetchCartAPI(currentSessionKey);
+        return fetchUserCart(currentSessionKey); // Use fetchUserCart
       }
       return Promise.resolve(null); // Do not fetch if unauthenticated and no guestSessionKey yet
     },
@@ -94,6 +102,7 @@ export default function CartPage() {
     gcTime: 0, // Garbage collect immediately after use
     refetchOnWindowFocus: true,
     refetchOnMount: true,
+    refetchOnReconnect: true,
   });
 
   /**
@@ -110,7 +119,7 @@ export default function CartPage() {
             name: item.product.name,
             price: parseFloat(item.product.price),
             quantity: item.quantity,
-            image_file: item.product.image_file, // FIX: Use image_file here
+            image_file: item.product.image_file,
           }))
         );
         // If backend returned a session key for an unauthenticated user, update local store
@@ -132,7 +141,7 @@ export default function CartPage() {
    * This prevents UI from showing stale or unmerged cart data after removing, clearing, or updating items.
    */
   const updateCartMutation = useMutation<BackendOrder, Error, ProductInCart[], UpdateCartContext>({
-    mutationFn: (items) => updateEntireCartAPI(items, currentSessionKey),
+    mutationFn: (items) => createOrUpdateCart(items, currentSessionKey), // Use createOrUpdateCart
     onMutate: async (newFrontendCartItems: ProductInCart[]) => {
       await queryClient.cancelQueries({ queryKey: ['cart', status, currentSessionKey] });
       const previousCart = queryClient.getQueryData<BackendOrder>(['cart', status, currentSessionKey]);
@@ -140,7 +149,7 @@ export default function CartPage() {
       setLocalCartItems(newFrontendCartItems);
       return { previousCart };
     },
-    onError: (err, _newFrontendCartItems, context) => { // _newFrontendCartItems and _context are unused
+    onError: (err, _newFrontendCartItems, context) => {
       console.error("Failed to update cart on backend:", err);
       toast({
         title: 'Error Updating Cart',
@@ -152,32 +161,29 @@ export default function CartPage() {
       if (context?.previousCart) {
         setLocalCartItems(
           context.previousCart.items.map((bi) => ({
-            id: bi.product.id,
-            name: bi.product.name,
-            price: parseFloat(bi.product.price),
-            quantity: bi.quantity,
-            image_file: bi.product.image_file, // FIX: Use image_file here
+            id: bi.product.id, name: bi.product.name, price: parseFloat(bi.product.price),
+            quantity: bi.quantity, image_file: bi.product.image_file
           }))
         );
       } else {
         setLocalCartItems([]);
       }
     },
-    onSuccess: (_data) => { // _data is unused
+    onSuccess: (data) => {
       // Always update Zustand from backend's canonical cart
       setLocalCartItems(
-        _data.items.map((backendItem) => ({
+        data.items.map((backendItem) => ({
           id: backendItem.product.id,
           name: backendItem.product.name,
           price: parseFloat(backendItem.product.price),
           quantity: backendItem.quantity,
-          image_file: backendItem.product.image_file, // FIX: Use image_file here
+          image_file: backendItem.product.image_file,
         }))
       );
       // If the backend returned a session_key, update it in local storage (e.g., first guest item added)
-      if (_data.session_key && !guestSessionKey && status === 'unauthenticated') {
-        setGuestSessionKey(_data.session_key);
-        console.log("Backend returned new guest session key (from mutation):", _data.session_key);
+      if (data.session_key && !guestSessionKey && status === 'unauthenticated') {
+        setGuestSessionKey(data.session_key);
+        console.log("Backend returned new guest session key (from mutation):", data.session_key);
       }
       toast({
         title: 'Cart Updated',
@@ -201,7 +207,7 @@ export default function CartPage() {
       setGuestSessionKey(null);
       return {};
     },
-    onError: (err, _cartId, _context) => { // _cartId and _context are unused
+    onError: (err, _cartId, _context) => {
       console.error("Failed to clear cart on backend:", err);
       toast({
         title: 'Error Clearing Cart',
@@ -212,7 +218,7 @@ export default function CartPage() {
       });
       // No rollback needed for clear
     },
-    onSuccess: (_data) => { // _data is unused
+    onSuccess: (_data) => {
       // Always update Zustand from backend cleared cart
       setLocalCartItems([]);
       setGuestSessionKey(null);
@@ -364,7 +370,7 @@ export default function CartPage() {
               >
                 <HStack spacing={4} align="center">
                   <Image
-                    src={item.image_file || "https://placehold.co/100x100?text=No+Image"} // FIX: Use item.image_file here
+                    src={item.image_file || "https://placehold.co/100x100?text=No+Image"}
                     alt={item.name}
                     boxSize="100px"
                     objectFit="cover"
