@@ -30,6 +30,8 @@ declare module "next-auth" {
       id: string; // FIX: This must be a string for NextAuth's internal consistency
       /** The user's JWT access token from Django. */
       accessToken?: string;
+      /** The user's JWT refresh token from Django. */
+      refreshToken?: string; // <--- THIS IS THE CRITICAL LINE
       /** Custom Django user object. */
       djangoUser?: DjangoUser;
     } & DefaultSession["user"]; // Inherit default user properties (name, email, image)
@@ -38,8 +40,9 @@ declare module "next-auth" {
   interface User extends DefaultUser {
     // Add custom properties here that you expect from your Django backend
     // FIX: This must be a string for NextAuth's internal consistency
-    id: string; 
+    id: string;
     accessToken?: string;
+    refreshToken?: string; // <--- THIS IS THE CRITICAL LINE
     djangoUser?: DjangoUser;
   }
 }
@@ -53,6 +56,8 @@ declare module "next-auth/jwt" {
     id?: string; // FIX: This must be a string for NextAuth's internal consistency
     /** The user's JWT access token from Django. */
     accessToken?: string;
+    /** The user's JWT refresh token from Django. */
+    refreshToken?: string; // <--- THIS IS THE CRITICAL LINE
     /** Custom Django user object. */
     djangoUser?: DjangoUser;
     // Add any other custom properties you store in the JWT
