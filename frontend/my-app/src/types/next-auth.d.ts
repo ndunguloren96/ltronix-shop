@@ -58,4 +58,3 @@ declare module "next-auth/jwt" {
     // Add any other custom properties you store in the JWT
   }
 }
-
