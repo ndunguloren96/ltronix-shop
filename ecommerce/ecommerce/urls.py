@@ -8,26 +8,26 @@ from django.urls import include, path, re_path
 from payment.views import mpesa_stk_push_callback
 
 # Import your custom views from the users app
-from users.views import EmailChangeView, AccountDeleteView # Keep these if you use them
+from users.views import EmailChangeView, AccountDeleteView
 # from users.views import CustomRegisterView # Only uncomment if you need to explicitly map it here
 
 from dj_rest_auth.views import PasswordChangeView
 
+# Import dj-rest-auth's social views directly
+from dj_rest_auth.registration.views import SocialLoginView # For social login
+from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter # Specific adapter for Google
+from allauth.socialaccount.providers.oauth2.client import OAuth2Client # For OAuth2 client
+
 # Import Spectacular views directly
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
-# --- CRUCIAL FIX FOR GOOGLE AUTHENTICATION ---
-# Explicitly import urlpatterns from dj_rest_auth.social.urls
-# This ensures the module is found and its URL patterns are correctly loaded.
-try:
-    from dj_rest_auth.social.urls import urlpatterns as social_urlpatterns
-except ImportError:
-    # This block will only execute if dj_rest_auth.social.urls cannot be imported.
-    # It's a fallback/debug measure, though it should ideally not be hit if dj_rest_auth
-    # and allauth are correctly installed.
-    # If this error persists, it might indicate a deeper installation issue with dj-rest-auth.
-    print("WARNING: Could not import dj_rest_auth.social.urls. Social authentication may not work.")
-    social_urlpatterns = [] # Provide an empty list to prevent further errors
+
+# Custom GoogleLogin view to integrate with dj-rest-auth's SocialLoginView
+# This is a common pattern when dj_rest_auth.social.urls is problematic or for more control.
+class GoogleLogin(SocialLoginView):
+    adapter_class = GoogleOAuth2Adapter
+    callback_url = settings.SOCIALACCOUNT_PROVIDERS['google']['AUTH_PARAMS']['redirect_uri'] # Ensure this matches your Google API Console redirect URI
+    client_class = OAuth2Client
 
 
 urlpatterns = [
@@ -44,9 +44,9 @@ urlpatterns = [
         path("auth/registration/", include("dj_rest_auth.registration.urls")),
 
         # --- CRUCIAL FIX FOR GOOGLE AUTHENTICATION ---
-        # Include the explicitly imported social_urlpatterns under the registration path.
-        # This will make endpoints like /api/v1/auth/registration/google/ available.
-        path("auth/registration/", include(social_urlpatterns)), # <--- This is the key change
+        # Explicitly map the Google social login view.
+        # This creates the endpoint /api/v1/auth/google/ that the frontend should hit.
+        path("auth/google/", GoogleLogin.as_view(), name="google_login"), # <--- This is the key change
 
         # AllAuth URLs (still needed for the initial OAuth flow and redirect from Google)
         path("accounts/", include("allauth.urls")),
