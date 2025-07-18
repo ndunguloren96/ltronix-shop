@@ -43,17 +43,19 @@ export const authOptions: AuthOptions = {
             }),
           });
 
+          const data = await response.json(); // Parse JSON first to log it
+          console.log("Django Login Raw Response Data:", data); // LOG THE RAW RESPONSE
+
           if (!response.ok) {
-            const errorData = await response.json();
-            console.error("Django Credentials Login Error (status:", response.status, "):", errorData);
+            console.error("Django Credentials Login Error (status:", response.status, "):", data);
             // Throw an error to propagate to the frontend for toast messages
-            throw new Error(errorData.detail || errorData.non_field_errors?.[0] || 'Invalid credentials');
+            throw new Error(data.detail || data.non_field_errors?.[0] || 'Invalid credentials');
           }
 
-          const data = await response.json();
-          // Assuming Django returns a structure like { user: { id, email, first_name, last_name }, access_token, refresh_token }
-          const user = data.user; // This is your Django user object
-          const accessToken = data.access_token; // JWT access token
+          // FIX: dj-rest-auth with Simple JWT usually returns 'access' and 'refresh' as top-level keys
+          const user = data.user;
+          const accessToken = data.access; // Use 'access' for the access token
+          const refreshToken = data.refresh; // Use 'refresh' for the refresh token
 
           if (user && accessToken) {
             // Return a NextAuth User object. Add custom properties like accessToken and djangoUser.
@@ -63,10 +65,11 @@ export const authOptions: AuthOptions = {
               email: user.email,
               name: user.first_name || user.email, // Use first_name if available, else email
               accessToken: accessToken,
+              refreshToken: refreshToken, // Pass refresh token if needed for future refresh logic
               djangoUser: user as DjangoUser, // Cast to your custom DjangoUser type
             };
           }
-          console.warn("Credentials authorize: User or accessToken missing from Django response.");
+          console.warn("Credentials authorize: User or access token missing from Django response.");
           return null;
         } catch (error: any) {
           console.error("Credentials authorize failed:", error.message || error);
@@ -103,37 +106,38 @@ export const authOptions: AuthOptions = {
       // Step 1: Initial sign-in (user and account are available)
       if (account && user) {
         let accessToken: string | undefined;
+        let refreshToken: string | undefined; // Added refreshToken
         let djangoUser: DjangoUser | undefined;
         let userId: string | undefined; // To store the user's ID
 
         if (account.provider === "credentials") {
           // 'user' here is what was returned from the authorize function
-          const credentialsUser = user as { id: string; email: string; name?: string; accessToken: string; djangoUser: DjangoUser; };
+          const credentialsUser = user as { id: string; email: string; name?: string; accessToken: string; refreshToken?: string; djangoUser: DjangoUser; };
           accessToken = credentialsUser.accessToken;
+          refreshToken = credentialsUser.refreshToken; // Capture refresh token
           djangoUser = credentialsUser.djangoUser;
           userId = credentialsUser.id; // Get ID from credentials user
           console.log("JWT Callback (Credentials): User signed in. ID:", userId, "Email:", credentialsUser.email);
         } else if (account.provider === "google") {
           console.log("JWT Callback (Google): Attempting Django social auth...");
-          // FIX: Call Django's dj-rest-auth Google social login endpoint using 'social/google/'
           try {
-            const djangoSocialAuthRes = await fetch(`${DJANGO_API_BASE_URL}/auth/social/google/`, { // Changed endpoint
+            const djangoSocialAuthRes = await fetch(`${DJANGO_API_BASE_URL}/auth/social/google/`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              // For Google, dj-rest-auth expects the 'access_token' obtained from Google
               body: JSON.stringify({ access_token: account.access_token }),
             });
 
+            const data = await djangoSocialAuthRes.json(); // Parse JSON first to log
+            console.log("Django Google Social Auth Raw Response Data:", data); // LOG THE RAW RESPONSE
+
             if (djangoSocialAuthRes.ok) {
-              const data = await djangoSocialAuthRes.json();
-              // Assuming Django returns { access_token, refresh_token, user: { id, email, ... } }
-              accessToken = data.access_token;
-              djangoUser = data.user; // Your full Django user object
-              userId = data.user.id.toString(); // Get ID from Django user
+              accessToken = data.access; // Use 'access' for social login too
+              refreshToken = data.refresh; // Use 'refresh' for social login too
+              djangoUser = data.user;
+              userId = data.user.id.toString();
               console.log("JWT Callback (Google): Django social auth successful. User ID:", userId, "Email:", djangoUser?.email);
             } else {
-              const errorData = await djangoSocialAuthRes.json();
-              console.error("Django social auth failed (status:", djangoSocialAuthRes.status, "):", errorData);
+              console.error("Django social auth failed (status:", djangoSocialAuthRes.status, "):", data);
             }
           } catch (error) {
             console.error("Error during Django social auth:", error);
@@ -142,6 +146,7 @@ export const authOptions: AuthOptions = {
 
         // Add custom properties to the JWT token
         if (accessToken) token.accessToken = accessToken;
+        if (refreshToken) token.refreshToken = refreshToken; // Store refresh token in JWT
         if (djangoUser) token.djangoUser = djangoUser;
         if (userId) token.id = userId; // Set the user ID on the token
       }
@@ -152,6 +157,9 @@ export const authOptions: AuthOptions = {
       // Add properties from the JWT token to the session object
       if (token.accessToken) {
         session.user.accessToken = token.accessToken;
+      }
+      if (token.refreshToken) { // Add refresh token to session
+        session.user.refreshToken = token.refreshToken;
       }
       if (token.djangoUser) {
         session.user.djangoUser = token.djangoUser;
