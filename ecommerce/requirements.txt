@@ -9,10 +9,10 @@ djangorestframework_simplejwt==5.5.0
 
 # Authentication
 django-allauth==65.9.0
-social-auth-app-django==5.5.1
-social-auth-core==4.7.0
-drf-social-oauth2==3.1.0
-django-oauth-toolkit==3.0.1
+# Removed: social-auth-app-django==5.5.1
+# Removed: social-auth-core==4.7.0
+# Removed: drf-social-oauth2==3.1.0
+django-oauth-toolkit==3.0.1 # Keep if used for other OAuth2 purposes
 
 # Documentation generation
 drf-spectacular==0.28.0
@@ -119,3 +119,4 @@ watchtower==3.4.0
 wcwidth==0.2.13
 zipp==3.19.1
 setuptools>=78.1.1 # not directly required, pinned by Snyk to avoid a vulnerability
+
