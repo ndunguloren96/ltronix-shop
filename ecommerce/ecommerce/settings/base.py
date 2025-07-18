@@ -304,7 +304,7 @@ LOGGING = {
             "format": '{"timestamp": "%(asctime)s", "level": "%(levelname)s", "logger": "%(name)s", "message": "%(message)s", "module": "%(module)s", "funcName": "%(funcName)s", "lineno": "%(lineno)d"}',
         },
         "verbose": {
-            "format": "{levelname} {asctime} {module} {process:d} {thread:d} {message}",
+            "format": "{levelname} {asctime} {module} {process:d} {thread:d} {message}", # Corrected format string
             "style": "{",
         },
     },
@@ -341,5 +341,5 @@ LOGGING = {
             "propagate": False,
         },
     },
+}
 
-},
