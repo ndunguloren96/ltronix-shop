@@ -260,7 +260,13 @@ SOCIALACCOUNT_PROVIDERS = {
             "key": "",
         },
         "SCOPE": ["profile", "email"],
-        "AUTH_PARAMS": {"access_type": "offline"},
+        "AUTH_PARAMS": {
+            "access_type": "offline",
+            # Add the redirect_uri here. This MUST match one of the Authorized redirect URIs
+            # in your Google Cloud Console for your OAuth 2.0 Client ID.
+            # It should point to your Next.js frontend's Google callback URL.
+            "redirect_uri": env("NEXT_PUBLIC_FRONTEND_URL", default="http://localhost:3000") + "/api/auth/callback/google",
+        },
     }
 }
 
@@ -304,7 +310,7 @@ LOGGING = {
             "format": '{"timestamp": "%(asctime)s", "level": "%(levelname)s", "logger": "%(name)s", "message": "%(message)s", "module": "%(module)s", "funcName": "%(funcName)s", "lineno": "%(lineno)d"}',
         },
         "verbose": {
-            "format": "{levelname} {asctime} {module} {process:d} {thread:d} {message}", # Corrected format string
+            "format": "{levelname} {asctime} {module} {process:d} {thread:d} {message}",
             "style": "{",
         },
     },
