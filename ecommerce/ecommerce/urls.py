@@ -8,17 +8,26 @@ from django.urls import include, path, re_path
 from payment.views import mpesa_stk_push_callback
 
 # Import your custom views from the users app
-# from users.views import ( # Commented out as CustomRegisterView might be handled via settings
-#     CustomRegisterView,
-#     EmailChangeView,
-#     AccountDeleteView,
-# )
 from users.views import EmailChangeView, AccountDeleteView # Keep these if you use them
+# from users.views import CustomRegisterView # Only uncomment if you need to explicitly map it here
 
-from dj_rest_auth.views import PasswordChangeView # Keep for password change view
+from dj_rest_auth.views import PasswordChangeView
 
 # Import Spectacular views directly
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
+
+# --- CRUCIAL FIX FOR GOOGLE AUTHENTICATION ---
+# Explicitly import urlpatterns from dj_rest_auth.social.urls
+# This ensures the module is found and its URL patterns are correctly loaded.
+try:
+    from dj_rest_auth.social.urls import urlpatterns as social_urlpatterns
+except ImportError:
+    # This block will only execute if dj_rest_auth.social.urls cannot be imported.
+    # It's a fallback/debug measure, though it should ideally not be hit if dj_rest_auth
+    # and allauth are correctly installed.
+    # If this error persists, it might indicate a deeper installation issue with dj-rest-auth.
+    print("WARNING: Could not import dj_rest_auth.social.urls. Social authentication may not work.")
+    social_urlpatterns = [] # Provide an empty list to prevent further errors
 
 
 urlpatterns = [
@@ -35,18 +44,14 @@ urlpatterns = [
         path("auth/registration/", include("dj_rest_auth.registration.urls")),
 
         # --- CRUCIAL FIX FOR GOOGLE AUTHENTICATION ---
-        # This line explicitly includes dj_rest_auth's social authentication URLs
-        # under the "registration" path, which the frontend's NextAuth.js expects
-        # for POSTing the Google access token to Django.
-        # This will make the /api/v1/auth/registration/google/ endpoint available.
-        path("auth/registration/", include("dj_rest_auth.social.urls")), # <--- This is the key addition
+        # Include the explicitly imported social_urlpatterns under the registration path.
+        # This will make endpoints like /api/v1/auth/registration/google/ available.
+        path("auth/registration/", include(social_urlpatterns)), # <--- This is the key change
 
         # AllAuth URLs (still needed for the initial OAuth flow and redirect from Google)
-        # This is where Google redirects the user after authentication, before NextAuth.js
-        # sends the access_token to your dj-rest-auth backend.
         path("accounts/", include("allauth.urls")),
 
-        # Custom user-related views (ensure these imports match if CustomRegisterView is moved/removed)
+        # Custom user-related views
         path("auth/password/change/", PasswordChangeView.as_view(), name="rest_password_change"),
         path("auth/email/change/", EmailChangeView.as_view(), name="rest_email_change"),
         path("auth/account/delete/", AccountDeleteView.as_view(), name="rest_account_delete"),
@@ -67,3 +72,4 @@ urlpatterns = [
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
