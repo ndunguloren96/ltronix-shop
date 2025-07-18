@@ -35,8 +35,8 @@ urlpatterns = [
         # AllAuth URLs (crucial for social login callbacks from Google)
         # This needs to be accessible for Google to redirect to, usually under /accounts/
         path("accounts/", include("allauth.urls")),
-        # FIX: Re-added the correct include for dj_rest_auth social URLs
-        path("auth/social/", include("dj_rest_auth.social.urls")), # <--- THIS IS THE CRUCIAL CHANGE
+        # FIX: Removed the problematic line. Social login endpoints are handled via dj_rest_auth.registration.urls
+        # path("auth/social/", include("dj_rest_auth.social.urls")),
 
 
         # Custom user-related views

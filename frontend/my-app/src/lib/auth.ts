@@ -120,8 +120,9 @@ export const authOptions: AuthOptions = {
           console.log("JWT Callback (Credentials): User signed in. ID:", userId, "Email:", credentialsUser.email);
         } else if (account.provider === "google") {
           console.log("JWT Callback (Google): Attempting Django social auth...");
+          // FIX: Call Django's dj-rest-auth Google social login endpoint using 'auth/registration/google/'
           try {
-            const djangoSocialAuthRes = await fetch(`${DJANGO_API_BASE_URL}/auth/social/google/`, {
+            const djangoSocialAuthRes = await fetch(`${DJANGO_API_BASE_URL}/auth/registration/google/`, { // Changed endpoint
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ access_token: account.access_token }),
