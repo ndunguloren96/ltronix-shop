@@ -1,118 +1,130 @@
 # Ltronix Shop
 
-## Project Description
+Ltronix Shop is a full-stack e-commerce platform built with a modern architecture, featuring a decoupled frontend and backend, automated CI/CD pipelines, and infrastructure as code.
 
-Ltronix Shop is an e-commerce platform designed to facilitate online transactions and provide a seamless payment experience for users in Kenya through M-Pesa integration.
+## Table of Contents
 
-This project aims to create a functional e-commerce platform.
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Project Structure](#project-structure)
+- [Getting Started](#getting-started)
+  - [Prerequisites](#prerequisites)
+  - [Installation](#installation)
+- [Usage](#usage)
+- [Deployment](#deployment)
+- [CI/CD](#cicd)
+- [Infrastructure](#infrastructure)
+- [Contributing](#contributing)
+- [License](#license)
 
-## Current Features
+## Features
 
-- Basic product catalog display
-- User ability to add products to cart
-- Checkout process
-- M-Pesa payment integration via Lipa na M-Pesa Online (STK Push)
+- User authentication (local and social)
+- Product catalog and search
+- Shopping cart and checkout
+- M-Pesa payment integration
+- Order history and user profiles
+- Admin dashboard for managing products, orders, and users
 
-## M-Pesa Integration Details
+## Tech Stack
 
-The M-Pesa integration allows users to pay for their purchases using their M-Pesa accounts.
+### Backend
 
-- When a user selects M-Pesa at checkout and enters their phone number, the application initiates an STK Push request.
-- The user receives a prompt on their phone to authorize the payment by entering their M-Pesa PIN.
-- Upon successful authorization, the application processes the order and confirms the payment.
+- **Framework:** Django, Django Rest Framework
+- **Database:** PostgreSQL
+- **Async Tasks:** Celery, Redis
+- **Authentication:** django-allauth, Simple JWT
+- **Payments:** django-daraja (M-Pesa)
+- **Deployment:** Docker, Gunicorn
 
-## Technology Stack
+### Frontend
 
-- Django (Backend)
-- HTML, CSS, TypeScript (Frontend)
-- PostgreSQL (Database)
-- django-environ (for environment variable management)
-- Safaricom M-Pesa APIs (Lipa na M-Pesa Online, Authorization)
+- **Framework:** Next.js, React
+- **UI:** Chakra UI
+- **State Management:** Zustand, React Query
+- **HTTP:** Axios
+- **Authentication:** NextAuth.js
+- **Deployment:** Vercel
+
+### Infrastructure
+
+- **Cloud Provider:** AWS
+- **Infrastructure as Code:** Terraform
+- **Services:** EC2, RDS, S3, ElastiCache, VPC, CloudWatch
+
+### CI/CD
+
+- **Platform:** GitHub Actions
+- **Backend:** Docker image build and push to GitHub Container Registry, Terraform deployment to AWS
+- **Frontend:** Deployment to Vercel
+
+## Project Structure
+
+```
+ltronix-shop/
+├── .github/            # GitHub Actions workflows
+├── .venv/              # Virtual environment
+├── docs/               # Project documentation
+├── ecommerce/          # Django backend
+├── frontend/my-app/    # Next.js frontend
+├── infra/terraform/    # Terraform infrastructure code
+├── nginx/              # Nginx configuration
+├── ...
+```
 
 ## Getting Started
+
+### Prerequisites
+
+- Docker
+- Docker Compose
+- Node.js and npm
+- Python and pip
+
+### Installation
 
 1.  **Clone the repository:**
 
     ```bash
-    git clone https://github.com/ndunguloren96/ltronix-shop
+    git clone https://github.com/ndunguloren96/ltronix-shop.git
     cd ltronix-shop
     ```
 
-2.  **Set up the virtual environment:**
+2.  **Set up environment variables:**
+
+    -   Copy `.env.example` to `.env` in both the `ecommerce` and `frontend/my-app` directories and fill in the required values.
+
+3.  **Build and run the application:**
 
     ```bash
-    python3 -m venv .venv
-    source .venv/bin/activate # or .venv\Scripts\activate on Windows
+    docker-compose up --build
     ```
 
-3.  **Install dependencies:**
+## Usage
 
-    ```bash
-    python3 -m pip install -r requirements.txt
-    # or use pip3 if pip is not available:
-    # pip3 install -r requirements.txt
-    ```
+-   The frontend is accessible at `http://localhost:3000`.
+-   The backend API is accessible at `http://localhost:8000/api/v1/`.
+-   The Django admin panel is at `http://localhost:8000/admin/`.
 
-4.  **Configure the database:**
+## Deployment
 
-    - Ensure PostgreSQL is installed and running.
-    - Create a database for the project.
-    - Set the database connection details in the `.env` file. You'll need to create a `.env` file in the root directory and add your database credentials. Example:
+The application is designed for deployment to AWS and Vercel. The `docker-compose.yml` file can be adapted for production use, and the Terraform scripts will provision the necessary AWS resources.
 
-      ```
-      # For PostgreSQL, the format is:
-      # postgres://USER:PASSWORD@HOST:PORT/DBNAME
-      DATABASE_URL=postgres://user:password@host:port/dbname
-      ```
+## CI/CD
 
-5.  **Configure M-Pesa API credentials:**
+The project uses GitHub Actions for continuous integration and continuous deployment.
 
-    - Obtain your Consumer Key, Consumer Secret, and Passkey from the Safaricom Developer Portal.
-    - Add these credentials to the `.env` file:
+-   **Backend:** The backend workflow (`.github/workflows/backend.yml`) lints, tests, builds a Docker image, and deploys the infrastructure to AWS.
+-   **Frontend:** The frontend workflow (`.github/workflows/frontend.yml`) lints, tests, builds, and deploys the frontend to Vercel.
 
-      ```
-      SAFARICOM_CONSUMER_KEY=YOUR_CONSUMER_KEY
-      SAFARICOM_CONSUMER_SECRET=YOUR_CONSUMER_SECRET
-      SAFARICOM_BUSINESS_SHORTCODE=YOUR_BUSINESS_SHORTCODE # PayBill or Till Number
-      SAFARICOM_PASSKEY=YOUR_PASSKEY
-      ```
+## Infrastructure
 
-6.  **Run migrations:**
-
-    ```bash
-    python manage.py migrate
-    ```
-
-7.  **Create a superuser (for admin access):**
-
-    ```bash
-    python manage.py createsuperuser
-    ```
-
-8.  **Run the development server:**
-
-    ```bash
-    python manage.py runserver
-    ```
-
-9.  **Access the application in your browser:**
-
-    ```
-    http://localhost:8000/
-    ```
+The infrastructure is managed with Terraform. The configuration in `infra/terraform/` defines the AWS resources required to run the application.
 
 ## Contributing
 
-- Contibution is welcomed.
+Contributions are welcome! Please open an issue or submit a pull request.
 
 ## License
 
-This project is licensed under the [MIT] License.
-
-## Future Enhancements
-
-- Implement other payment methods (e.g., card payments).
-- Add user authentication and authorization.
-- Smart Inventory.
-- Enhance the user interface and user experience.
-- Implement order management and tracking.
+This project is licensed under the MIT License.
