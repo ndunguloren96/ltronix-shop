@@ -2,19 +2,7 @@
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
-from django.urls import include, path, re_path # Import re_path for dj_rest_auth social urls
-
-# Import the specific callback function from payment.views
-from payment.views import mpesa_stk_push_callback
-
-# Import your custom views from the users app
-from users.views import (
-    CustomRegisterView,
-    EmailChangeView,
-    AccountDeleteView,
-)
-
-from dj_rest_auth.views import PasswordChangeView
+from django.urls import include, path
 
 # Import Spectacular views directly
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
@@ -24,40 +12,20 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     # API base path
     path("api/v1/", include([
-        # FIX: Removed the "store/" prefix here.
-        # Now, products/ and orders/ from store.api_urls will be directly under /api/v1/
-        path("", include("store.api_urls")), # This will make /api/v1/products/ and /api/v1/orders/
-        path("payments/", include("payment.api_urls")), # Corrected from "payment/" to "payments/" for consistency
-        # dj-rest-auth URLs
-        path("auth/", include("dj_rest_auth.urls")), # Login, Logout, User details, Password Reset/Change
-        path("auth/registration/", include("dj_rest_auth.registration.urls")), # Default registration endpoints
-        # Explicitly include your CustomRegisterView if it's not handled by dj_rest_auth.registration.urls
-        path("auth/registration/", CustomRegisterView.as_view(), name="rest_register"),
+        # Products and orders from store.api_urls (essential for Starter)
+        path("", include("store.api_urls")), 
+        # Payments API (will be streamlined later for Starter)
+        # We will keep the payment.api_urls include for now, but ensure its internal views are disabled/removed
+        # This allows the URL to exist for future re-enablement without breaking other path includes.
+        path("payments/", include("payment.api_urls")), 
         
-        # AllAuth URLs (crucial for social login callbacks from Google)
-        # This needs to be accessible for Google to redirect to, usually under /accounts/
-        path("accounts/", include("allauth.urls")),
-
-        # Custom user-related views
-        path("auth/password/change/", PasswordChangeView.as_view(), name="rest_password_change"),
-        path("auth/email/change/", EmailChangeView.as_view(), name="rest_email_change"),
-        path("auth/account/delete/", AccountDeleteView.as_view(), name="rest_account_delete"),
-
-        # Schema and Swagger UI - FIX: Use direct views from drf_spectacular
+        # Schema and Swagger UI (useful for development and understanding APIs)
         path("schema/", SpectacularAPIView.as_view(), name="schema"),
         path("schema/swagger-ui/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
     ])),
-    # Direct URL for M-Pesa STK Push Confirmation Callback (webhook)
-    path(
-        "mpesa/stk_push_callback/",
-        mpesa_stk_push_callback,
-        name="mpesa_stk_push_callback",
-    ),
 ]
 
-# Serve static and media files in development
+# Serving static and media files in development. Keep this.
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-
-
