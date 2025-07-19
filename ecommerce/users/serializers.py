@@ -3,6 +3,9 @@ from dj_rest_auth.registration.serializers import SocialLoginSerializer
 from rest_framework import serializers
 from allauth.socialaccount.adapter import get_adapter
 from allauth.socialaccount.providers.google.provider import GoogleProvider
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 
 # Assuming you have a CustomRegisterSerializer defined elsewhere in this file
 # If not, you might need to import or define it.
@@ -11,6 +14,16 @@ from allauth.socialaccount.providers.google.provider import GoogleProvider
 # class CustomRegisterSerializer(DefaultRegisterSerializer):
 #     # Add your custom fields or overrides here
 #     pass
+
+# FIX: Define UserDetailsSerializer as expected by dj-rest-auth
+class UserDetailsSerializer(serializers.ModelSerializer):
+    """
+    Serializer for the custom User model details.
+    """
+    class Meta:
+        model = User
+        fields = ('id', 'email', 'first_name', 'last_name', 'is_staff', 'is_active', 'date_joined')
+        read_only_fields = ('email',) # Email should generally not be changeable via this endpoint
 
 class CustomGoogleSocialLoginSerializer(SocialLoginSerializer):
     """
@@ -43,22 +56,5 @@ class CustomGoogleSocialLoginSerializer(SocialLoginSerializer):
 
         # Call the original validate method
         return super().validate(attrs)
-
-# You might need to adjust your REST_AUTH settings in base.py to use this custom serializer
-# REST_AUTH = {
-#     ...
-#     "SOCIAL_ACCOUNT_ADAPTER": "users.serializers.CustomGoogleSocialLoginSerializer", # Not exactly, but for context
-#     "SOCIAL_LOGIN_SERIALIZER": "users.serializers.CustomGoogleSocialLoginSerializer",
-# }
-# However, dj_rest_auth typically uses SocialLoginSerializer directly.
-# We'll override it by making sure this serializer is picked up.
-# This might require a custom SocialLoginView if dj_rest_auth doesn't allow direct serializer override for social.
-
-# For dj_rest_auth to use a custom SocialLoginSerializer, you typically set it in REST_AUTH:
-# REST_AUTH = {
-#     ...
-#     "SOCIAL_LOGIN_SERIALIZER": "users.serializers.CustomGoogleSocialLoginSerializer",
-# }
-# Let's add this to your settings.base.py.
 
 
