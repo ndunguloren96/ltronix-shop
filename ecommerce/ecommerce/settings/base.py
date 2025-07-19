@@ -6,9 +6,11 @@ from datetime import timedelta
 from pathlib import Path
 from django.core.exceptions import ImproperlyConfigured
 
-import sentry_sdk
+# Removed Sentry imports as it's not needed for the Starter Launch
+# import sentry_sdk
+# from sentry_sdk.integrations.django import DjangoIntegration
+
 from environ import Env
-from sentry_sdk.integrations.django import DjangoIntegration
 
 # --- Build paths
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -133,16 +135,16 @@ SESSION_COOKIE_SECURE = env.bool("SESSION_COOKIE_SECURE", default=True)
 SESSION_COOKIE_SAMESITE = "Lax"
 
 
-# SENTRY
-if SENTRY_DSN:
-    sentry_sdk.init(
-        dsn=SENTRY_DSN,
-        integrations=[DjangoIntegration()],
-        environment=env("DJANGO_ENVIRONMENT", default="development"),
-        release=env("RELEASE_VERSION", default="dev"),
-        send_default_pii=False, # Changed to False as no user data is handled by site
-        traces_sample_rate=0.5,
-    )
+# Removed SENTRY integration for Starter Launch
+# if SENTRY_DSN:
+#     sentry_sdk.init(
+#         dsn=SENTRY_DSN,
+#         integrations=[DjangoIntegration()],
+#         environment=env("DJANGO_ENVIRONMENT", default="development"),
+#         release=env("RELEASE_VERSION", default="dev"),
+#         send_default_pii=False,
+#         traces_sample_rate=0.5,
+#     )
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
