@@ -1,7 +1,7 @@
 // frontend/my-app/src/app/products/[id]/client_content.tsx
 'use client'; // This directive makes this a Client Component
 
-import React, { useCallback } from 'react'; // Added useCallback
+import React, { useCallback } from 'react';
 import {
   Box,
   Heading,
@@ -54,12 +54,10 @@ interface ProductDetailClientContentProps {
   product: Product;
 }
 
-export default function ProductDetailClientContent({ product }: ProductDetailClientClientContentProps) {
+export default function ProductDetailClientContent({ product }: ProductDetailClientContentProps) { // FIX: Corrected interface name here
   const toast = useToast();
-  // Removed: const queryClient = useQueryClient(); // Not needed as no backend calls
 
   const [quantity, setQuantity] = React.useState(1);
-  // Replaced localCartItems and setLocalCartItems with Zustand actions
   const addItem = useCartStore((state) => state.addItem);
   const updateItemQuantity = useCartStore((state) => state.updateItemQuantity);
   const findItemById = useCartStore((state) => state.findItemById);
@@ -67,16 +65,13 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
   const guestSessionKey = useCartStore((state) => state.guestSessionKey);
   const setGuestSessionKey = useCartStore((state) => state.setGuestSessionKey);
 
-  // This useEffect ensures a guestSessionKey exists on page load for local storage persistence
   React.useEffect(() => {
     if (typeof window !== 'undefined' && !guestSessionKey) {
       import('uuid').then(({ v4: uuidv4 }) => {
         setGuestSessionKey(uuidv4());
-        // No toast needed here, as it's just initializing local session.
-        // It might be confusing if they see a toast for "initializing guest session" repeatedly.
       });
     }
-  }, [guestSessionKey, setGuestSessionKey]); // Removed toast from dependencies as it's not called
+  }, [guestSessionKey, setGuestSessionKey]);
 
 
   const formatPrice = useCallback((priceString: string): string => {
@@ -88,9 +83,6 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
   }, []);
 
   const priceAsNumber = parseFloat(product.price);
-
-  // Removed addToCartMutation as it directly interacts with backend API
-  // All cart updates will now go directly to Zustand store.
 
   const handleAddToCart = useCallback(() => {
     if (quantity <= 0) {
@@ -118,10 +110,8 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
     const existingLocalItem = findItemById(product.id);
 
     if (existingLocalItem) {
-      // If item exists, update its quantity in the store
       updateItemQuantity(product.id, existingLocalItem.quantity + quantity);
     } else {
-      // If item does not exist, add it to the cart
       addItem({
         id: Number(product.id),
         name: product.name,
@@ -223,7 +213,7 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
                 min={1}
                 value={quantity}
                 onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                onBlur={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))} // Ensure valid number on blur
+                onBlur={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
                 placeholder="Qty"
                 textAlign="center"
               />
@@ -235,14 +225,12 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
               size="lg"
               flex={1}
               onClick={handleAddToCart}
-              // Removed isLoading/isDisabled from mutation as there is no mutation
-              isDisabled={product.stock <= 0} // Only disabled by stock now
+              isDisabled={product.stock <= 0}
             >
               {product.stock > 0 ? 'Add to cart' : 'Out of Stock'}
             </Button>
           </HStack>
 
-          {/* This section now refers to "guest" instead of "unauthenticated" for clarity */}
           <Text fontSize="sm" color="gray.500" mt={2}>
             You are currently Browse as a guest. Your cart will be saved locally.
             <br/>
