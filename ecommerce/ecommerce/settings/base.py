@@ -28,11 +28,10 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "django.contrib.sites", 
 
-    # Third-party (Authentication related removed, M-Pesa related being removed)
+    # Third-party
     "corsheaders",
-    "oauth2_provider", 
+    "oauth2_provider",
     "rest_framework",
     "rest_framework.authtoken",
     "rest_framework_simplejwt",
@@ -41,11 +40,10 @@ INSTALLED_APPS = [
 
     # Project apps
     "store.apps.StoreConfig",
-    "payment", 
-    # "django_daraja", # REMOVED: M-Pesa integration
-    "users", 
-    "emails", 
-    "storages", 
+    "payment",
+    "users",
+    "emails",
+    "storages",
 ]
 
 MIDDLEWARE = [
@@ -95,8 +93,6 @@ AUTH_PASSWORD_VALIDATORS = [
 AUTHENTICATION_BACKENDS = (
     "django.contrib.auth.backends.ModelBackend",
 )
-
-SITE_ID = 1
 
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/"
@@ -196,14 +192,6 @@ OAUTH2_PROVIDER = {
         "email": "User email address",
     }
 }
-
-# --- M-Pesa - ENTIRE BLOCK REMOVED
-# MPESA_CONSUMER_KEY = env("MPESA_CONSUMER_KEY")
-# MPESA_CONSUMER_SECRET = env("MPESA_CONSUMER_SECRET")
-# MPESA_SHORTCODE = env("MPESA_SHORTCODE")
-# MPESA_PASSKEY = env("MPESA_PASSKEY")
-# MPESA_CALLBACK_URL = env("MPESA_CALLBACK_URL")
-# MPESA_ENV = env("MPESA_ENV", default="sandbox")
 
 # --- Sentry
 SENTRY_DSN = env("SENTRY_DSN", default="")

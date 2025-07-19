@@ -1,13 +1,10 @@
 # ecommerce/users/serializers.py
-# Removed allauth imports as email authentication is removed for Starter Launch
-# from allauth.account.adapter import get_adapter
-# from allauth.account.utils import setup_user_email
 
 from django.db import transaction
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 
-from .models import User, UserProfile # Assuming UserProfile is also in .models
+from .models import User, UserProfile
 
 # Get the custom User model
 User = get_user_model()
@@ -55,6 +52,3 @@ class UserDetailsSerializer(serializers.ModelSerializer):
         profile.save()
 
         return instance
-
-# Removed CustomRegisterSerializer and EmailChangeSerializer as they are for public authentication,
-# which is not part of the Starter Launch package.
