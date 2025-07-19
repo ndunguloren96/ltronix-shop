@@ -1,7 +1,7 @@
 // frontend/my-app/src/components/Header.tsx
 'use client';
 
-import React, { useState, useCallback } from 'react'; // Added useCallback
+import React, { useState, useCallback } from 'react';
 import {
   Box,
   Flex,
@@ -21,7 +21,7 @@ import {
   InputGroup,
   InputRightElement,
   Badge,
-  Link as ChakraLink, // Aliasing Chakra UI's Link to avoid conflict with Next.js Link
+  Link as ChakraLink,
   useMediaQuery,
   Drawer,
   DrawerOverlay,
@@ -39,14 +39,13 @@ import {
   SearchIcon,
 } from '@chakra-ui/icons';
 import { useRouter, usePathname } from 'next/navigation';
-import NextLink from 'next/link'; // Renamed Next.js Link to NextLink to prevent conflict with ChakraLink
+import NextLink from 'next/link';
 import { BsCartFill } from 'react-icons/bs';
-import { signOut, useSession } from 'next-auth/react';
 
 // Import your Zustand cart store
 import { useCartStore } from '@/store/useCartStore';
 
-// NavItem interface definition (moved here for self-containment)
+// NavItem interface definition
 interface NavItem {
   label: string;
   subLabel?: string;
@@ -54,7 +53,7 @@ interface NavItem {
   href?: string;
 }
 
-// NAV_ITEMS array definition (moved here for self-containment)
+// NAV_ITEMS array definition - 'Account' removed
 const NAV_ITEMS: Array<NavItem> = [
   { label: 'Home', href: '/' },
   {
@@ -64,14 +63,6 @@ const NAV_ITEMS: Array<NavItem> = [
       { label: 'Laptops', subLabel: 'High-performance computing', href: '/products?category=laptops' },
       { label: 'Smartphones', subLabel: 'Latest mobile technology', href: '/products?category=smartphones' },
       { label: 'Accessories', subLabel: 'Enhance your devices', href: '/products?category=accessories' },
-    ],
-  },
-  {
-    label: 'Account',
-    children: [
-      { label: 'My Profile', subLabel: 'View and edit your personal details', href: '/account/profile' },
-      { label: 'Order History', subLabel: 'Track your past and current orders', href: '/account/orders' },
-      { label: 'Payment Methods', subLabel: 'Manage your payment information', href: '/account/payment' },
     ],
   },
   {
@@ -87,41 +78,33 @@ const NAV_ITEMS: Array<NavItem> = [
 
 
 export default function Header() {
-  const { isOpen, onToggle, onOpen, onClose } = useDisclosure();
+  const { isOpen, onOpen, onClose } = useDisclosure(); // onToggle is not directly used for main drawer
   const router = useRouter();
-  const pathname = usePathname();
-  const { data: session, status } = useSession();
+  // const pathname = usePathname(); // No longer needed as auth pages are removed
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Chakra UI's 'md' breakpoint is 48em (768px). This hook determines if the screen is wider than that.
   const [isLargerThanMd] = useMediaQuery('(min-width: 48em)');
 
-  // Get total items from your cart store for the badge
   const totalItems = useCartStore((state) => state.items.length);
 
-  // useCallback to memoize the handleSearch function, preventing unnecessary re-renders
   const handleSearch = useCallback((event: React.FormEvent) => {
     event.preventDefault();
     if (searchQuery.trim()) {
       router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
-      // Close mobile drawer after search if it's open
       if (!isLargerThanMd) {
-        onClose();
+        onClose(); // Close mobile drawer after search if it's open
       }
     }
-  }, [searchQuery, router, isLargerThanMd, onClose]); // Dependencies for useCallback
-
-  // Determine if the current page is one of the authentication pages
-  const isOnAuthPage = pathname === '/auth/login' || pathname === '/auth/signup';
+  }, [searchQuery, router, isLargerThanMd, onClose]);
 
   return (
     <Box
       bg={useColorModeValue('white', 'gray.800')}
       color={useColorModeValue('gray.600', 'white')}
-      position="sticky" // Make header sticky
+      position="sticky"
       top="0"
-      zIndex="sticky" // Ensure header stays on top of other content
-      boxShadow="sm" // Add a subtle shadow
+      zIndex="sticky"
+      boxShadow="sm"
     >
       <Flex
         minH={'60px'}
@@ -135,7 +118,7 @@ export default function Header() {
         {/* Mobile Menu Button (Hamburger) - Visible only on smaller screens */}
         {!isLargerThanMd && (
           <IconButton
-            onClick={onOpen} // Opens the Drawer
+            onClick={onOpen}
             icon={<HamburgerIcon w={5} h={5} />}
             variant={'ghost'}
             aria-label={'Open Navigation'}
@@ -150,7 +133,6 @@ export default function Header() {
           align="center"
           mr={isLargerThanMd ? 10 : 0}
         >
-          {/* Use ChakraLink as NextLink with passHref for proper Next.js routing and accessibility */}
           <ChakraLink
             as={NextLink}
             href="/"
@@ -173,7 +155,7 @@ export default function Header() {
           </Flex>
         )}
 
-        {/* Right side stack: Search, Cart, Auth Buttons */}
+        {/* Right side stack: Search, Cart */}
         <Stack
           flex={{ base: 1, md: 'unset' }}
           justify={'flex-end'}
@@ -240,47 +222,6 @@ export default function Header() {
             )}
           </ChakraLink>
 
-          {/* Authentication Buttons (desktop) - Hidden on auth pages and mobile */}
-          {!isOnAuthPage && isLargerThanMd && (
-            <>
-              {status === 'authenticated' ? (
-                <>
-                  <Button as={ChakraLink} fontSize={'sm'} fontWeight={400} variant={'link'} href="/account" aria-label="Account settings">
-                    Account
-                  </Button>
-                  <Button
-                    onClick={() => signOut({ callbackUrl: '/auth/login' })}
-                    colorScheme="red"
-                    size="sm"
-                    fontWeight={600}
-                    color={'white'}
-                    aria-label="Logout"
-                  >
-                    Logout
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Button as={ChakraLink} fontSize={'sm'} fontWeight={400} variant={'link'} href="/auth/login" aria-label="Sign In">
-                    Sign In
-                  </Button>
-                  <Button
-                    as={ChakraLink}
-                    href="/auth/signup"
-                    display={{ base: 'none', md: 'inline-flex' }}
-                    fontSize={'sm'}
-                    fontWeight={600}
-                    color={'white'}
-                    bg={'blue.400'}
-                    _hover={{ bg: 'blue.300' }}
-                    aria-label="Sign Up"
-                  >
-                    Sign Up
-                  </Button>
-                </>
-              )}
-            </>
-          )}
         </Stack>
       </Flex>
 
@@ -332,35 +273,6 @@ export default function Header() {
                 onClose={onClose}
               />
 
-              {/* Authentication Buttons for Mobile - Hidden on auth pages */}
-              {!isOnAuthPage && (
-                <>
-                  {status === 'authenticated' ? (
-                    <>
-                      <Button as={ChakraLink} fontSize="xl" width="full" onClick={onClose} href="/account" aria-label="Account settings (mobile)">
-                        Account
-                      </Button>
-                      <Button
-                        onClick={() => { signOut({ callbackUrl: '/auth/login' }); onClose(); }}
-                        colorScheme="red"
-                        width="full"
-                        aria-label="Logout (mobile)"
-                      >
-                        Logout
-                      </Button>
-                    </>
-                  ) : (
-                    <>
-                      <Button as={ChakraLink} colorScheme="blue" width="full" onClick={onClose} href="/auth/login" aria-label="Sign In (mobile)">
-                        Sign In
-                      </Button>
-                      <Button as={ChakraLink} colorScheme="blue" width="full" onClick={onClose} href="/auth/signup" aria-label="Sign Up (mobile)">
-                        Sign Up
-                      </Button>
-                    </>
-                  )}
-                </>
-              )}
             </VStack>
           </DrawerBody>
         </DrawerContent>
@@ -393,7 +305,7 @@ const DesktopNav = () => {
                   textDecoration: 'none',
                   color: linkHoverColor,
                 }}
-                aria-label={`Navigate to ${navItem.label}`}
+                aria-label={`Maps to ${navItem.label}`}
               >
                 {navItem.label}
               </ChakraLink>
@@ -434,7 +346,7 @@ const DesktopSubNav = ({ label, href, subLabel }: NavItem) => {
       p={2}
       rounded={'md'}
       _hover={{ bg: useColorModeValue('blue.50', 'gray.900') }}
-      aria-label={`Navigate to ${label}`}
+      aria-label={`Maps to ${label}`}
     >
       <Stack direction={'row'} align={'center'}>
         <Box>
@@ -475,7 +387,7 @@ const MobileNavItem = ({ label, children, href, icon, badgeCount, onClose }: Mob
   const { isOpen, onToggle } = useDisclosure();
 
   return (
-    <Stack spacing={4} onClick={children ? onToggle : undefined}> {/* Only toggle if has children */}
+    <Stack spacing={4} onClick={children ? onToggle : undefined}>
       <ChakraLink
         as={NextLink}
         href={href ?? '#'}
@@ -484,9 +396,9 @@ const MobileNavItem = ({ label, children, href, icon, badgeCount, onClose }: Mob
         justifyContent={'space-between'}
         alignItems={'center'}
         _hover={{ textDecoration: 'none' }}
-        onClick={children ? undefined : onClose} // Close drawer if it's a direct link
+        onClick={children ? undefined : onClose}
         display="flex"
-        aria-label={`Navigate to ${label}`}
+        aria-label={`Maps to ${label}`}
       >
         <Flex align="center">
           {icon && <Box mr={2}>{icon}</Box>}
@@ -535,8 +447,8 @@ const MobileNavItem = ({ label, children, href, icon, badgeCount, onClose }: Mob
                 key={child.label}
                 passHref
                 py={2}
-                onClick={onClose} // Close drawer when sub-item is clicked
-                aria-label={`Navigate to ${child.label}`}
+                onClick={onClose}
+                aria-label={`Maps to ${child.label}`}
               >
                 {child.label}
               </ChakraLink>
@@ -546,4 +458,3 @@ const MobileNavItem = ({ label, children, href, icon, badgeCount, onClose }: Mob
     </Stack>
   );
 };
-

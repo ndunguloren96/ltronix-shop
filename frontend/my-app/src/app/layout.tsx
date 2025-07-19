@@ -1,48 +1,33 @@
-// src/app/layout.tsx
-
-import './globals.css';
+// frontend/my-app/src/app/layout.tsx
+import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
-import { AppProviders } from './providers';
+import { Providers } from './providers'; // Assuming this provides ChakraProvider
 import Header from '../components/Header';
-import Footer from '../components/Footer';
-
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-
-import { ClientErrorBoundary } from '../components/ClientErrorBoundary';
-import { ColorModeScript } from '@chakra-ui/react';
-import chakraConfig from '../chakra.config';
+import Footer from '../components/Footer'; // Assuming you have a Footer component
 
 const inter = Inter({ subsets: ['latin'] });
 
-export const metadata = {
+export const metadata: Metadata = {
   title: 'Ltronix Shop',
-  description: 'Your one-stop shop for electronics',
+  description: 'Your one-stop shop for electronics and gadgets.',
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode;
-}) {
-  const session = await getServerSession(authOptions);
-
+}>) {
   return (
     <html lang="en">
-      <head>
-        {/* Chakra UI FOUC Fix: Must be placed before body */}
-        <ColorModeScript initialColorMode={chakraConfig.initialColorMode} />
-      </head>
       <body className={inter.className}>
-        <ClientErrorBoundary>
-          <AppProviders session={session}>
-            <Header />
-            <main style={{ flexGrow: 1, minHeight: '80vh' }}>{children}</main>
-            <Footer />
-          </AppProviders>
-        </ClientErrorBoundary>
+        <Providers>
+          {/* Header is outside of main content area for consistency */}
+          <Header />
+          {children}
+          {/* Footer is outside of main content area for consistency */}
+          <Footer />
+        </Providers>
       </body>
     </html>
   );
 }
-
