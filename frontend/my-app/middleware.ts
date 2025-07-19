@@ -8,7 +8,6 @@ const protectedPaths = [
   '/account',
   '/account/profile',
   '/account/security',
-  '/account/payment',
   // Add any other paths that should only be accessible by authenticated users
 ];
 

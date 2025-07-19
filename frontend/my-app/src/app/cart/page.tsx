@@ -229,21 +229,6 @@ export default function CartPage() {
     },
   });
 
-  // REMOVED: The handleProceedToCheckout function as payment is not included.
-  // const handleProceedToCheckout = () => {
-  //   if (localCartItems.length === 0) {
-  //     toast({
-  //       title: 'Cart is Empty',
-  //       description: 'Please add items to your cart before proceeding to checkout.',
-  //       status: 'warning',
-  //       duration: 3000,
-  //       isClosable: true,
-  //       position: 'top-right',
-  //     });
-  //     return;
-  //   }
-  //   router.push('/checkout');
-  // };
 
   // New placeholder handler for WhatsApp Inquiry, no actual implementation yet.
   const handleInquireViaWhatsApp = () => {
@@ -263,7 +248,7 @@ export default function CartPage() {
     // Or we could simply do nothing for now, if an alert is considered "adding functionality"
     // For strict removal, we could even remove this button entirely until the WhatsApp phase.
     // However, the "Prominent 'Checkout'-style button on cart page" (from Haves list)
-    // implies this button should exist, but its *action* should not be payment.
+    // implies this button should exist, but its *action* should not be payment
     // An alert is a non-functional placeholder.
   };
 
