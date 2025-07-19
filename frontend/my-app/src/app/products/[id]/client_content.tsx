@@ -1,7 +1,7 @@
 // frontend/my-app/src/app/products/[id]/client_content.tsx
 'use client'; // This directive makes this a Client Component
 
-import React from 'react';
+import React, { useCallback } from 'react'; // Added useCallback
 import {
   Box,
   Heading,
@@ -20,19 +20,16 @@ import {
 import Image from 'next/image';
 import { CheckCircleIcon, StarIcon } from '@chakra-ui/icons';
 import { useCartStore } from '@/store/useCartStore';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { updateEntireCartAPI, BackendOrder, ProductInCart, BackendOrderItem } from '@/api/orders';
-// REMOVED: import { useSession } from 'next-auth/react'; // No longer needed
 import Link from 'next/link';
 
-// FIX: Define the Product interface locally to use image_file, consistent with backend
+// Define the Product interface locally to use image_file, consistent with backend
 interface Product {
   id: number;
   name: string;
   description: string;
   price: string;
   digital: boolean;
-  image_file?: string; // FIX: Changed to image_file
+  image_file?: string; // Changed to image_file
   category?: string;
   stock: number;
   brand?: string;
@@ -43,155 +40,59 @@ interface Product {
   updated_at: string;
 }
 
+// Define the ProductInCart interface here, as it's no longer imported from '@/api/orders'
+interface ProductInCart {
+  id: number;
+  name: string;
+  price: number; // Stored as number in Zustand
+  quantity: number;
+  image_file?: string;
+}
+
+
 interface ProductDetailClientContentProps {
   product: Product;
 }
 
-export default function ProductDetailClientContent({ product }: ProductDetailClientContentProps) {
+export default function ProductDetailClientContent({ product }: ProductDetailClientClientContentProps) {
   const toast = useToast();
-  const queryClient = useQueryClient();
-  // REMOVED: const { data: session, status } = useSession(); // No longer needed
+  // Removed: const queryClient = useQueryClient(); // Not needed as no backend calls
 
   const [quantity, setQuantity] = React.useState(1);
-  const localCartItems = useCartStore((state) => state.items);
-  const setLocalCartItems = useCartStore((state) => state.setItems);
+  // Replaced localCartItems and setLocalCartItems with Zustand actions
+  const addItem = useCartStore((state) => state.addItem);
+  const updateItemQuantity = useCartStore((state) => state.updateItemQuantity);
+  const findItemById = useCartStore((state) => state.findItemById);
+
   const guestSessionKey = useCartStore((state) => state.guestSessionKey);
   const setGuestSessionKey = useCartStore((state) => state.setGuestSessionKey);
 
-  // This useEffect ensures a guestSessionKey exists on page load if unauthenticated
+  // This useEffect ensures a guestSessionKey exists on page load for local storage persistence
   React.useEffect(() => {
-    // Simplified condition: always ensure guestSessionKey for the "Starter Launch"
-    // as there's no "authenticated" status.
     if (typeof window !== 'undefined' && !guestSessionKey) {
       import('uuid').then(({ v4: uuidv4 }) => {
         setGuestSessionKey(uuidv4());
-        toast({
-          title: 'Initializing Guest Session',
-          description: 'Creating a temporary session for your cart.',
-          status: 'info',
-          duration: 3000,
-          isClosable: true,
-        });
+        // No toast needed here, as it's just initializing local session.
+        // It might be confusing if they see a toast for "initializing guest session" repeatedly.
       });
     }
-  }, [guestSessionKey, setGuestSessionKey, toast]);
+  }, [guestSessionKey, setGuestSessionKey]); // Removed toast from dependencies as it's not called
 
 
-  const formatPrice = (priceString: string): string => {
+  const formatPrice = useCallback((priceString: string): string => {
     const numericPrice = parseFloat(priceString);
     if (isNaN(numericPrice)) {
       return priceString;
     }
     return `KES ${numericPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  };
+  }, []);
 
   const priceAsNumber = parseFloat(product.price);
 
-  const addToCartMutation = useMutation<BackendOrder, Error, ProductInCart[], { previousCart?: BackendOrder }>({
-    mutationFn: (items) => updateEntireCartAPI(items, guestSessionKey),
-    onMutate: async (newCartItems: ProductInCart[]) => {
-      await queryClient.cancelQueries({ queryKey: ['cart'] });
-      const previousCart = queryClient.getQueryData<BackendOrder>(['cart']);
+  // Removed addToCartMutation as it directly interacts with backend API
+  // All cart updates will now go directly to Zustand store.
 
-      queryClient.setQueryData<BackendOrder>(['cart'], (oldCart) => {
-        const updatedBackendItems: BackendOrderItem[] = newCartItems.map(item => ({
-          id: oldCart?.items.find(pi => pi.product.id === item.id)?.id || Math.random(), // Keep Math.random() for temporary client-side ID
-          product: {
-            id: item.id, // This `item.id` is already a number from ProductInCart
-            name: item.name,
-            price: item.price.toFixed(2),
-            image_file: item.image_file, // FIX: Use image_file here
-          },
-          quantity: item.quantity,
-          get_total: (item.price * item.quantity).toFixed(2),
-        }));
-
-        if (oldCart) {
-          return {
-            ...oldCart,
-            items: updatedBackendItems,
-            get_cart_items: newCartItems.reduce((acc, item) => acc + item.quantity, 0),
-            get_cart_total: newCartItems.reduce((acc, item) => acc + item.price * item.quantity, 0).toFixed(2),
-          };
-        }
-        return {
-          id: null,
-          customer: null, // Always null for guest users in "Starter Launch"
-          session_key: guestSessionKey,
-          date_ordered: new Date().toISOString(),
-          complete: false,
-          transaction_id: null,
-          get_cart_total: newCartItems.reduce((acc, item) => acc + item.price * item.quantity, 0).toFixed(2),
-          get_cart_items: newCartItems.reduce((acc, item) => acc + item.quantity, 0),
-          shipping: false,
-          items: updatedBackendItems,
-        } as BackendOrder;
-      });
-
-      setLocalCartItems(newCartItems);
-
-      return { previousCart };
-    },
-    onError: (err, newCartItems, context) => {
-      console.error("Failed to update cart on backend:", err);
-      toast({
-        title: 'Error Adding to Cart',
-        description: err.message || 'Failed to add item to cart on server.',
-        status: 'error',
-        duration: 5000,
-        isClosable: true,
-      });
-      queryClient.setQueryData(['cart'], context?.previousCart);
-      if (context?.previousCart) {
-        setLocalCartItems(context.previousCart.items.map(bi => ({
-            id: bi.product.id, name: bi.product.name, price: parseFloat(bi.product.price),
-            quantity: bi.quantity, image_file: bi.product.image_file // FIX: Use image_file here
-        })));
-      } else {
-        setLocalCartItems([]);
-      }
-    },
-    onSettled: async (data, _error, _variables, _context) => {
-        if (data && data.session_key && !guestSessionKey) {
-            setGuestSessionKey(data.session_key);
-            console.log("Guest session key received from backend and set:", data.session_key);
-        }
-        queryClient.invalidateQueries({ queryKey: ['cart'] });
-    },
-    onSuccess: (data) => {
-      const transformedItems: ProductInCart[] = data.items.map(backendItem => ({
-        id: backendItem.product.id,
-        name: backendItem.product.name,
-        price: parseFloat(backendItem.product.price),
-        quantity: backendItem.quantity,
-        image_file: backendItem.product.image_file, // FIX: Use image_file here
-      }));
-      setLocalCartItems(transformedItems);
-
-      toast({
-        title: 'Item Added/Updated',
-        description: 'Your cart has been updated.',
-        status: 'success',
-        duration: 2000,
-        isClosable: true,
-      });
-    },
-  });
-
-  const handleAddToCart = () => {
-    // The previous check for `status === 'unauthenticated'` is no longer strictly needed
-    // as we are always in an unauthenticated context here.
-    if (!guestSessionKey) {
-      toast({
-            title: 'Initializing Guest Session',
-            description: 'Creating a temporary session for your cart. Please try adding to cart again.',
-            status: 'info',
-            duration: 3000,
-            isClosable: true,
-      });
-      return;
-    }
-
+  const handleAddToCart = useCallback(() => {
     if (quantity <= 0) {
       toast({
         title: 'Invalid Quantity',
@@ -214,39 +115,39 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
       return;
     }
 
-    const itemToAddOrUpdate: ProductInCart = {
-      id: Number(product.id),
-      name: product.name,
-      price: priceAsNumber,
-      quantity: quantity,
-      image_file: product.image_file, // FIX: Use image_file here
-    };
+    const existingLocalItem = findItemById(product.id);
 
-    const currentLocalCartItems = localCartItems;
-
-    const existingLocalItem = currentLocalCartItems.find(item => item.id === itemToAddOrUpdate.id);
-
-    let updatedLocalCartItems: ProductInCart[];
     if (existingLocalItem) {
-      updatedLocalCartItems = currentLocalCartItems.map(item =>
-        item.id === itemToAddOrUpdate.id ? { ...item, quantity: item.quantity + quantity } : item
-      );
+      // If item exists, update its quantity in the store
+      updateItemQuantity(product.id, existingLocalItem.quantity + quantity);
     } else {
-      updatedLocalCartItems = [...currentLocalCartItems, { ...itemToAddOrUpdate, quantity: quantity }];
+      // If item does not exist, add it to the cart
+      addItem({
+        id: Number(product.id),
+        name: product.name,
+        price: priceAsNumber,
+        quantity: quantity,
+        image_file: product.image_file,
+      });
     }
 
-    // Removed status === 'loading' from isLoading/isDisabled checks
-    addToCartMutation.mutate(updatedLocalCartItems);
-  };
+    toast({
+      title: 'Item Added/Updated',
+      description: `"${product.name}" added to your cart.`,
+      status: 'success',
+      duration: 2000,
+      isClosable: true,
+    });
+  }, [quantity, product, priceAsNumber, findItemById, addItem, updateItemQuantity, toast]);
 
   return (
     <Box>
       <Flex direction={{ base: 'column', md: 'row' }} gap={8}>
         {/* Product Image */}
         <Box flex={{ base: 'none', md: '1' }} maxW={{ base: 'full', md: '50%' }}>
-          {product.image_file ? ( // FIX: Use product.image_file here
+          {product.image_file ? (
             <Image
-              src={product.image_file} // FIX: Use product.image_file here
+              src={product.image_file}
               alt={product.name}
               width={500}
               height={500}
@@ -334,10 +235,10 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
               size="lg"
               flex={1}
               onClick={handleAddToCart}
-              isLoading={addToCartMutation.isPending} // Removed status === 'loading'
-              isDisabled={addToCartMutation.isPending || product.stock <= 0} // Removed status === 'loading'
+              // Removed isLoading/isDisabled from mutation as there is no mutation
+              isDisabled={product.stock <= 0} // Only disabled by stock now
             >
-              {addToCartMutation.isPending ? 'Adding...' : (product.stock > 0 ? 'Add to cart' : 'Out of Stock')}
+              {product.stock > 0 ? 'Add to cart' : 'Out of Stock'}
             </Button>
           </HStack>
 
@@ -354,7 +255,7 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
               <Text as="a" color="brand.500" fontWeight="bold">Sign Up</Text>
             </Link>
             {' '}
-            to permanently save your cart and access order history.
+            to permanently save your cart and access order history (feature coming soon!).
           </Text>
 
 
