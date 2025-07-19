@@ -22,7 +22,7 @@ import { CheckCircleIcon, StarIcon } from '@chakra-ui/icons';
 import { useCartStore } from '@/store/useCartStore';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { updateEntireCartAPI, BackendOrder, ProductInCart, BackendOrderItem } from '@/api/orders';
-import { useSession } from 'next-auth/react';
+// REMOVED: import { useSession } from 'next-auth/react'; // No longer needed
 import Link from 'next/link';
 
 // FIX: Define the Product interface locally to use image_file, consistent with backend
@@ -50,7 +50,7 @@ interface ProductDetailClientContentProps {
 export default function ProductDetailClientContent({ product }: ProductDetailClientContentProps) {
   const toast = useToast();
   const queryClient = useQueryClient();
-  const { data: session, status } = useSession();
+  // REMOVED: const { data: session, status } = useSession(); // No longer needed
 
   const [quantity, setQuantity] = React.useState(1);
   const localCartItems = useCartStore((state) => state.items);
@@ -60,7 +60,9 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
 
   // This useEffect ensures a guestSessionKey exists on page load if unauthenticated
   React.useEffect(() => {
-    if (typeof window !== 'undefined' && status === 'unauthenticated' && !guestSessionKey) {
+    // Simplified condition: always ensure guestSessionKey for the "Starter Launch"
+    // as there's no "authenticated" status.
+    if (typeof window !== 'undefined' && !guestSessionKey) {
       import('uuid').then(({ v4: uuidv4 }) => {
         setGuestSessionKey(uuidv4());
         toast({
@@ -72,7 +74,7 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
         });
       });
     }
-  }, [guestSessionKey, setGuestSessionKey, status, toast]);
+  }, [guestSessionKey, setGuestSessionKey, toast]);
 
 
   const formatPrice = (priceString: string): string => {
@@ -114,7 +116,7 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
         }
         return {
           id: null,
-          customer: session?.user?.id ? parseInt(session.user.id) : null,
+          customer: null, // Always null for guest users in "Starter Launch"
           session_key: guestSessionKey,
           date_ordered: new Date().toISOString(),
           complete: false,
@@ -177,7 +179,9 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
   });
 
   const handleAddToCart = () => {
-    if (status === 'unauthenticated' && !guestSessionKey) {
+    // The previous check for `status === 'unauthenticated'` is no longer strictly needed
+    // as we are always in an unauthenticated context here.
+    if (!guestSessionKey) {
       toast({
             title: 'Initializing Guest Session',
             description: 'Creating a temporary session for your cart. Please try adding to cart again.',
@@ -231,6 +235,7 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
       updatedLocalCartItems = [...currentLocalCartItems, { ...itemToAddOrUpdate, quantity: quantity }];
     }
 
+    // Removed status === 'loading' from isLoading/isDisabled checks
     addToCartMutation.mutate(updatedLocalCartItems);
   };
 
@@ -248,7 +253,7 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
               style={{ objectFit: 'contain' }}
               priority={false}
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-              unoptimized={true} 
+              unoptimized={true}
             />
           ) : (
             <Box w="100%" h="500px" bg="gray.200" display="flex" alignItems="center" justifyContent="center">
@@ -329,29 +334,29 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
               size="lg"
               flex={1}
               onClick={handleAddToCart}
-              isLoading={addToCartMutation.isPending || status === 'loading'}
-              isDisabled={addToCartMutation.isPending || status === 'loading' || product.stock <= 0}
+              isLoading={addToCartMutation.isPending} // Removed status === 'loading'
+              isDisabled={addToCartMutation.isPending || product.stock <= 0} // Removed status === 'loading'
             >
               {addToCartMutation.isPending ? 'Adding...' : (product.stock > 0 ? 'Add to cart' : 'Out of Stock')}
             </Button>
           </HStack>
 
-          {status === 'unauthenticated' && (
-            <Text fontSize="sm" color="gray.500" mt={2}>
-              You are currently browsing as a guest. Your cart will be saved locally.
-              <br/>
-              <Link href="/auth/login" passHref>
-                <Text as="a" color="brand.500" fontWeight="bold">Login</Text>
-              </Link>
-              {' '}
-              or{' '}
-              <Link href="/auth/signup" passHref>
-                <Text as="a" color="brand.500" fontWeight="bold">Sign Up</Text>
-              </Link>
-              {' '}
-              to permanently save your cart and access order history.
-            </Text>
-          )}
+          {/* This section now refers to "guest" instead of "unauthenticated" for clarity */}
+          <Text fontSize="sm" color="gray.500" mt={2}>
+            You are currently Browse as a guest. Your cart will be saved locally.
+            <br/>
+            <Link href="/auth/login" passHref>
+              <Text as="a" color="brand.500" fontWeight="bold">Login</Text>
+            </Link>
+            {' '}
+            or{' '}
+            <Link href="/auth/signup" passHref>
+              <Text as="a" color="brand.500" fontWeight="bold">Sign Up</Text>
+            </Link>
+            {' '}
+            to permanently save your cart and access order history.
+          </Text>
+
 
           {product.digital && (
             <HStack spacing={2} mt={4}>
@@ -370,4 +375,3 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
     </Box>
   );
 }
-
