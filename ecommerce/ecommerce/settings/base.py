@@ -238,6 +238,8 @@ REST_AUTH = {
     "OLD_PASSWORD_FIELD_ENABLED": True,
     "GOOGLE_CLIENT_ID": env("GOOGLE_CLIENT_ID", default=""),
     "GOOGLE_CLIENT_SECRET": env("GOOGLE_CLIENT_SECRET", default=""),
+    # FIX: Link the custom SocialLoginSerializer
+    "SOCIAL_LOGIN_SERIALIZER": "users.serializers.CustomGoogleSocialLoginSerializer",
 }
 
 # --- Simple JWT

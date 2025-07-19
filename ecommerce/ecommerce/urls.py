@@ -1,75 +1,62 @@
-# ecommerce/ecommerce/urls.py
+# ecommerce/urls.py
+from django.contrib import admin
+from django.urls import path, include, re_path
 from django.conf import settings
 from django.conf.urls.static import static
-from django.contrib import admin
-from django.urls import include, path, re_path
+from rest_framework_simplejwt.views import (
+    TokenObtainPairView,
+    TokenRefreshView,
+    TokenVerifyView,
+)
 
-# Import the specific callback function from payment.views
-from payment.views import mpesa_stk_push_callback
+# Import necessary allauth and dj_rest_auth views and adapters
+from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
+from allauth.socialaccount.providers.oauth2.client import OAuth2Client
+from dj_rest_auth.registration.views import SocialLoginView
 
-# Import your custom views from the users app
-from users.views import EmailChangeView, AccountDeleteView
-# from users.views import CustomRegisterView # Only uncomment if you need to explicitly map it here
+# Import your custom register serializer
+from users.serializers import CustomRegisterSerializer
 
-from dj_rest_auth.views import PasswordChangeView
-
-# Import dj-rest-auth's social views directly
-from dj_rest_auth.registration.views import SocialLoginView # For social login
-from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter # Specific adapter for Google
-from allauth.socialaccount.providers.oauth2.client import OAuth2Client # For OAuth2 client
-
-# Import Spectacular views directly
-from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
-
-
-# Custom GoogleLogin view to integrate with dj-rest-auth's SocialLoginView
-# This is a common pattern when dj_rest_auth.social.urls is problematic or for more control.
+# Define a custom GoogleLogin view to integrate with dj-rest-auth
 class GoogleLogin(SocialLoginView):
     adapter_class = GoogleOAuth2Adapter
-    callback_url = settings.SOCIALACCOUNT_PROVIDERS['google']['AUTH_PARAMS']['redirect_uri'] # Ensure this matches your Google API Console redirect URI
     client_class = OAuth2Client
-
+    # Ensure this callback_url matches one of the Authorized redirect URIs in your Google API Console
+    # and is also correctly configured in settings.SOCIALACCOUNT_PROVIDERS
+    callback_url = settings.SOCIALACCOUNT_PROVIDERS['google']['AUTH_PARAMS']['redirect_uri']
+    
+    def post(self, request, *args, **kwargs):
+        # DEBUG: Print the callback_url being used by this view
+        print(f"DEBUG: GoogleLogin View - using callback_url: {self.callback_url}")
+        return super().post(request, *args, **kwargs)
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    # API base path
-    path("api/v1/", include([
-        path("", include("store.api_urls")),
-        path("payments/", include("payment.api_urls")),
-
-        # dj-rest-auth core URLs (login, logout, user details, password reset/change)
-        path("auth/", include("dj_rest_auth.urls")),
-
-        # dj-rest-auth registration URLs (email/password registration)
-        path("auth/registration/", include("dj_rest_auth.registration.urls")),
-
-        # --- CRUCIAL FIX FOR GOOGLE AUTHENTICATION ---
-        # Explicitly map the Google social login view.
-        # This creates the endpoint /api/v1/auth/google/ that the frontend should hit.
-        path("auth/google/", GoogleLogin.as_view(), name="google_login"), # <--- This is the key change
-
-        # AllAuth URLs (still needed for the initial OAuth flow and redirect from Google)
-        path("accounts/", include("allauth.urls")),
-
-        # Custom user-related views
-        path("auth/password/change/", PasswordChangeView.as_view(), name="rest_password_change"),
-        path("auth/email/change/", EmailChangeView.as_view(), name="rest_email_change"),
-        path("auth/account/delete/", AccountDeleteView.as_view(), name="rest_account_delete"),
-
-        # Schema and Swagger UI
-        path("schema/", SpectacularAPIView.as_view(), name="schema"),
-        path("schema/swagger-ui/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
-    ])),
-    # Direct URL for M-Pesa STK Push Confirmation Callback (webhook)
-    path(
-        "mpesa/stk_push_callback/",
-        mpesa_stk_push_callback,
-        name="mpesa_stk_push_callback",
-    ),
+    path("api/v1/", include("djoser.urls")),
+    path("api/v1/", include("djoser.urls.jwt")),
+    path("api/v1/auth/", include("dj_rest_auth.urls")),
+    path("api/v1/auth/registration/", include("dj_rest_auth.registration.urls")),
+    path("api/v1/auth/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
+    path("api/v1/auth/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
+    path("api/v1/auth/token/verify/", TokenVerifyView.as_view(), name="token_verify"),
+    path("api/v1/auth/google/", GoogleLogin.as_view(), name="google_login"), # This is the endpoint NextAuth hits
+    path("api/v1/orders/", include("payment.urls")), # Assuming payment app handles orders
+    path("api/v1/store/", include("store.urls")), # Store app URLs
+    path("api/v1/users/", include("users.urls")), # Users app URLs
+    path("api/v1/emails/", include("emails.urls")), # Emails app URLs
+    
+    # Swagger/OpenAPI documentation
+    path("api/v1/schema/", include("drf_spectacular.urls")),
+    path("api/v1/schema/swagger-ui/", include("drf_spectacular.urls")), # Removed name='swagger-ui'
 ]
 
 # Serve static and media files in development
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+# Custom registration serializer override
+REST_AUTH_REGISTER_SERIALIZERS = {
+    "REGISTER_SERIALIZER": CustomRegisterSerializer,
+}
 
