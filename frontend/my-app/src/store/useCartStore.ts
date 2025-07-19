@@ -15,8 +15,6 @@ interface CartItem {
 interface CartState {
     items: CartItem[];
     guestSessionKey: string | null; // Session key for unauthenticated users
-    // CORRECTED: The addItem function now accepts a complete CartItem.
-    // client_content.tsx will determine if it's a new item or an update.
     addItem: (item: CartItem) => void;
     removeItem: (id: number) => void;
     updateItemQuantity: (id: number, quantity: number) => void;
@@ -34,9 +32,6 @@ export const useCartStore = create<CartState>()(
             items: [],
             guestSessionKey: null,
 
-            // MODIFIED: addItem now simply adds the item as provided.
-            // The logic in client_content.tsx (checking for existing item and calling updateItemQuantity)
-            // ensures this 'addItem' is only called when truly adding a *new* item.
             addItem: (itemToAdd) =>
                 set((state) => {
                     return { items: [...state.items, itemToAdd] };
@@ -60,7 +55,8 @@ export const useCartStore = create<CartState>()(
 
             setGuestSessionKey: (key) => set({ guestSessionKey: key }),
 
-            getTotalItems: () to get().items.reduce((total, item) => total + item.quantity, 0),
+            // FIX: Changed 'to' to '=>' for arrow function syntax
+            getTotalItems: () => get().items.reduce((total, item) => total + item.quantity, 0),
 
             getTotalPrice: () => get().items.reduce((total, item) => total + item.price * item.quantity, 0),
 
