@@ -1,7 +1,7 @@
 // src/app/search/page.tsx
 'use client'; // This is a client component
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, Suspense } from 'react'; // Added Suspense
 import { useSearchParams } from 'next/navigation'; // For reading URL query parameters
 import {
   Heading,
@@ -12,20 +12,15 @@ import {
   Center,
   Alert,
   AlertIcon,
+  Box // Added Box for fallback to provide dimensions
 } from '@chakra-ui/react';
 import Fuse from 'fuse.js'; // Import Fuse.js
-// CRITICAL FIX: Changed import path to a relative path for better module resolution.
-// Given your project structure: frontend/my-app/src/app/search/page.tsx
-// to reach: frontend/my-app/src/components/ProductCard.tsx
 import { ProductCard } from '../../components/ProductCard';
-// FIX: Import the Product interface and fetchProducts function from your API file
 import { Product, fetchProducts as fetchAllProductsAPI } from '@/api/products';
 
 
-// FIX: Removed duplicate Product interface definition here.
-// It is now imported from '@/api/products'.
-
-export default function SearchResultsPage() {
+// Extracted the core search logic into a new component
+function SearchResultsContent() {
   const searchParams = useSearchParams();
   const searchQuery = searchParams.get('q'); // Get the 'q' parameter from the URL
 
@@ -37,8 +32,6 @@ export default function SearchResultsPage() {
     const loadProducts = async () => {
       try {
         setLoading(true);
-        // FIX: Use the centralized fetchProducts function from '@/api/products'
-        // This function already handles the base URL, pagination, and returns Product[] with number IDs.
         const data = await fetchAllProductsAPI();
         setProducts(data);
       } catch (err) {
@@ -50,30 +43,27 @@ export default function SearchResultsPage() {
     };
 
     loadProducts();
-  }, []); // Empty dependency array means this runs once on mount
+  }, []);
 
-  // Memoize Fuse.js instance and search results to prevent re-creation on every render
   const fuse = useMemo(() => {
     const options = {
-      keys: ['name', 'description', 'category', 'brand'], // Fields to search in your product data
+      keys: ['name', 'description', 'category', 'brand'],
       includeScore: true,
-      threshold: 0.4, // Adjust this value for stricter/looser search
+      threshold: 0.4,
     };
     return new Fuse(products, options);
-  }, [products]); // Re-create fuse instance if products data changes
+  }, [products]);
 
   const filteredProducts = useMemo(() => {
     if (!searchQuery) {
-      return []; // No query, no results
+      return [];
     }
     if (!products.length) {
-      return []; // No products loaded yet
+      return [];
     }
-    // Perform the search using Fuse.js
     const results = fuse.search(searchQuery);
-    // Map Fuse.js results back to your Product objects
     return results.map(result => result.item);
-  }, [searchQuery, products, fuse]); // Re-filter if query, products, or fuse instance changes
+  }, [searchQuery, products, fuse]);
 
   if (loading) {
     return (
@@ -106,12 +96,12 @@ export default function SearchResultsPage() {
           {filteredProducts.map((product) => (
             <ProductCard
               key={product.id}
-              id={product.id} // This is now correctly a number
+              id={product.id}
               name={product.name}
               description={product.description}
-              image_file={product.image_file} // Changed from imageUrl to image_file
-              price={product.price.toString()} // Price is a number in Product, convert to string for ProductCard
-              stock={product.stock} // Assuming stock is available on the Product type
+              image_file={product.image_file}
+              price={product.price.toString()}
+              stock={product.stock}
             />
           ))}
         </SimpleGrid>
@@ -123,5 +113,19 @@ export default function SearchResultsPage() {
         </Center>
       )}
     </Container>
+  );
+}
+
+
+export default function SearchResultsPage() {
+  return (
+    <Suspense fallback={
+      <Center py={10}>
+        <Spinner size="xl" color="brand.500" />
+        <Text ml={4}>Loading search results...</Text>
+      </Center>
+    }>
+      <SearchResultsContent />
+    </Suspense>
   );
 }
