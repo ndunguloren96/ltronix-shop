@@ -1,4 +1,5 @@
 // frontend/my-app/src/store/useCartStore.ts
+
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { v4 as uuidv4 } from 'uuid'; // Import uuid for generating session keys
@@ -10,7 +11,7 @@ interface CartItem {
     price: number;
     quantity: number;
     // FIX: Changed from image_url to image_file for consistency with backend and other frontend components
-    image_file?: string; 
+    image_file?: string;
 }
 
 interface CartState {
@@ -26,6 +27,8 @@ interface CartState {
     setGuestSessionKey: (key: string | null) => void;
     getTotalItems: () => number;
     getTotalPrice: () => number;
+    // NEW: Add findItemById to CartState interface
+    findItemById: (id: number) => CartItem | undefined;
 }
 
 export const useCartStore = create<CartState>()(
@@ -74,6 +77,9 @@ export const useCartStore = create<CartState>()(
             getTotalItems: () => get().items.reduce((total, item) => total + item.quantity, 0),
 
             getTotalPrice: () => get().items.reduce((total, item) => total + item.price * item.quantity, 0),
+
+            // NEW: Implement findItemById
+            findItemById: (id) => get().items.find((item) => item.id === id),
         }),
         {
             name: 'ltronix-cart-storage',
@@ -92,4 +98,3 @@ export const useCartStore = create<CartState>()(
         }
     )
 );
-
