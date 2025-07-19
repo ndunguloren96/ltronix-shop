@@ -32,7 +32,9 @@ env.read_env(os.path.join(BASE_DIR.parent, ".env"))
 # --- Core Django settings
 SECRET_KEY = env("DJANGO_SECRET_KEY")
 DEBUG = False  # Overridden by environment-specific settings
-ALLOWED_HOSTS = []  # Overridden by env
+# FIX: Make ALLOWED_HOSTS more robust with deployed domains as defaults
+ALLOWED_HOSTS = env.list('DJANGO_ALLOWED_HOSTS', default=['localhost', '127.0.0.1', 'ltronix-shop.vercel.app', 'ltronix-shop.onrender.com'])
+
 
 INSTALLED_APPS = [
     # Django core
