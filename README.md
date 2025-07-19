@@ -72,20 +72,20 @@ Ltronix Shop is designed to provide a seamless online shopping experience. It fe
 
 ```
 ltronix-shop/
-Γö£ΓöÇΓöÇ .github/            # GitHub Actions workflows for CI/CD
-Γö£ΓöÇΓöÇ .venv/              # Python virtual environment
-Γö£ΓöÇΓöÇ docs/               # Project documentation
-Γö£ΓöÇΓöÇ ecommerce/          # Django backend project
-Γöé   Γö£ΓöÇΓöÇ ecommerce/      # Django project settings and configurations
-Γöé   Γö£ΓöÇΓöÇ payment/        # Django app for payment processing
-Γöé   Γö£ΓöÇΓöÇ store/          # Django app for the main store functionality
-Γöé   ΓööΓöÇΓöÇ users/          # Django app for user management
-Γö£ΓöÇΓöÇ frontend/my-app/    # Next.js frontend application
-Γöé   Γö£ΓöÇΓöÇ public/         # Static assets for the frontend
-Γöé   ΓööΓöÇΓöÇ src/            # Frontend source code
-Γö£ΓöÇΓöÇ infra/terraform/    # Terraform infrastructure as code
-Γö£ΓöÇΓöÇ nginx/              # Nginx configuration for reverse proxy
-ΓööΓöÇΓöÇ ...
+├── .github/          # GitHub Actions workflows for CI/CD
+├── .venv/            # Python virtual environment
+├── docs/             # Project documentation
+├── ecommerce/        # Django backend project
+│   ├── ecommerce/    # Django project settings and configurations
+│   ├── payment/      # Django app for payment processing
+│   ├── store/        # Django app for the main store functionality
+│   └── users/        # Django app for user management
+├── frontend/my-app/  # Next.js frontend application
+│   ├── public/       # Static assets for the frontend
+│   └── src/          # Frontend source code
+├── infra/terraform/  # Terraform infrastructure as code
+├── nginx/            # Nginx configuration for reverse proxy
+└── ...
 ```
 
 ## Getting Started
