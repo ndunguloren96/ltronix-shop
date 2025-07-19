@@ -23,7 +23,7 @@ ALLOWED_HOSTS = []  # Overridden by env
 INSTALLED_APPS = [
     # Django core
     "django.contrib.admin",
-    "django.contrib.auth",
+    "django.contrib.auth", # Keep auth app for admin functionality
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
@@ -32,15 +32,10 @@ INSTALLED_APPS = [
     # Third-party
     "corsheaders",
     "rest_framework",
-    "rest_framework.authtoken",
-    "rest_framework_simplejwt",
     "drf_spectacular",
-    "anymail",
 
     # Project apps
     "store.apps.StoreConfig",
-    "users",
-    "emails",
     "storages",
 ]
 
@@ -51,7 +46,7 @@ MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
-    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware", # Keep for admin
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -67,7 +62,7 @@ TEMPLATES = [
             "context_processors": [
                 "django.template.context_processors.debug",
                 "django.template.context_processors.request",
-                "django.contrib.auth.context_processors.auth",
+                "django.contrib.auth.context_processors.auth", # Keep for admin
                 "django.contrib.messages.context_processors.messages",
             ]
         },
@@ -79,8 +74,6 @@ WSGI_APPLICATION = "ecommerce.wsgi.application"
 # --- Database (override in environment-specific)
 DATABASES = {"default": env.db("DATABASE_URL", default="sqlite:///db.sqlite3")}
 
-# --- Auth & Password validation
-AUTH_USER_MODEL = "users.User"
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator", "OPTIONS": {"min_length": 8}},
@@ -89,11 +82,9 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 AUTHENTICATION_BACKENDS = (
-    "django.contrib.auth.backends.ModelBackend",
+    "django.contrib.auth.backends.ModelBackend", # Keep for admin
 )
 
-LOGIN_REDIRECT_URL = "/"
-LOGOUT_REDIRECT_URL = "/"
 
 # --- Internationalization
 LANGUAGE_CODE = "en-us"
@@ -114,12 +105,7 @@ MEDIA_ROOT = BASE_DIR.parent / "mediafiles"
 
 # --- DRF settings
 REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework.authentication.SessionAuthentication",
-        "rest_framework.authentication.TokenAuthentication",
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
-    ),
-    "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.AllowAny",),
+    "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.AllowAny",), # Keep AllowAny for product display
     "DEFAULT_RENDERER_CLASSES": (
         "rest_framework.renderers.JSONRenderer",
         "rest_framework.renderers.BrowsableAPIRenderer",
@@ -135,8 +121,8 @@ from corsheaders.defaults import default_headers
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=["http://localhost:3000"])
 CORS_ALLOW_METHODS = ["DELETE", "GET", "OPTIONS", "PATCH", "POST", "PUT"]
-CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_HEADERS = list(default_headers) + ["x-session-key"]
+CORS_ALLOW_CREDENTIALS = True # Keep for session (guest cart if re-added) and admin
+CORS_ALLOW_HEADERS = list(default_headers) # Removed "x-session-key" if guest cart is fully gone
 
 CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=["http://localhost:3000"])
 CSRF_COOKIE_HTTPONLY = True
@@ -146,49 +132,15 @@ CSRF_COOKIE_SAMESITE = "Lax"
 SESSION_COOKIE_SECURE = env.bool("SESSION_COOKIE_SECURE", default=True)
 SESSION_COOKIE_SAMESITE = "Lax"
 
-# --- Celery
-CELERY_BROKER_URL = env("CELERY_BROKER_URL", default="redis://localhost:6379/0")
-CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default="redis://localhost:6379/0")
-CELERY_ACCEPT_CONTENT = ["json"]
-CELERY_TASK_SERIALIZER = "json"
-CELERY_RESULT_SERIALIZER = "json"
-CELERY_TIMEZONE = TIME_ZONE
-CELERY_TASK_ALWAYS_EAGER = False
-CELERY_TASK_EAGER_PROPAGATES = True
 
-# --- Email via Anymail/SendGrid
-ANYMAIL = {"SENDGRID_API_KEY": env("SENDGRID_API_KEY", default="")}
-EMAIL_BACKEND = env("EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend")
-DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="noreply@ltronix-shop.com")
-SERVER_EMAIL = DEFAULT_FROM_EMAIL
-EMAIL_HOST = env("EMAIL_HOST", default="localhost")
-EMAIL_PORT = env.int("EMAIL_PORT", default=1025)
-EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=False)
-EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")
-EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
-
-# --- Simple JWT
-SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
-    "ROTATE_REFRESH_TOKENS": True,
-    "BLACKLIST_AFTER_ROTATION": True,
-    "AUTH_HEADER_TYPES": ("Bearer",),
-    "SIGNING_KEY": SECRET_KEY,
-    "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
-    "USER_ID_FIELD": "id",
-    "USER_ID_CLAIM": "user_id",
-}
-
-# --- Sentry
-SENTRY_DSN = env("SENTRY_DSN", default="")
+# SENTRY
 if SENTRY_DSN:
     sentry_sdk.init(
         dsn=SENTRY_DSN,
         integrations=[DjangoIntegration()],
         environment=env("DJANGO_ENVIRONMENT", default="development"),
         release=env("RELEASE_VERSION", default="dev"),
-        send_default_pii=True,
+        send_default_pii=False, # Changed to False as no user data is handled by site
         traces_sample_rate=0.5,
     )
 
@@ -219,11 +171,6 @@ LOGGING = {
     },
     "loggers": {
         "django": {
-            "handlers": ["console"],
-            "level": "INFO",
-            "propagate": False,
-        },
-        "anymail": {
             "handlers": ["console"],
             "level": "INFO",
             "propagate": False,

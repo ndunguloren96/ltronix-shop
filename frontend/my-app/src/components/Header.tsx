@@ -38,7 +38,7 @@ import {
   ChevronRightIcon,
   SearchIcon,
 } from '@chakra-ui/icons';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import NextLink from 'next/link';
 import { BsCartFill } from 'react-icons/bs';
 
@@ -53,7 +53,7 @@ interface NavItem {
   href?: string;
 }
 
-// NAV_ITEMS array definition - 'Account' removed
+// NAV_ITEMS array definition - 'Account' and 'Login/Signup' related links removed
 const NAV_ITEMS: Array<NavItem> = [
   { label: 'Home', href: '/' },
   {
@@ -78,13 +78,14 @@ const NAV_ITEMS: Array<NavItem> = [
 
 
 export default function Header() {
-  const { isOpen, onOpen, onClose } = useDisclosure(); // onToggle is not directly used for main drawer
+  const { isOpen, onOpen, onClose } = useDisclosure();
   const router = useRouter();
-  // const pathname = usePathname(); // No longer needed as auth pages are removed
   const [searchQuery, setSearchQuery] = useState('');
 
   const [isLargerThanMd] = useMediaQuery('(min-width: 48em)');
 
+  // useCartStore is kept because the cart is still a "display" feature even if payment is off-site.
+  // It allows users to see what they are "interested in" before contacting the seller.
   const totalItems = useCartStore((state) => state.items.length);
 
   const handleSearch = useCallback((event: React.FormEvent) => {
