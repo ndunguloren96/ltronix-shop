@@ -1,3 +1,4 @@
+// src/app/cart/page.tsx
 'use client';
 
 import {
@@ -25,7 +26,7 @@ import {
 import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useSession } from 'next-auth/react';
+// REMOVED: import { useSession } from 'next-auth/react'; // No longer needed
 import Link from 'next/link'; // For Next.js Link component
 
 import {
@@ -48,7 +49,7 @@ export default function CartPage() {
   const toast = useToast();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { data: _session, status } = useSession(); // _session is unused
+  // REMOVED: const { data: _session, status } = useSession(); // No longer needed, as next-auth is removed
 
   const localCartItems = useCartStore((state) => state.items);
   const setLocalCartItems = useCartStore((state) => state.setItems);
@@ -57,19 +58,21 @@ export default function CartPage() {
   const guestSessionKey = useCartStore((state) => state.guestSessionKey);
   const setGuestSessionKey = useCartStore((state) => state.setGuestSessionKey);
 
-  // This effect ensures a guest session key is always available for unauthenticated users.
+  // This effect ensures a guest session key is always available.
+  // We no longer check `status === 'unauthenticated'` as we are always in that state.
   useEffect(() => {
-    if (typeof window !== 'undefined' && status === 'unauthenticated' && !guestSessionKey) {
+    if (typeof window !== 'undefined' && !guestSessionKey) {
       import('uuid').then(({ v4: uuidv4 }) => {
         const newKey = uuidv4();
         setGuestSessionKey(newKey);
         console.log('Generated new guest session key on cart page:', newKey);
       });
     }
-  }, [status, guestSessionKey, setGuestSessionKey]);
+  }, [guestSessionKey, setGuestSessionKey]); // 'status' removed from dependencies
 
   // Determine the session key to use for API calls
-  const currentSessionKey = status === 'unauthenticated' ? guestSessionKey : null;
+  // Since we are always operating as a guest, `currentSessionKey` will always be `guestSessionKey`.
+  const currentSessionKey = guestSessionKey;
 
   const {
     data: backendCart,
@@ -78,18 +81,16 @@ export default function CartPage() {
     error,
     isFetching,
   } = useQuery<BackendOrder | null, Error>({
-    queryKey: ['cart', status, currentSessionKey],
+    queryKey: ['cart', currentSessionKey], // 'status' removed from queryKey
     queryFn: () => {
-      // Only attempt to fetch if session status is known AND (authenticated OR (unauthenticated AND guestSessionKey is set))
-      if (status === 'authenticated') {
-        return fetchCartAPI();
-      }
-      if (status === 'unauthenticated' && currentSessionKey) {
+      // Always use guestSessionKey for fetching the cart
+      if (currentSessionKey) {
         return fetchCartAPI(currentSessionKey);
       }
-      return Promise.resolve(null); // Do not fetch if unauthenticated and no guestSessionKey yet
+      return Promise.resolve(null); // Do not fetch if guestSessionKey is not yet set
     },
-    enabled: status !== 'loading' && (status === 'authenticated' || (status === 'unauthenticated' && !!currentSessionKey)),
+    // The query is enabled if the guestSessionKey exists.
+    enabled: !!currentSessionKey, // 'status' related conditions removed
     staleTime: 0, // Always consider cart data stale
     gcTime: 0, // Garbage collect immediately after use
     refetchOnWindowFocus: true,
@@ -98,33 +99,31 @@ export default function CartPage() {
 
   /**
    * CRITICAL: Whenever backendCart changes, always set Zustand localCartItems to match.
-   * This ensures the cart UI always reflects the backend's true state after login, signup,
-   * or any backend update.
+   * This ensures the cart UI always reflects the backend's true state after any backend update.
    */
   useEffect(() => {
-    if (status !== 'loading') { // Only proceed if session status is resolved
-      if (backendCart) {
-        setLocalCartItems(
-          backendCart.items.map((item) => ({
-            id: item.product.id,
-            name: item.product.name,
-            price: parseFloat(item.product.price),
-            quantity: item.quantity,
-            image_file: item.product.image_file, // FIX: Use image_file here
-          }))
-        );
-        // If backend returned a session key for an unauthenticated user, update local store
-        if (backendCart.session_key && !guestSessionKey && status === 'unauthenticated') {
-          setGuestSessionKey(backendCart.session_key);
-          console.log('Backend returned new guest session key (from useQuery effect):', backendCart.session_key);
-        }
-      } else if (status === 'authenticated' || (status === 'unauthenticated' && !!currentSessionKey)) {
-        // If backendCart is null/undefined but we expect a cart (authenticated or guest with key),
-        // it means the backend returned an empty cart or a 404, so clear local state.
-        setLocalCartItems([]);
+    // We no longer need to check `status !== 'loading'` as next-auth is gone.
+    if (backendCart) {
+      setLocalCartItems(
+        backendCart.items.map((item) => ({
+          id: item.product.id,
+          name: item.product.name,
+          price: parseFloat(item.product.price),
+          quantity: item.quantity,
+          image_file: item.product.image_file, // FIX: Use image_file here
+        }))
+      );
+      // If backend returned a session key, update local store (e.g., first guest item added)
+      if (backendCart.session_key && !guestSessionKey) {
+        setGuestSessionKey(backendCart.session_key);
+        console.log('Backend returned new guest session key (from useQuery effect):', backendCart.session_key);
       }
+    } else if (!!currentSessionKey) {
+      // If backendCart is null/undefined but we have a guestSessionKey,
+      // it means the backend returned an empty cart or a 404, so clear local state.
+      setLocalCartItems([]);
     }
-  }, [backendCart, status, setLocalCartItems, guestSessionKey, setGuestSessionKey, currentSessionKey]);
+  }, [backendCart, setLocalCartItems, guestSessionKey, setGuestSessionKey, currentSessionKey]); // 'status' removed from dependencies
 
 
   /**
@@ -134,8 +133,8 @@ export default function CartPage() {
   const updateCartMutation = useMutation<BackendOrder, Error, ProductInCart[], UpdateCartContext>({
     mutationFn: (items) => updateEntireCartAPI(items, currentSessionKey),
     onMutate: async (newFrontendCartItems: ProductInCart[]) => {
-      await queryClient.cancelQueries({ queryKey: ['cart', status, currentSessionKey] });
-      const previousCart = queryClient.getQueryData<BackendOrder>(['cart', status, currentSessionKey]);
+      await queryClient.cancelQueries({ queryKey: ['cart', currentSessionKey] }); // 'status' removed
+      const previousCart = queryClient.getQueryData<BackendOrder>(['cart', currentSessionKey]); // 'status' removed
       // Optimistic update
       setLocalCartItems(newFrontendCartItems);
       return { previousCart };
@@ -175,7 +174,7 @@ export default function CartPage() {
         }))
       );
       // If the backend returned a session_key, update it in local storage (e.g., first guest item added)
-      if (_data.session_key && !guestSessionKey && status === 'unauthenticated') {
+      if (_data.session_key && !guestSessionKey) { // 'status === 'unauthenticated'` removed
         setGuestSessionKey(_data.session_key);
         console.log("Backend returned new guest session key (from mutation):", _data.session_key);
       }
@@ -188,14 +187,14 @@ export default function CartPage() {
       });
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['cart', status, currentSessionKey] });
+      queryClient.invalidateQueries({ queryKey: ['cart', currentSessionKey] }); // 'status' removed
     },
   });
 
   const clearCartMutation = useMutation<BackendOrder, Error, number>({
     mutationFn: (cartId) => clearCartAPI(cartId, currentSessionKey),
     onMutate: async (cartId) => {
-      await queryClient.cancelQueries({ queryKey: ['cart', status, currentSessionKey] });
+      await queryClient.cancelQueries({ queryKey: ['cart', currentSessionKey] }); // 'status' removed
       // Optimistic update
       setLocalCartItems([]);
       setGuestSessionKey(null);
@@ -226,7 +225,7 @@ export default function CartPage() {
       });
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['cart', status, currentSessionKey] });
+      queryClient.invalidateQueries({ queryKey: ['cart', currentSessionKey] }); // 'status' removed
     },
   });
 
@@ -283,16 +282,15 @@ export default function CartPage() {
     }
   };
 
-  if (status === 'loading' || isLoading || (status === 'unauthenticated' && !currentSessionKey && !backendCart)) {
-    // Show loading if session is loading, or cart query is loading,
-    // or if unauthenticated and no guest key yet (meaning cart fetch hasn't even started)
+  // Simplified loading condition, as there's no `status === 'loading'` from next-auth anymore
+  if (isLoading || (!!currentSessionKey && !backendCart && !isError && !isFetching)) {
+    // Show loading if cart query is loading,
+    // or if a guest key exists but no cart data has been returned yet (and no error/fetch completed)
     return (
       <Center minH="80vh">
         <VStack spacing={4}>
           <Spinner size="xl" />
-          <Text fontSize="xl">
-            {status === 'loading' ? 'Authenticating...' : 'Loading your cart...'}
-          </Text>
+          <Text fontSize="xl">Loading your cart...</Text>
         </VStack>
       </Center>
     );
@@ -306,22 +304,21 @@ export default function CartPage() {
         Your Shopping Cart
       </Heading>
 
-      {status === 'unauthenticated' && (
-        <Alert status="info" mb={6} borderRadius="md">
-          <AlertIcon />
-          <AlertDescription>
-            You are currently Browse as a guest. Your cart is saved locally. {' '}
-            <Link href="/auth/login" passHref>
-              <ChakraLink color="blue.600" fontWeight="bold">Login</ChakraLink>
-            </Link>
-            {' '}or{' '}
-            <Link href="/auth/signup" passHref>
-              <ChakraLink color="blue.600" fontWeight="bold">Sign Up</ChakraLink>
-            </Link>
-            {' '}to permanently save your cart and access order history.
-          </AlertDescription>
-        </Alert>
-      )}
+      {/* This alert is always relevant for the "Starter Launch" */}
+      <Alert status="info" mb={6} borderRadius="md">
+        <AlertIcon />
+        <AlertDescription>
+          You are currently Browse as a guest. Your cart is saved locally. {' '}
+          <Link href="/auth/login" passHref>
+            <ChakraLink color="blue.600" fontWeight="bold">Login</ChakraLink>
+          </Link>
+          {' '}or{' '}
+          <Link href="/auth/signup" passHref>
+            <ChakraLink color="blue.600" fontWeight="bold">Sign Up</ChakraLink>
+          </Link>
+          {' '}to permanently save your cart and access order history.
+        </AlertDescription>
+      </Alert>
 
       {isError && (
         <Alert status="error" flexDirection="column" alignItems="center" justifyContent="center" textAlign="center" height="200px" borderRadius="lg" boxShadow="md" mb={6}>
@@ -332,7 +329,7 @@ export default function CartPage() {
             <br />
             Please ensure your Django backend is running and reachable.
             <br />
-            <Button onClick={() => queryClient.invalidateQueries({ queryKey: ['cart', status, currentSessionKey] })} mt={4} colorScheme="brand">
+            <Button onClick={() => queryClient.invalidateQueries({ queryKey: ['cart', currentSessionKey] })} mt={4} colorScheme="brand"> {/* 'status' removed */}
               Try Again
             </Button>
           </AlertDescription>
@@ -477,4 +474,3 @@ export default function CartPage() {
     </Box>
   );
 }
-
