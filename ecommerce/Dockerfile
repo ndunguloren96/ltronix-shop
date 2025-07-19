@@ -51,30 +51,6 @@ COPY . /app/
 # For production, these should be securely set as environment variables in your hosting platform.
 ARG DJANGO_SECRET_KEY
 ENV DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
-ARG SOCIAL_AUTH_GOOGLE_OAUTH2_KEY
-ENV SOCIAL_AUTH_GOOGLE_OAUTH2_KEY=${SOCIAL_AUTH_GOOGLE_OAUTH2_KEY}
-ARG SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET
-ENV SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET=${SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET}
-ARG MPESA_CONSUMER_KEY
-ENV MPESA_CONSUMER_KEY=${MPESA_CONSUMER_KEY}
-ARG MPESA_CONSUMER_SECRET
-ENV MPESA_CONSUMER_SECRET=${MPESA_CONSUMER_SECRET}
-ARG MPESA_EXPRESS_SHORTCODE
-ENV MPESA_EXPRESS_SHORTCODE=${MPESA_EXPRESS_SHORTCODE}
-ARG MPESA_PASSKEY
-ENV MPESA_PASSKEY=${MPESA_PASSKEY}
-ARG MPESA_ENV
-ENV MPESA_ENV=${MPESA_ENV}
-ARG MPESA_SHORTCODE
-ENV MPESA_SHORTCODE=${MPESA_SHORTCODE}
-ARG MPESA_CALLBACK_URL
-ENV MPESA_CALLBACK_URL=${MPESA_CALLBACK_URL}
-ARG SENTRY_DSN
-ENV SENTRY_DSN=${SENTRY_DSN}
-ARG DEFAULT_FROM_EMAIL
-ENV DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL}
-ARG SENDGRID_API_KEY
-ENV SENDGRID_API_KEY=${SENDGRID_API_KEY}
 
 # Add database arguments
 ARG DATABASE_USER
@@ -93,12 +69,24 @@ ENV DATABASE_NAME=${DATABASE_NAME}
 ARG PORT=8000
 ENV PORT=${PORT}
 
-# Run collectstatic using the virtual environment's python.
-# The `PATH` environment variable (set at the top) ensures `python` refers to the venv's Python.
-RUN python manage.py collectstatic --noinput
+# IMPORTANT FIX: Move collectstatic to after migrations in CMD,
+# or ensure migrations run before collectstatic if it's a separate RUN step.
+# For simplicity and ensuring tables exist, it's best to run migrations
+# before collectstatic if collectstatic depends on database models.
+# However, for Render, it's common to run migrations as part of the start command.
+# The error indicates collectstatic is trying to access the DB during build.
+# The `create_initial_superuser.py` script definitely needs migrations to be applied.
+
+# Option 1 (Recommended for Render): Remove collectstatic from RUN, and handle it in CMD
+# This is often done when the build process (like Render's) handles collectstatic
+# as part of a pre-deploy hook or the start command.
+# Given your existing CMD already runs migrations and superuser creation,
+# it's best to move collectstatic there too if it's causing issues during build.
+# If collectstatic *must* run as a separate build step, then migrations must run before it.
+
 
 EXPOSE 8000
 
 # Command to run the application (migrations, superuser creation, then Gunicorn)
-# `python` here also refers to the venv's python due to the PATH setting.
-CMD ["sh", "-c", "python manage.py migrate --noinput && python create_initial_superuser.py && gunicorn ecommerce.wsgi:application --bind 0.0.0.0:$PORT"]
+# Now, collectstatic is run after migrations, ensuring database tables exist.
+CMD ["sh", "-c", "python manage.py migrate --noinput && python manage.py collectstatic --noinput && python create_initial_superuser.py && gunicorn ecommerce.wsgi:application --bind 0.0.0.0:$PORT"]
