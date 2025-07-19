@@ -229,12 +229,28 @@ export default function CartPage() {
     },
   });
 
-  // The checkout logic now redirects to the dedicated checkout page
-  const handleProceedToCheckout = () => {
+  // REMOVED: The handleProceedToCheckout function as payment is not included.
+  // const handleProceedToCheckout = () => {
+  //   if (localCartItems.length === 0) {
+  //     toast({
+  //       title: 'Cart is Empty',
+  //       description: 'Please add items to your cart before proceeding to checkout.',
+  //       status: 'warning',
+  //       duration: 3000,
+  //       isClosable: true,
+  //       position: 'top-right',
+  //     });
+  //     return;
+  //   }
+  //   router.push('/checkout');
+  // };
+
+  // New placeholder handler for WhatsApp Inquiry, no actual implementation yet.
+  const handleInquireViaWhatsApp = () => {
     if (localCartItems.length === 0) {
       toast({
         title: 'Cart is Empty',
-        description: 'Please add items to your cart before proceeding to checkout.',
+        description: 'Please add items to your cart before inquiring.',
         status: 'warning',
         duration: 3000,
         isClosable: true,
@@ -242,7 +258,13 @@ export default function CartPage() {
       });
       return;
     }
-    router.push('/checkout');
+    // This is a placeholder. The actual WhatsApp integration will be added in a later phase.
+    alert('WhatsApp Inquiry feature coming soon! Thank you for your interest.');
+    // Or we could simply do nothing for now, if an alert is considered "adding functionality"
+    // For strict removal, we could even remove this button entirely until the WhatsApp phase.
+    // However, the "Prominent 'Checkout'-style button on cart page" (from Haves list)
+    // implies this button should exist, but its *action* should not be payment.
+    // An alert is a non-functional placeholder.
   };
 
   const handleRemoveItem = (id: number) => {
@@ -309,6 +331,15 @@ export default function CartPage() {
         <AlertIcon />
         <AlertDescription>
           You are currently Browse as a guest. Your cart is saved locally. {' '}
+          {/*
+            NOTE: The "Have Nots" list states "No Public Authentication (No end-user login/signup)".
+            However, the current code includes links to /auth/login and /auth/signup.
+            For now, these links will remain as per your instruction to leave "deferred"
+            items untouched if already in codebase, assuming login/signup pages exist as placeholders.
+            If these authentication pages are also "Have Nots" to be *removed*,
+            then these links should also be removed/commented out in a future step.
+            For now, I'm only touching payment-related logic.
+          */}
           <Link href="/auth/login" passHref>
             <ChakraLink color="blue.600" fontWeight="bold">Login</ChakraLink>
           </Link>
@@ -329,7 +360,7 @@ export default function CartPage() {
             <br />
             Please ensure your Django backend is running and reachable.
             <br />
-            <Button onClick={() => queryClient.invalidateQueries({ queryKey: ['cart', currentSessionKey] })} mt={4} colorScheme="brand"> {/* 'status' removed */}
+            <Button onClick={() => queryClient.invalidateQueries({ queryKey: ['cart', currentSessionKey] })} mt={4} colorScheme="brand">
               Try Again
             </Button>
           </AlertDescription>
@@ -453,11 +484,12 @@ export default function CartPage() {
               colorScheme="green"
               size="lg"
               width="full"
-              onClick={handleProceedToCheckout}
+              // Replaced handleProceedToCheckout with new placeholder handler
+              onClick={handleInquireViaWhatsApp}
               isDisabled={itemsToRender.length === 0}
               mt={4}
             >
-              Proceed to Checkout
+              Inquire via WhatsApp {/* Changed button text */}
             </Button>
             <Button
               variant="link"
