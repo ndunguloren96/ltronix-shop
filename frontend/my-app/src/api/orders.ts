@@ -1,5 +1,5 @@
 // frontend/my-app/src/api/orders.ts
-import { getSession } from 'next-auth/react';
+// REMOVED: import { getSession } from 'next-auth/react';
 import { Product } from './products'; // Import Product interface for consistency
 
 // Define base URL for your Django API
@@ -71,10 +71,10 @@ export interface BackendTransaction {
 }
 
 
-// --- Helper for authenticated and guest API calls ---
+// --- Helper for API calls (now exclusively using guestSessionKey if provided) ---
 // This function is crucial for sending the X-Session-Key header for guest users.
 async function fetchWithSession(url: string, options?: RequestInit, guestSessionKey?: string | null) {
-  const session = await getSession();
+  // REMOVED: const session = await getSession(); // No longer needed without next-auth
 
   // Initialize headers as a Record<string, string>
   // This allows for dynamic assignment using bracket notation.
@@ -84,19 +84,19 @@ async function fetchWithSession(url: string, options?: RequestInit, guestSession
     ...(options?.headers as Record<string, string> || {}), // Ensure existing headers are also typed correctly
   };
 
-  // Prioritize Authorization header for authenticated users
-  if (session?.user?.accessToken) {
-    headers['Authorization'] = `Bearer ${session.user.accessToken}`;
-  } else if (guestSessionKey) {
+  // Prioritize Authorization header for authenticated users (REMOVED: session?.user?.accessToken logic)
+  // Now, only check for guestSessionKey
+  if (guestSessionKey) {
     // For unauthenticated users, use X-Session-Key
     headers['X-Session-Key'] = guestSessionKey;
   }
+  // No Authorization header logic here for public authentication removal
 
   // --- CRITICAL FIX: Always include credentials for session/cookie auth ---
   const response = await fetch(url, {
     ...options,
     headers, // Pass the constructed headers object
-    credentials: 'include',
+    credentials: 'include', // Essential for sending HttpOnly cookies for guest sessions
   });
 
   if (!response.ok) {
@@ -200,15 +200,19 @@ export async function checkoutCartAPI(cartId: number, guestSessionKey?: string |
 }
 
 /**
- * Fetches the order history for the authenticated user.
+ * REMOVED: fetchOrdersAPI
+ * This function relied on authenticated users via next-auth session.
+ * For a "Starter Launch" without public authentication, order history for specific users
+ * would require a different authentication mechanism or a way to link guest orders.
+ *
+ * export async function fetchOrdersAPI(): Promise<BackendOrder[]> {
+ * const url = new URL('orders/', DJANGO_API_BASE_URL);
+ * const response = await fetchWithSession(url.toString(), {
+ * method: 'GET',
+ * });
+ * return response.filter((order: BackendOrder) => order.complete === true);
+ * }
  */
-export async function fetchOrdersAPI(): Promise<BackendOrder[]> {
-  const url = new URL('orders/', DJANGO_API_BASE_URL);
-  const response = await fetchWithSession(url.toString(), {
-    method: 'GET',
-  });
-  return response.filter((order: BackendOrder) => order.complete === true);
-}
 
 
 // --- API Functions for M-Pesa Integration ---
@@ -221,7 +225,7 @@ export async function fetchOrdersAPI(): Promise<BackendOrder[]> {
  * @returns The initiated BackendTransaction details.
  */
 export async function initiateStkPushAPI(payload: { orderId: number; phoneNumber: string }, guestSessionKey?: string | null): Promise<BackendTransaction> {
-  const url = new URL('payments/stk-push/', DJANGO_API_BASE_URL); 
+  const url = new URL('payments/stk-push/', DJANGO_API_BASE_URL);
   console.log("Initiating STK Push with payload:", payload);
   const response = await fetchWithSession(url.toString(), {
     method: 'POST',
@@ -240,11 +244,10 @@ export async function initiateStkPushAPI(payload: { orderId: number; phoneNumber
  * @returns The BackendTransaction with updated status.
  */
 export async function fetchTransactionStatusAPI(transactionId: number, guestSessionKey?: string | null): Promise<BackendTransaction> {
-  const url = new URL(`payments/status/?transaction_id=${transactionId}`, DJANGO_API_BASE_URL); 
+  const url = new URL(`payments/status/?transaction_id=${transactionId}`, DJANGO_API_BASE_URL);
   console.log("Fetching transaction status for ID:", transactionId);
   const response = await fetchWithSession(url.toString(), {
     method: 'GET',
   }, guestSessionKey);
   return response;
 }
-
