@@ -1,3 +1,4 @@
+# ecommerce/settings/development.py
 import os
 import re
 
@@ -20,9 +21,9 @@ REST_FRAMEWORK = {
     **REST_FRAMEWORK,
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework.authentication.SessionAuthentication",
-        "dj_rest_auth.jwt_auth.JWTCookieAuthentication",
+        # "dj_rest_auth.jwt_auth.JWTCookieAuthentication", # REMOVED: dj-rest-auth is no longer used for public auth
         "rest_framework.authentication.TokenAuthentication",
-        "drf_social_oauth2.authentication.SocialAuthentication",
+        # "drf_social_oauth2.authentication.SocialAuthentication", # REMOVED: Social auth removed
     ),
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
     "DEFAULT_RENDERER_CLASSES": (
@@ -61,13 +62,13 @@ CSRF_COOKIE_SAMESITE = "Lax"
 # Use Anymail/SendGrid in dev to test transactional emails (set to 'console' for local email debugging)
 EMAIL_BACKEND = "anymail.backends.sendgrid.EmailBackend"
 
-REST_AUTH["PASSWORD_RESET_CONFIRM_URL"] = env(
-    "DJANGO_PASSWORD_RESET_CONFIRM_URL",
-    default="http://localhost:3000/auth/password-reset-confirm/{uid}/{token}",
-)
-SOCIAL_AUTH_GOOGLE_OAUTH2_REDIRECT_URI = env(
-    "SOCIAL_AUTH_GOOGLE_OAUTH2_REDIRECT_URI",
-    default="http://localhost:8000/api/auth/complete/google-oauth2/",
-)
-SOCIAL_AUTH_REDIRECT_IS_HTTPS = env.bool("SOCIAL_AUTH_REDIRECT_IS_HTTPS", default=False)
-
+# REMOVED: All dj-rest-auth and social authentication specific settings
+# REST_AUTH["PASSWORD_RESET_CONFIRM_URL"] = env(
+#     "DJANGO_PASSWORD_RESET_CONFIRM_URL",
+#     default="http://localhost:3000/auth/password-reset-confirm/{uid}/{token}",
+# )
+# SOCIAL_AUTH_GOOGLE_OAUTH2_REDIRECT_URI = env(
+#     "SOCIAL_AUTH_GOOGLE_OAUTH2_REDIRECT_URI",
+#     default="http://localhost:8000/api/auth/complete/google-oauth2/",
+# )
+# SOCIAL_AUTH_REDIRECT_IS_HTTPS = env.bool("SOCIAL_AUTH_REDIRECT_IS_HTTPS", default=False)
