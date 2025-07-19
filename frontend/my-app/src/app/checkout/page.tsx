@@ -31,7 +31,7 @@ import {
   Flex,
 } from '@chakra-ui/react';
 import { useQuery, useMutation, useQueryClient, UseQueryOptions } from '@tanstack/react-query';
-import { useSession } from 'next-auth/react';
+// REMOVED: import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link'; // For Next.js Link
 import {
@@ -50,7 +50,7 @@ export default function CheckoutPage() {
   const toast = useToast();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { data: session, status: authStatus } = useSession();
+  // REMOVED: const { data: session, status: authStatus } = useSession(); // Removed next-auth session
 
   const { isOpen, onOpen, onClose } = useDisclosure(); // For the payment modal
 
@@ -76,20 +76,17 @@ export default function CheckoutPage() {
     isError: isErrorCart,
     error: cartError,
   } = useQuery<BackendOrder | null, Error>({ // Correctly specify that cart data can be null
-    queryKey: ['cart', authStatus, guestSessionKey],
+    queryKey: ['cart', guestSessionKey], // `authStatus` removed from queryKey
     queryFn: async () => {
-      // Only fetch if authenticated or if unauthenticated but has a guest session key
-      if (authStatus === 'authenticated') {
-        return fetchCartAPI();
-      }
-      if (authStatus === 'unauthenticated' && guestSessionKey) {
+      // Since next-auth is removed, we only operate with guestSessionKey
+      if (guestSessionKey) {
         return fetchCartAPI(guestSessionKey);
       }
-      // If conditions are not met, return null to indicate no active cart
+      // If no guestSessionKey, return null to indicate no active cart
       return null;
     },
-    // `enabled` ensures the query only runs when conditions are met
-    enabled: authStatus !== 'loading' && (authStatus === 'authenticated' || (authStatus === 'unauthenticated' && !!guestSessionKey)),
+    // `enabled` ensures the query only runs when guestSessionKey is available
+    enabled: !!guestSessionKey, // Condition simplified as no `authStatus`
     staleTime: 0, // Always refetch cart data when this query becomes active
     refetchOnWindowFocus: false, // Don't refetch on window focus to manage polling manually
   });
@@ -133,7 +130,7 @@ export default function CheckoutPage() {
       return null; // Return null if no transaction ID is set
     },
     // Query is only enabled if a transaction ID exists and the modal is open
-    enabled: !!currentTransactionId && isOpen, 
+    enabled: !!currentTransactionId && isOpen,
     refetchInterval: POLLING_INTERVAL_MS, // Keep polling every X milliseconds
     retry: (_failureCount: number, error: Error) => {
       // The retry function is for re-attempting failed API calls.
@@ -230,7 +227,7 @@ export default function CheckoutPage() {
     // Convert 07/01 to 2547/2541
     if (cleanedPhoneNumber.startsWith('0') && cleanedPhoneNumber.length === 10) {
         formattedPhoneNumber = '254' + cleanedPhoneNumber.substring(1);
-    } 
+    }
     
     // Basic regex for 2547XXXXXXXX or 2541XXXXXXXX
     const kenyanPhoneRegex = /^254(7|1)\d{8}$/;
@@ -271,14 +268,13 @@ export default function CheckoutPage() {
     }
   };
 
-  if (authStatus === 'loading' || isLoadingCart) {
+  // Simplified loading condition, as no `authStatus` from next-auth
+  if (isLoadingCart) {
     return (
       <Center minH="80vh">
         <VStack spacing={4}>
           <Spinner size="xl" />
-          <Text fontSize="xl">
-            {authStatus === 'loading' ? 'Authenticating...' : 'Loading your cart for checkout...'}
-          </Text>
+          <Text fontSize="xl">Loading your cart for checkout...</Text>
         </VStack>
       </Center>
     );
