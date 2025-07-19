@@ -31,7 +31,6 @@ INSTALLED_APPS = [
 
     # Third-party
     "corsheaders",
-    "oauth2_provider",
     "rest_framework",
     "rest_framework.authtoken",
     "rest_framework_simplejwt",
@@ -120,7 +119,6 @@ REST_FRAMEWORK = {
         "rest_framework.authentication.SessionAuthentication",
         "rest_framework.authentication.TokenAuthentication",
         "rest_framework_simplejwt.authentication.JWTAuthentication",
-        "oauth2_provider.contrib.rest_framework.OAuth2Authentication",
     ),
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.AllowAny",),
     "DEFAULT_RENDERER_CLASSES": (
@@ -181,16 +179,6 @@ SIMPLE_JWT = {
     "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
     "USER_ID_FIELD": "id",
     "USER_ID_CLAIM": "user_id",
-}
-
-OAUTH2_PROVIDER = {
-    "SCOPES": {
-        "read": "Read scope",
-        "write": "Write scope",
-        "openid": "OpenID Connect scope",
-        "profile": "User profile information",
-        "email": "User email address",
-    }
 }
 
 # --- Sentry
