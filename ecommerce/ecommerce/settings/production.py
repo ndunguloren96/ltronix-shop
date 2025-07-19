@@ -50,8 +50,6 @@ if USE_S3:
     DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
     MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/"
 
-# REST + Social Auth
-REST_AUTH["PASSWORD_RESET_CONFIRM_URL"] = env("DJANGO_PASSWORD_RESET_CONFIRM_URL")
-# Removed SOCIAL_AUTH_GOOGLE_OAUTH2_REDIRECT_URI as it's for python-social-auth
-# SOCIAL_AUTH_REDIRECT_IS_HTTPS = True # This is also for python-social-auth
-
+# Authentication related settings for REST APIs.
+# All dj-rest-auth and social authentication specific settings are removed for the Starter Launch package.
+# This section now reflects only what is needed for core Django/DRF authentication (Session, Token, JWT).
