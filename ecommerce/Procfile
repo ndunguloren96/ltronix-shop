@@ -1,4 +1,1 @@
-web: python manage.py migrate --noinput && sleep 5 && python manage.py collectstatic --noinput && python create_initial_superuser.py && gunicorn ecommerce.wsgi:application --bind 0.0.0.0:$PORT
-# Removed worker and beat processes as they are not needed for the Starter Launch
-# worker: PYTHONPATH=. celery -A ecommerce worker -l info
-# beat: PYTHONPATH=. celery -A ecommerce worker -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+web: python manage.py migrate auth zero --noinput && python manage.py migrate --noinput && sleep 10 && python manage.py collectstatic --noinput && python create_initial_superuser.py && gunicorn ecommerce.wsgi:application --bind 0.0.0.0:$PORT
