@@ -4,7 +4,7 @@
 import React, { useState } from 'react';
 import {
   Box,
-  SimpleGrid, // Keep SimpleGrid for future product display if needed, but not for now
+  SimpleGrid,
   VStack,
   Heading,
   Text,
@@ -16,39 +16,28 @@ import {
   FormLabel,
   Input,
   Textarea,
-  useToast, // To provide feedback after submission
+  useToast,
 } from '@chakra-ui/react';
-import dynamic from 'next/dynamic';
+// Removed dynamic import for ChatSupportWidget
+// Removed dynamic import for SentryFallback (not present in original, but for consistency if it were)
 
 // Import your Zustand stores (these are client-side only)
 import { useCartStore } from '@/store/useCartStore';
-import { useAuthStore } from '@/store/useAuthStore';
+// Removed useAuthStore import as it's not needed for the Starter Launch
+// import { useAuthStore } from '@/store/useAuthStore';
 import { MyModal, useDisclosure } from '@/components/MyModal'; // Import MyModal and useDisclosure
-
-// Dynamically import the ChatSupportWidget - now correctly in a client component
-const DynamicChatSupportWidget = dynamic(() => import('@/components/ChatSupportWidget'), {
-  ssr: false, // ssr: false is allowed here because this is a client component
-  loading: () => (
-    <Box p={4} bg="gray.100" borderRadius="md" boxShadow="sm" textAlign="center" fontSize="sm" color="gray.500">
-      Loading chat...
-    </Box>
-  ),
-});
-
-// Dummy product data removed as HomePage will now use ProductsClientPage
-// which fetches real data. If you need specific sections (Recommended, Hot Deals)
-// from fetched data, that logic will go into ProductsClientPage or a new component.
 
 export default function HomePageClientWidgets() {
   const { isOpen, onOpen, onClose } = useDisclosure();
-  const [showChat, setShowChat] = useState(false); // State to toggle chat widget
-  const toast = useToast(); // Initialize useToast hook
+  // Removed showChat state as ChatSupportWidget is removed
+  // const [showChat, setShowChat] = useState(false);
+  const toast = useToast();
 
   // State for customer feedback form
   const [feedbackName, setFeedbackName] = useState('');
   const [feedbackMessage, setFeedbackMessage] = useState('');
 
-  // Zustand auth store (cart store is directly used in ProductCard now)
+  // Removed Zustand auth store variables
   // const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   // const user = useAuthStore((state) => state.user);
   // const login = useAuthStore((state) => state.login);
@@ -57,7 +46,6 @@ export default function HomePageClientWidgets() {
   // Handle feedback submission
   const handleSubmitFeedback = (e: React.FormEvent) => {
     e.preventDefault();
-    // Here you would typically send the feedback to your backend API
     console.log('Feedback submitted:', { name: feedbackName, message: feedbackMessage });
     toast({
       title: 'Feedback Submitted!',
@@ -67,7 +55,6 @@ export default function HomePageClientWidgets() {
       isClosable: true,
       position: 'top-right',
     });
-    // Clear the form
     setFeedbackName('');
     setFeedbackMessage('');
   };
@@ -128,20 +115,9 @@ export default function HomePageClientWidgets() {
         </Text>
       </MyModal>
 
-      {/* Button to toggle chat widget (example of client-side interaction) */}
-      <Flex justifyContent="center" mb={10}>
-        <Button onClick={() => setShowChat(!showChat)} colorScheme="teal">
-          {showChat ? 'Hide Chat Support' : 'Show Chat Support'}
-        </Button>
-      </Flex>
-
-
-      {/* Render the dynamically imported component conditionally */}
-      {showChat && (
-        <Box position="fixed" bottom="4" right="4" zIndex="sticky">
-          <DynamicChatSupportWidget />
-        </Box>
-      )}
+      {/* Removed Button to toggle chat widget */}
+      {/* Removed Render the dynamically imported component conditionally */}
     </Box>
   );
 }
+
