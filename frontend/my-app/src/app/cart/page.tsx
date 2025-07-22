@@ -21,14 +21,13 @@ import {
   Spinner,
   Center,
   Alert, AlertIcon, AlertDescription,
-  Link as ChakraLink,
 } from '@chakra-ui/react';
 import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-// REMOVED: import { useSession } from 'next-auth/react'; // No longer needed
-import Link from 'next/link'; // For Next.js Link component
 
+import { useCartStore } from '@/store/useCartStore';
+// Import API functions and types from the new lib/api.ts file
 import {
   fetchCartAPI,
   updateEntireCartAPI,
@@ -36,9 +35,7 @@ import {
   BackendOrder,
   ProductInCart,
   BackendOrderItem,
-}
-  from '@/api/orders';
-import { useCartStore } from '@/store/useCartStore';
+} from '@/lib/api'; // Changed import path
 
 // Define the context interface for useMutation
 interface UpdateCartContext {
@@ -49,7 +46,6 @@ export default function CartPage() {
   const toast = useToast();
   const router = useRouter();
   const queryClient = useQueryClient();
-  // REMOVED: const { data: _session, status } = useSession(); // No longer needed, as next-auth is removed
 
   const localCartItems = useCartStore((state) => state.items);
   const setLocalCartItems = useCartStore((state) => state.setItems);
@@ -58,8 +54,6 @@ export default function CartPage() {
   const guestSessionKey = useCartStore((state) => state.guestSessionKey);
   const setGuestSessionKey = useCartStore((state) => state.setGuestSessionKey);
 
-  // This effect ensures a guest session key is always available.
-  // We no longer check `status === 'unauthenticated'` as we are always in that state.
   useEffect(() => {
     if (typeof window !== 'undefined' && !guestSessionKey) {
       import('uuid').then(({ v4: uuidv4 }) => {
@@ -68,10 +62,8 @@ export default function CartPage() {
         console.log('Generated new guest session key on cart page:', newKey);
       });
     }
-  }, [guestSessionKey, setGuestSessionKey]); // 'status' removed from dependencies
+  }, [guestSessionKey, setGuestSessionKey]);
 
-  // Determine the session key to use for API calls
-  // Since we are always operating as a guest, `currentSessionKey` will always be `guestSessionKey`.
   const currentSessionKey = guestSessionKey;
 
   const {
@@ -81,28 +73,21 @@ export default function CartPage() {
     error,
     isFetching,
   } = useQuery<BackendOrder | null, Error>({
-    queryKey: ['cart', currentSessionKey], // 'status' removed from queryKey
+    queryKey: ['cart', currentSessionKey],
     queryFn: () => {
-      // Always use guestSessionKey for fetching the cart
       if (currentSessionKey) {
         return fetchCartAPI(currentSessionKey);
       }
-      return Promise.resolve(null); // Do not fetch if guestSessionKey is not yet set
+      return Promise.resolve(null);
     },
-    // The query is enabled if the guestSessionKey exists.
-    enabled: !!currentSessionKey, // 'status' related conditions removed
-    staleTime: 0, // Always consider cart data stale
-    gcTime: 0, // Garbage collect immediately after use
+    enabled: !!currentSessionKey,
+    staleTime: 0,
+    gcTime: 0,
     refetchOnWindowFocus: true,
     refetchOnMount: true,
   });
 
-  /**
-   * CRITICAL: Whenever backendCart changes, always set Zustand localCartItems to match.
-   * This ensures the cart UI always reflects the backend's true state after any backend update.
-   */
   useEffect(() => {
-    // We no longer need to check `status !== 'loading'` as next-auth is gone.
     if (backendCart) {
       setLocalCartItems(
         backendCart.items.map((item) => ({
@@ -110,36 +95,28 @@ export default function CartPage() {
           name: item.product.name,
           price: parseFloat(item.product.price),
           quantity: item.quantity,
-          image_file: item.product.image_file, // FIX: Use image_file here
+          image_file: item.product.image_file,
         }))
       );
-      // If backend returned a session key, update local store (e.g., first guest item added)
       if (backendCart.session_key && !guestSessionKey) {
         setGuestSessionKey(backendCart.session_key);
         console.log('Backend returned new guest session key (from useQuery effect):', backendCart.session_key);
       }
     } else if (!!currentSessionKey) {
-      // If backendCart is null/undefined but we have a guestSessionKey,
-      // it means the backend returned an empty cart or a 404, so clear local state.
       setLocalCartItems([]);
     }
-  }, [backendCart, setLocalCartItems, guestSessionKey, setGuestSessionKey, currentSessionKey]); // 'status' removed from dependencies
+  }, [backendCart, setLocalCartItems, guestSessionKey, setGuestSessionKey, currentSessionKey]);
 
 
-  /**
-   * CRITICAL: Always update Zustand from backend response after mutation.
-   * This prevents UI from showing stale or unmerged cart data after removing, clearing, or updating items.
-   */
   const updateCartMutation = useMutation<BackendOrder, Error, ProductInCart[], UpdateCartContext>({
     mutationFn: (items) => updateEntireCartAPI(items, currentSessionKey),
     onMutate: async (newFrontendCartItems: ProductInCart[]) => {
-      await queryClient.cancelQueries({ queryKey: ['cart', currentSessionKey] }); // 'status' removed
-      const previousCart = queryClient.getQueryData<BackendOrder>(['cart', currentSessionKey]); // 'status' removed
-      // Optimistic update
+      await queryClient.cancelQueries({ queryKey: ['cart', currentSessionKey] });
+      const previousCart = queryClient.getQueryData<BackendOrder>(['cart', currentSessionKey]);
       setLocalCartItems(newFrontendCartItems);
       return { previousCart };
     },
-    onError: (err, _newFrontendCartItems, context) => { // _newFrontendCartItems and _context are unused
+    onError: (err, _newFrontendCartItems, context) => {
       console.error("Failed to update cart on backend:", err);
       toast({
         title: 'Error Updating Cart',
@@ -155,26 +132,24 @@ export default function CartPage() {
             name: bi.product.name,
             price: parseFloat(bi.product.price),
             quantity: bi.quantity,
-            image_file: bi.product.image_file, // FIX: Use image_file here
+            image_file: bi.product.image_file,
           }))
         );
       } else {
         setLocalCartItems([]);
       }
     },
-    onSuccess: (_data) => { // _data is unused
-      // Always update Zustand from backend's canonical cart
+    onSuccess: (_data) => {
       setLocalCartItems(
         _data.items.map((backendItem) => ({
           id: backendItem.product.id,
           name: backendItem.product.name,
           price: parseFloat(backendItem.product.price),
           quantity: backendItem.quantity,
-          image_file: backendItem.product.image_file, // FIX: Use image_file here
+          image_file: backendItem.product.image_file,
         }))
       );
-      // If the backend returned a session_key, update it in local storage (e.g., first guest item added)
-      if (_data.session_key && !guestSessionKey) { // 'status === 'unauthenticated'` removed
+      if (_data.session_key && !guestSessionKey) {
         setGuestSessionKey(_data.session_key);
         console.log("Backend returned new guest session key (from mutation):", _data.session_key);
       }
@@ -187,20 +162,19 @@ export default function CartPage() {
       });
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['cart', currentSessionKey] }); // 'status' removed
+      queryClient.invalidateQueries({ queryKey: ['cart', currentSessionKey] });
     },
   });
 
   const clearCartMutation = useMutation<BackendOrder, Error, number>({
     mutationFn: (cartId) => clearCartAPI(cartId, currentSessionKey),
     onMutate: async (cartId) => {
-      await queryClient.cancelQueries({ queryKey: ['cart', currentSessionKey] }); // 'status' removed
-      // Optimistic update
+      await queryClient.cancelQueries({ queryKey: ['cart', currentSessionKey] });
       setLocalCartItems([]);
       setGuestSessionKey(null);
       return {};
     },
-    onError: (err, _cartId, _context) => { // _cartId and _context are unused
+    onError: (err, _cartId, _context) => {
       console.error("Failed to clear cart on backend:", err);
       toast({
         title: 'Error Clearing Cart',
@@ -209,10 +183,8 @@ export default function CartPage() {
         duration: 5000,
         isClosable: true,
       });
-      // No rollback needed for clear
     },
-    onSuccess: (_data) => { // _data is unused
-      // Always update Zustand from backend cleared cart
+    onSuccess: (_data) => {
       setLocalCartItems([]);
       setGuestSessionKey(null);
       toast({
@@ -225,27 +197,10 @@ export default function CartPage() {
       });
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['cart', currentSessionKey] }); // 'status' removed
+      queryClient.invalidateQueries({ queryKey: ['cart', currentSessionKey] });
     },
   });
 
-  // REMOVED: The handleProceedToCheckout function as payment is not included.
-  // const handleProceedToCheckout = () => {
-  //   if (localCartItems.length === 0) {
-  //     toast({
-  //       title: 'Cart is Empty',
-  //       description: 'Please add items to your cart before proceeding to checkout.',
-  //       status: 'warning',
-  //       duration: 3000,
-  //       isClosable: true,
-  //       position: 'top-right',
-  //     });
-  //     return;
-  //   }
-  //   router.push('/checkout');
-  // };
-
-  // New placeholder handler for WhatsApp Inquiry, no actual implementation yet.
   const handleInquireViaWhatsApp = () => {
     if (localCartItems.length === 0) {
       toast({
@@ -258,13 +213,14 @@ export default function CartPage() {
       });
       return;
     }
-    // This is a placeholder. The actual WhatsApp integration will be added in a later phase.
-    alert('WhatsApp Inquiry feature coming soon! Thank you for your interest.');
-    // Or we could simply do nothing for now, if an alert is considered "adding functionality"
-    // For strict removal, we could even remove this button entirely until the WhatsApp phase.
-    // However, the "Prominent 'Checkout'-style button on cart page" (from Haves list)
-    // implies this button should exist, but its *action* should not be payment.
-    // An alert is a non-functional placeholder.
+    toast({
+      title: 'WhatsApp Inquiry',
+      description: 'WhatsApp Inquiry feature coming soon! Thank you for your interest.',
+      status: 'info',
+      duration: 5000,
+      isClosable: true,
+      position: 'top-right',
+    });
   };
 
   const handleRemoveItem = (id: number) => {
@@ -304,10 +260,7 @@ export default function CartPage() {
     }
   };
 
-  // Simplified loading condition, as there's no `status === 'loading'` from next-auth anymore
   if (isLoading || (!!currentSessionKey && !backendCart && !isError && !isFetching)) {
-    // Show loading if cart query is loading,
-    // or if a guest key exists but no cart data has been returned yet (and no error/fetch completed)
     return (
       <Center minH="80vh">
         <VStack spacing={4}>
@@ -326,28 +279,10 @@ export default function CartPage() {
         Your Shopping Cart
       </Heading>
 
-      {/* This alert is always relevant for the "Starter Launch" */}
       <Alert status="info" mb={6} borderRadius="md">
         <AlertIcon />
         <AlertDescription>
-          You are currently Browse as a guest. Your cart is saved locally. {' '}
-          {/*
-            NOTE: The "Have Nots" list states "No Public Authentication (No end-user login/signup)".
-            However, the current code includes links to /auth/login and /auth/signup.
-            For now, these links will remain as per your instruction to leave "deferred"
-            items untouched if already in codebase, assuming login/signup pages exist as placeholders.
-            If these authentication pages are also "Have Nots" to be *removed*,
-            then these links should also be removed/commented out in a future step.
-            For now, I'm only touching payment-related logic.
-          */}
-          <Link href="/auth/login" passHref>
-            <ChakraLink color="blue.600" fontWeight="bold">Login</ChakraLink>
-          </Link>
-          {' '}or{' '}
-          <Link href="/auth/signup" passHref>
-            <ChakraLink color="blue.600" fontWeight="bold">Sign Up</ChakraLink>
-          </Link>
-          {' '}to permanently save your cart and access order history.
+          You are currently Browse as a guest. Your cart is saved locally.
         </AlertDescription>
       </Alert>
 
@@ -392,7 +327,7 @@ export default function CartPage() {
               >
                 <HStack spacing={4} align="center">
                   <Image
-                    src={item.image_file || "https://placehold.co/100x100?text=No+Image"} // FIX: Use item.image_file here
+                    src={item.image_file || "https://placehold.co/100x100?text=No+Image"}
                     alt={item.name}
                     boxSize="100px"
                     objectFit="cover"
@@ -484,12 +419,11 @@ export default function CartPage() {
               colorScheme="green"
               size="lg"
               width="full"
-              // Replaced handleProceedToCheckout with new placeholder handler
               onClick={handleInquireViaWhatsApp}
               isDisabled={itemsToRender.length === 0}
               mt={4}
             >
-              Inquire via WhatsApp {/* Changed button text */}
+              Inquire via WhatsApp
             </Button>
             <Button
               variant="link"
@@ -506,3 +440,4 @@ export default function CartPage() {
     </Box>
   );
 }
+
