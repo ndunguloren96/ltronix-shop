@@ -45,6 +45,9 @@ export default function PrivacyPolicyPage() {
             <ListItem>
               <Text fontWeight="bold">Derivative Data:</Text> Information our servers automatically collect when you access the Site, such as your IP address, your browser type, your operating system, your access times, and the pages you have viewed directly before and after accessing the Site.
             </ListItem>
+            <ListItem>
+              <Text fontWeight="bold">Financial Data:</Text> Financial information, such as data related to your payment method (e.g., valid credit card number, card brand, expiration date) that we may collect when you purchase, order, return, exchange, or request information about our services from the Site.
+            </ListItem>
           </UnorderedList>
 
           <Heading as="h2" size="md">
@@ -71,6 +74,9 @@ export default function PrivacyPolicyPage() {
           <UnorderedList pl={4}>
             <ListItem>
               <Text fontWeight="bold">By Law or to Protect Rights:</Text> If we believe the release of information about you is necessary to respond to legal process, to investigate or remedy potential violations of our policies, or to protect the rights, property, and safety of others, we may share your information as permitted or required by any applicable law, rule, or regulation.
+            </ListItem>
+            <ListItem>
+              <Text fontWeight="bold">Third-Party Service Providers:</Text> We may share your information with third parties that perform services for us or on our behalf, including payment processing, data analysis, email delivery, hosting services, customer service, and marketing assistance.
             </ListItem>
           </UnorderedList>
 

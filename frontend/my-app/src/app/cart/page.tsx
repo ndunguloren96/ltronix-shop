@@ -18,54 +18,235 @@ import {
   NumberInputStepper,
   NumberIncrementStepper,
   NumberDecrementStepper,
-  // Spinner, // Not needed as no backend calls
-  // Center, // Not needed as no backend calls
+  Spinner,
+  Center,
   Alert, AlertIcon, AlertDescription,
   Link as ChakraLink,
 } from '@chakra-ui/react';
-import React, { useEffect, useCallback } from 'react'; // Added useCallback
+import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-// Removed: useQuery, useMutation, useQueryClient from '@tanstack/react-query'; // Not needed as no backend calls
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+// REMOVED: import { useSession } from 'next-auth/react'; // No longer needed
 import Link from 'next/link'; // For Next.js Link component
 
-// Removed all backend API imports as we are no longer interacting with the backend for cart management
-// Removed: fetchCartAPI, updateEntireCartAPI, clearCartAPI, BackendOrder, ProductInCart, BackendOrderItem from '@/api/orders';
-
+import {
+  fetchCartAPI,
+  updateEntireCartAPI,
+  clearCartAPI,
+  BackendOrder,
+  ProductInCart,
+  BackendOrderItem,
+}
+  from '@/api/orders';
 import { useCartStore } from '@/store/useCartStore';
 
-// Removed: Define the context interface for useMutation
-// Removed: interface UpdateCartContext { previousCart?: BackendOrder | null; }
+// Define the context interface for useMutation
+interface UpdateCartContext {
+  previousCart?: BackendOrder | null;
+}
 
 export default function CartPage() {
   const toast = useToast();
   const router = useRouter();
-  // Removed: const queryClient = useQueryClient(); // Not needed as no backend calls
+  const queryClient = useQueryClient();
+  // REMOVED: const { data: _session, status } = useSession(); // No longer needed, as next-auth is removed
 
   const localCartItems = useCartStore((state) => state.items);
   const setLocalCartItems = useCartStore((state) => state.setItems);
-  const updateItemQuantity = useCartStore((state) => state.updateItemQuantity); // New action for quantity
-  const removeItem = useCartStore((state) => state.removeItem); // New action for remove
-  const clearCart = useCartStore((state) => state.clearCart); // New action for clear
   const getLocalTotalItems = useCartStore((state) => state.getTotalItems);
   const getLocalTotalPrice = useCartStore((state) => state.getTotalPrice);
-  // guestSessionKey is now primarily for client-side persistence if desired, not for API calls
   const guestSessionKey = useCartStore((state) => state.guestSessionKey);
   const setGuestSessionKey = useCartStore((state) => state.setGuestSessionKey);
 
-  // This effect ensures a guest session key is always available for local storage purposes.
+  // This effect ensures a guest session key is always available.
+  // We no longer check `status === 'unauthenticated'` as we are always in that state.
   useEffect(() => {
     if (typeof window !== 'undefined' && !guestSessionKey) {
       import('uuid').then(({ v4: uuidv4 }) => {
         const newKey = uuidv4();
         setGuestSessionKey(newKey);
-        console.log('Generated new guest session key for local storage:', newKey);
+        console.log('Generated new guest session key on cart page:', newKey);
       });
     }
-  }, [guestSessionKey, setGuestSessionKey]);
+  }, [guestSessionKey, setGuestSessionKey]); // 'status' removed from dependencies
 
+  // Determine the session key to use for API calls
+  // Since we are always operating as a guest, `currentSessionKey` will always be `guestSessionKey`.
+  const currentSessionKey = guestSessionKey;
+
+  const {
+    data: backendCart,
+    isLoading,
+    isError,
+    error,
+    isFetching,
+  } = useQuery<BackendOrder | null, Error>({
+    queryKey: ['cart', currentSessionKey], // 'status' removed from queryKey
+    queryFn: () => {
+      // Always use guestSessionKey for fetching the cart
+      if (currentSessionKey) {
+        return fetchCartAPI(currentSessionKey);
+      }
+      return Promise.resolve(null); // Do not fetch if guestSessionKey is not yet set
+    },
+    // The query is enabled if the guestSessionKey exists.
+    enabled: !!currentSessionKey, // 'status' related conditions removed
+    staleTime: 0, // Always consider cart data stale
+    gcTime: 0, // Garbage collect immediately after use
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+  });
+
+  /**
+   * CRITICAL: Whenever backendCart changes, always set Zustand localCartItems to match.
+   * This ensures the cart UI always reflects the backend's true state after any backend update.
+   */
+  useEffect(() => {
+    // We no longer need to check `status !== 'loading'` as next-auth is gone.
+    if (backendCart) {
+      setLocalCartItems(
+        backendCart.items.map((item) => ({
+          id: item.product.id,
+          name: item.product.name,
+          price: parseFloat(item.product.price),
+          quantity: item.quantity,
+          image_file: item.product.image_file, // FIX: Use image_file here
+        }))
+      );
+      // If backend returned a session key, update local store (e.g., first guest item added)
+      if (backendCart.session_key && !guestSessionKey) {
+        setGuestSessionKey(backendCart.session_key);
+        console.log('Backend returned new guest session key (from useQuery effect):', backendCart.session_key);
+      }
+    } else if (!!currentSessionKey) {
+      // If backendCart is null/undefined but we have a guestSessionKey,
+      // it means the backend returned an empty cart or a 404, so clear local state.
+      setLocalCartItems([]);
+    }
+  }, [backendCart, setLocalCartItems, guestSessionKey, setGuestSessionKey, currentSessionKey]); // 'status' removed from dependencies
+
+
+  /**
+   * CRITICAL: Always update Zustand from backend response after mutation.
+   * This prevents UI from showing stale or unmerged cart data after removing, clearing, or updating items.
+   */
+  const updateCartMutation = useMutation<BackendOrder, Error, ProductInCart[], UpdateCartContext>({
+    mutationFn: (items) => updateEntireCartAPI(items, currentSessionKey),
+    onMutate: async (newFrontendCartItems: ProductInCart[]) => {
+      await queryClient.cancelQueries({ queryKey: ['cart', currentSessionKey] }); // 'status' removed
+      const previousCart = queryClient.getQueryData<BackendOrder>(['cart', currentSessionKey]); // 'status' removed
+      // Optimistic update
+      setLocalCartItems(newFrontendCartItems);
+      return { previousCart };
+    },
+    onError: (err, _newFrontendCartItems, context) => { // _newFrontendCartItems and _context are unused
+      console.error("Failed to update cart on backend:", err);
+      toast({
+        title: 'Error Updating Cart',
+        description: err.message || 'Failed to update cart on server.',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+      if (context?.previousCart) {
+        setLocalCartItems(
+          context.previousCart.items.map((bi) => ({
+            id: bi.product.id,
+            name: bi.product.name,
+            price: parseFloat(bi.product.price),
+            quantity: bi.quantity,
+            image_file: bi.product.image_file, // FIX: Use image_file here
+          }))
+        );
+      } else {
+        setLocalCartItems([]);
+      }
+    },
+    onSuccess: (_data) => { // _data is unused
+      // Always update Zustand from backend's canonical cart
+      setLocalCartItems(
+        _data.items.map((backendItem) => ({
+          id: backendItem.product.id,
+          name: backendItem.product.name,
+          price: parseFloat(backendItem.product.price),
+          quantity: backendItem.quantity,
+          image_file: backendItem.product.image_file, // FIX: Use image_file here
+        }))
+      );
+      // If the backend returned a session_key, update it in local storage (e.g., first guest item added)
+      if (_data.session_key && !guestSessionKey) { // 'status === 'unauthenticated'` removed
+        setGuestSessionKey(_data.session_key);
+        console.log("Backend returned new guest session key (from mutation):", _data.session_key);
+      }
+      toast({
+        title: 'Cart Updated',
+        description: 'Your cart has been synchronized.',
+        status: 'success',
+        duration: 2000,
+        isClosable: true,
+      });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['cart', currentSessionKey] }); // 'status' removed
+    },
+  });
+
+  const clearCartMutation = useMutation<BackendOrder, Error, number>({
+    mutationFn: (cartId) => clearCartAPI(cartId, currentSessionKey),
+    onMutate: async (cartId) => {
+      await queryClient.cancelQueries({ queryKey: ['cart', currentSessionKey] }); // 'status' removed
+      // Optimistic update
+      setLocalCartItems([]);
+      setGuestSessionKey(null);
+      return {};
+    },
+    onError: (err, _cartId, _context) => { // _cartId and _context are unused
+      console.error("Failed to clear cart on backend:", err);
+      toast({
+        title: 'Error Clearing Cart',
+        description: err.message || 'Failed to clear cart on server.',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+      // No rollback needed for clear
+    },
+    onSuccess: (_data) => { // _data is unused
+      // Always update Zustand from backend cleared cart
+      setLocalCartItems([]);
+      setGuestSessionKey(null);
+      toast({
+        title: 'Cart Cleared',
+        description: 'All items have been removed from your cart.',
+        status: 'warning',
+        duration: 2000,
+        isClosable: true,
+        position: 'top-right',
+      });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['cart', currentSessionKey] }); // 'status' removed
+    },
+  });
+
+  // REMOVED: The handleProceedToCheckout function as payment is not included.
+  // const handleProceedToCheckout = () => {
+  //   if (localCartItems.length === 0) {
+  //     toast({
+  //       title: 'Cart is Empty',
+  //       description: 'Please add items to your cart before proceeding to checkout.',
+  //       status: 'warning',
+  //       duration: 3000,
+  //       isClosable: true,
+  //       position: 'top-right',
+  //     });
+  //     return;
+  //   }
+  //   router.push('/checkout');
+  // };
 
   // New placeholder handler for WhatsApp Inquiry, no actual implementation yet.
-  const handleInquireViaWhatsApp = useCallback(() => {
+  const handleInquireViaWhatsApp = () => {
     if (localCartItems.length === 0) {
       toast({
         title: 'Cart is Empty',
@@ -77,81 +258,65 @@ export default function CartPage() {
       });
       return;
     }
+    // This is a placeholder. The actual WhatsApp integration will be added in a later phase.
+    alert('WhatsApp Inquiry feature coming soon! Thank you for your interest.');
+    // Or we could simply do nothing for now, if an alert is considered "adding functionality"
+    // For strict removal, we could even remove this button entirely until the WhatsApp phase.
+    // However, the "Prominent 'Checkout'-style button on cart page" (from Haves list)
+    // implies this button should exist, but its *action* should not be payment.
+    // An alert is a non-functional placeholder.
+  };
 
-    // Construct a simple message with cart items
-    const cartSummary = localCartItems.map(item =>
-      `${item.name} (Qty: ${item.quantity}, Ksh ${item.price.toFixed(2)} each)`
-    ).join('\n');
-    const total = getLocalTotalPrice().toFixed(2);
-    const message = `Hello, I'd like to inquire about the following items in my cart:\n\n${cartSummary}\n\nTotal: Ksh ${total}\n\nCould you please assist me with placing an order or providing more details?`;
+  const handleRemoveItem = (id: number) => {
+    const updatedItems = localCartItems.filter((item) => item.id !== id);
+    updateCartMutation.mutate(updatedItems);
+  };
 
-    // Encode the message for a WhatsApp link
-    const whatsappLink = `https://wa.me/?text=${encodeURIComponent(message)}`;
-
-    // Open WhatsApp in a new tab/window
-    window.open(whatsappLink, '_blank');
-
-    toast({
-      title: 'Opening WhatsApp',
-      description: 'Please complete your inquiry in WhatsApp.',
-      status: 'info',
-      duration: 5000,
-      isClosable: true,
-      position: 'top-right',
-    });
-
-  }, [localCartItems, getLocalTotalPrice, toast]);
-
-  const handleRemoveItem = useCallback((id: number) => {
-    removeItem(id);
-    toast({
-      title: 'Item Removed',
-      description: 'Product removed from your cart.',
-      status: 'info',
-      duration: 1500,
-      isClosable: true,
-      position: 'top-right',
-    });
-  }, [removeItem, toast]);
-
-  const handleQuantityChange = useCallback((id: number, value: string) => {
+  const handleQuantityChange = (id: number, value: string) => {
     const newQuantity = parseInt(value, 10);
     if (!isNaN(newQuantity) && newQuantity >= 0) {
+      let updatedItems: ProductInCart[];
       if (newQuantity === 0) {
-        removeItem(id);
-        toast({
-          title: 'Item Removed',
-          description: 'Product quantity set to zero, item removed.',
-          status: 'info',
-          duration: 1500,
-          isClosable: true,
-          position: 'top-right',
-        });
+        updatedItems = localCartItems.filter(item => item.id !== id);
       } else {
-        updateItemQuantity(id, newQuantity);
-        toast({
-          title: 'Quantity Updated',
-          description: 'Product quantity in cart has been updated.',
-          status: 'success',
-          duration: 1500,
-          isClosable: true,
-          position: 'top-right',
-        });
+        updatedItems = localCartItems.map(item =>
+          item.id === id ? { ...item, quantity: newQuantity } : item
+        );
       }
+      updateCartMutation.mutate(updatedItems);
     }
-  }, [removeItem, updateItemQuantity, toast]);
+  };
 
-  const handleClearCart = useCallback(() => {
-    clearCart();
-    toast({
-      title: 'Cart Cleared',
-      description: 'Your cart has been completely cleared.',
-      status: 'warning',
-      duration: 2000,
-      isClosable: true,
-      position: 'top-right',
-    });
-  }, [clearCart, toast]);
+  const handleClearCart = () => {
+    if (backendCart?.id) {
+      clearCartMutation.mutate(backendCart.id);
+    } else {
+      setLocalCartItems([]);
+      setGuestSessionKey(null);
+      toast({
+        title: 'Cart Cleared',
+        description: 'Your local cart has been cleared.',
+        status: 'info',
+        duration: 2000,
+        isClosable: true,
+        position: 'top-right',
+      });
+    }
+  };
+
+  // Simplified loading condition, as there's no `status === 'loading'` from next-auth anymore
+  if (isLoading || (!!currentSessionKey && !backendCart && !isError && !isFetching)) {
+    // Show loading if cart query is loading,
+    // or if a guest key exists but no cart data has been returned yet (and no error/fetch completed)
+    return (
+      <Center minH="80vh">
+        <VStack spacing={4}>
+          <Spinner size="xl" />
+          <Text fontSize="xl">Loading your cart...</Text>
+        </VStack>
+      </Center>
+    );
+  }
 
   const itemsToRender = localCartItems;
 
@@ -165,13 +330,16 @@ export default function CartPage() {
       <Alert status="info" mb={6} borderRadius="md">
         <AlertIcon />
         <AlertDescription>
-          You are currently Browse as a guest. Your cart is saved locally in your browser.
+          You are currently Browse as a guest. Your cart is saved locally. {' '}
           {/*
-            NOTE: As per previous instructions, I'm keeping these links as placeholders,
-            assuming the login/signup pages themselves are not yet fully removed,
-            even if authentication functionality is not enabled.
+            NOTE: The "Have Nots" list states "No Public Authentication (No end-user login/signup)".
+            However, the current code includes links to /auth/login and /auth/signup.
+            For now, these links will remain as per your instruction to leave "deferred"
+            items untouched if already in codebase, assuming login/signup pages exist as placeholders.
+            If these authentication pages are also "Have Nots" to be *removed*,
+            then these links should also be removed/commented out in a future step.
+            For now, I'm only touching payment-related logic.
           */}
-          {' '}
           <Link href="/auth/login" passHref>
             <ChakraLink color="blue.600" fontWeight="bold">Login</ChakraLink>
           </Link>
@@ -179,12 +347,11 @@ export default function CartPage() {
           <Link href="/auth/signup" passHref>
             <ChakraLink color="blue.600" fontWeight="bold">Sign Up</ChakraLink>
           </Link>
-          {' '}to permanently save your cart and access order history (feature coming soon!).
+          {' '}to permanently save your cart and access order history.
         </AlertDescription>
       </Alert>
 
-      {/* No error state for backend calls as they are removed */}
-      {/* {isError && (
+      {isError && (
         <Alert status="error" flexDirection="column" alignItems="center" justifyContent="center" textAlign="center" height="200px" borderRadius="lg" boxShadow="md" mb={6}>
           <AlertIcon boxSize="40px" mr={0} />
           <Heading size="md" mt={4} mb={1}>Failed to load cart</Heading>
@@ -198,9 +365,9 @@ export default function CartPage() {
             </Button>
           </AlertDescription>
         </Alert>
-      )} */}
+      )}
 
-      {itemsToRender.length === 0 && ( // Removed isLoading and isFetching from condition
+      {itemsToRender.length === 0 && !isLoading && !isFetching && (
         <VStack spacing={4} textAlign="center" py={10}>
           <Text fontSize="xl" color="gray.600">
             Your cart is currently empty.
@@ -225,7 +392,7 @@ export default function CartPage() {
               >
                 <HStack spacing={4} align="center">
                   <Image
-                    src={item.image_file || "https://placehold.co/100x100?text=No+Image"}
+                    src={item.image_file || "https://placehold.co/100x100?text=No+Image"} // FIX: Use item.image_file here
                     alt={item.name}
                     boxSize="100px"
                     objectFit="cover"
@@ -248,7 +415,7 @@ export default function CartPage() {
                       }
                       keepWithinRange={false}
                       clampValueOnBlur={false}
-                      // Removed isDisabled from mutation.isPending
+                      isDisabled={updateCartMutation.isPending}
                     >
                       <NumberInputField />
                       <NumberInputStepper>
@@ -265,7 +432,8 @@ export default function CartPage() {
                     colorScheme="red"
                     variant="ghost"
                     onClick={() => handleRemoveItem(item.id)}
-                    // Removed isLoading and isDisabled from mutation.isPending
+                    isLoading={updateCartMutation.isPending}
+                    isDisabled={updateCartMutation.isPending}
                   >
                     Remove
                   </Button>
@@ -278,8 +446,8 @@ export default function CartPage() {
               onClick={handleClearCart}
               mt={4}
               alignSelf="flex-end"
-              // Removed isLoading and isDisabled from mutation.isPending
-              isDisabled={itemsToRender.length === 0} // Only disabled if no items
+              isLoading={clearCartMutation.isPending}
+              isDisabled={clearCartMutation.isPending || itemsToRender.length === 0}
             >
               Clear Cart
             </Button>
@@ -316,11 +484,12 @@ export default function CartPage() {
               colorScheme="green"
               size="lg"
               width="full"
+              // Replaced handleProceedToCheckout with new placeholder handler
               onClick={handleInquireViaWhatsApp}
               isDisabled={itemsToRender.length === 0}
               mt={4}
             >
-              Inquire via WhatsApp
+              Inquire via WhatsApp {/* Changed button text */}
             </Button>
             <Button
               variant="link"

@@ -22,6 +22,10 @@ const faqItems = [
     answer: 'To place an order, browse our product categories, add desired items to your cart, and proceed to checkout. Follow the prompts to enter your shipping details and payment information.',
   },
   {
+    question: 'What payment methods do you accept?',
+    answer: 'We accept a variety of payment methods including major credit cards (Visa, MasterCard, American Express), PayPal, and mobile money options specific to your region (e.g., M-Pesa in Kenya).',
+  },
+  {
     question: 'How long does delivery take?',
     answer: 'Delivery times vary depending on your location and the product. Typically, local deliveries take 1-3 business days, while international shipments may take 7-14 business days. You can track your order status in your account.',
   },
@@ -39,7 +43,7 @@ const faqItems = [
   },
   {
     question: 'Is my personal information secure?',
-    answer: 'Absolutely. We use industry-standard encryption and security protocols to protect your personal and your data is stored locally. For more details, please review our Privacy Policy.',
+    answer: 'Absolutely. We use industry-standard encryption and security protocols to protect your personal and payment information. For more details, please review our Privacy Policy.',
   },
 ];
 

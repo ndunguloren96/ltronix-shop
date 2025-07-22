@@ -22,7 +22,7 @@ import dynamic from 'next/dynamic';
 
 // Import your Zustand stores (these are client-side only)
 import { useCartStore } from '@/store/useCartStore';
-// Removed: import { useAuthStore } from '@/store/useAuthStore'; // No longer needed as authentication is removed
+import { useAuthStore } from '@/store/useAuthStore';
 import { MyModal, useDisclosure } from '@/components/MyModal'; // Import MyModal and useDisclosure
 
 // Dynamically import the ChatSupportWidget - now correctly in a client component
@@ -35,6 +35,10 @@ const DynamicChatSupportWidget = dynamic(() => import('@/components/ChatSupportW
   ),
 });
 
+// Dummy product data removed as HomePage will now use ProductsClientPage
+// which fetches real data. If you need specific sections (Recommended, Hot Deals)
+// from fetched data, that logic will go into ProductsClientPage or a new component.
+
 export default function HomePageClientWidgets() {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [showChat, setShowChat] = useState(false); // State to toggle chat widget
@@ -45,7 +49,6 @@ export default function HomePageClientWidgets() {
   const [feedbackMessage, setFeedbackMessage] = useState('');
 
   // Zustand auth store (cart store is directly used in ProductCard now)
-  // Removed all useAuthStore related lines as authentication is removed for Starter Launch
   // const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   // const user = useAuthStore((state) => state.user);
   // const login = useAuthStore((state) => state.login);
@@ -142,4 +145,3 @@ export default function HomePageClientWidgets() {
     </Box>
   );
 }
-

@@ -14,6 +14,7 @@ def pytest_configure():
             "django.contrib.sites",
             "store",
             "users",
+            "payment",
             "allauth",
             "allauth.account",
             "allauth.socialaccount",
@@ -22,8 +23,13 @@ def pytest_configure():
             "rest_framework",
             "rest_framework.authtoken",
             "rest_framework_simplejwt",
+            "oauth2_provider",
+            "social_django",
+            "drf_social_oauth2",
             "corsheaders",
             "drf_spectacular",
+            "anymail",
+            "django_daraja",
         ],
         DATABASES={
             "default": {
