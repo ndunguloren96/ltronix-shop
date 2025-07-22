@@ -21,173 +21,21 @@ import {
   Spinner,
   Center,
   Alert, AlertIcon, AlertDescription,
-  // Link as ChakraLink, // Removed as login/signup links are removed
 } from '@chakra-ui/react';
 import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-// Removed: import { useSession } from 'next-auth/react'; // No longer needed
-// Removed: import Link from 'next/link'; // Not needed for internal Next.js navigation now
 
 import { useCartStore } from '@/store/useCartStore';
-import { Product } from '@/api/products'; // Import Product interface for consistency
-
-// Define base URL for your Django API
-// It's expected that NEXT_PUBLIC_DJANGO_API_URL from .env.local or environment variables
-// will include the /api/v1/ suffix.
-const DJANGO_API_BASE_URL = process.env.NEXT_PUBLIC_DJANGO_API_URL || 'http://localhost:8000/api/v1';
-
-// --- Type Definitions for Cart/Order Operations (Moved from orders.ts) ---
-export interface ProductInCart {
-  id: number; // Product ID
-  name: string;
-  price: number;
-  quantity: number;
-  image_file?: string;
-}
-
-export interface OrderItemPayload {
-  id?: number;
-  product_id: number;
-  quantity: number;
-}
-
-export interface OrderPayload {
-  items: OrderItemPayload[];
-  complete?: boolean;
-  transaction_id?: string;
-}
-
-export interface BackendOrderItem {
-  id: number;
-  product: {
-    id: number;
-    name: string;
-    price: string; // Price from backend is a string
-    image_file?: string;
-  };
-  quantity: number;
-  get_total: string;
-}
-
-export interface BackendOrder {
-  id: number | null; // Can be null for newly created guest carts
-  customer: number | null;
-  session_key: string | null; // Important for guest carts
-  date_ordered: string;
-  complete: boolean;
-  transaction_id: string | null;
-  get_cart_total: string;
-  get_cart_items: number;
-  shipping: boolean;
-  items: BackendOrderItem[];
-}
-
-// --- Helper for API calls (now exclusively using guestSessionKey if provided) ---
-// This function is crucial for sending the X-Session-Key header for guest users.
-async function fetchWithSession(url: string, options?: RequestInit, guestSessionKey?: string | null) {
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    ...(options?.headers as Record<string, string> || {}),
-  };
-
-  if (guestSessionKey) {
-    headers['X-Session-Key'] = guestSessionKey;
-  }
-
-  const response = await fetch(url, {
-    ...options,
-    headers,
-    credentials: 'include', // Essential for sending HttpOnly cookies for guest sessions
-  });
-
-  if (!response.ok) {
-    let errorDetail = 'An unknown error occurred.';
-    try {
-      const errorData = await response.json();
-      if (errorData.detail) {
-        errorDetail = errorData.detail;
-      } else if (typeof errorData === 'object' && errorData !== null) {
-        errorDetail = Object.entries(errorData)
-          .map(([key, value]) => {
-            if (Array.isArray(value)) {
-              return `${key}: ${value.join(', ')}`;
-            }
-            return `${key}: ${value}`;
-          })
-          .join('; ');
-      } else if (typeof errorData === 'string') {
-        errorDetail = errorData;
-      }
-    } catch (parseError) {
-      console.error('Failed to parse error response:', parseError);
-    }
-    throw new Error(`API Error: ${response.status} ${response.statusText} - ${errorDetail}`);
-  }
-
-  if (response.status === 204) {
-    return null;
-  }
-
-  return response.json();
-}
-
-// --- API Functions for Cart (via Order endpoint) (Moved from orders.ts) ---
-
-/**
- * Fetches the user's current active shopping cart.
- * @param guestSessionKey Optional: The session key for guest users.
- */
-export async function fetchCartAPI(guestSessionKey?: string | null): Promise<BackendOrder | null> {
-  try {
-    const url = new URL('orders/my_cart/', DJANGO_API_BASE_URL);
-    const response = await fetchWithSession(url.toString(), {}, guestSessionKey);
-    return response;
-  } catch (error) {
-    console.error("Error fetching cart:", error);
-    throw error;
-  }
-}
-
-/**
- * Adds a product to the cart or updates its quantity by sending the entire cart state.
- * @param cartItems The current desired state of cart items.
- * @param guestSessionKey Optional: The session key for guest users.
- * @returns The updated BackendOrder (cart).
- */
-export async function updateEntireCartAPI(cartItems: ProductInCart[], guestSessionKey?: string | null): Promise<BackendOrder> {
-  const payload: OrderPayload = {
-    items: cartItems.map(item => ({
-      product_id: Number(item.id),
-      quantity: item.quantity,
-    })),
-  };
-
-  const url = new URL('orders/', DJANGO_API_BASE_URL);
-  const response = await fetchWithSession(url.toString(), {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  }, guestSessionKey);
-  return response;
-}
-
-/**
- * Clears the entire cart on the backend.
- * @param cartId The ID of the cart (Order) to clear.
- * @param guestSessionKey Optional: The session key for guest users.
- * @returns The updated BackendOrder (cleared cart).
- */
-export async function clearCartAPI(cartId: number, guestSessionKey?: string | null): Promise<BackendOrder> {
-  const url = new URL(`orders/${cartId}/`, DJANGO_API_BASE_URL);
-  const response = await fetchWithSession(url.toString(), {
-    method: 'PUT',
-    body: JSON.stringify({ items: [] }),
-  }, guestSessionKey);
-  return response;
-}
-
-// Removed payment-related API functions (initiateStkPushAPI, fetchTransactionStatusAPI) and types (BackendTransaction)
-// as payment functionality is not part of the Starter Launch.
+// Import API functions and types from the new lib/api.ts file
+import {
+  fetchCartAPI,
+  updateEntireCartAPI,
+  clearCartAPI,
+  BackendOrder,
+  ProductInCart,
+  BackendOrderItem,
+} from '@/lib/api'; // Changed import path
 
 // Define the context interface for useMutation
 interface UpdateCartContext {
@@ -435,7 +283,6 @@ export default function CartPage() {
         <AlertIcon />
         <AlertDescription>
           You are currently Browse as a guest. Your cart is saved locally.
-          {/* Removed Login/Sign Up links as public authentication is a "Have Not" */}
         </AlertDescription>
       </Alert>
 

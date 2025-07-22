@@ -24,24 +24,16 @@ import {
 // Import your Zustand stores (these are client-side only)
 import { useCartStore } from '@/store/useCartStore';
 // Removed useAuthStore import as it's not needed for the Starter Launch
-// import { useAuthStore } from '@/store/useAuthStore';
 import { MyModal, useDisclosure } from '@/components/MyModal'; // Import MyModal and useDisclosure
 
 export default function HomePageClientWidgets() {
   const { isOpen, onOpen, onClose } = useDisclosure();
   // Removed showChat state as ChatSupportWidget is removed
-  // const [showChat, setShowChat] = useState(false);
   const toast = useToast();
 
   // State for customer feedback form
   const [feedbackName, setFeedbackName] = useState('');
   const [feedbackMessage, setFeedbackMessage] = useState('');
-
-  // Removed Zustand auth store variables
-  // const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  // const user = useAuthStore((state) => state.user);
-  // const login = useAuthStore((state) => state.login);
-  // const logout = useAuthStore((state) => state.logout);
 
   // Handle feedback submission
   const handleSubmitFeedback = (e: React.FormEvent) => {
