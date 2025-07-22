@@ -87,6 +87,10 @@ ENV PORT=${PORT}
 
 EXPOSE 8000
 
+COPY entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/entrypoint.sh
+ENTRYPOINT ["entrypoint.sh"]
+
 # Command to run the application (migrations, superuser creation, then Gunicorn)
 # Now, collectstatic is run after migrations, ensuring database tables exist.
-CMD ["sh", "-c", "python manage.py migrate --noinput && python manage.py collectstatic --noinput && python create_initial_superuser.py && gunicorn ecommerce.wsgi:application --bind 0.0.0.0:$PORT"]
+CMD ["sh", "-c", "python manage.py collectstatic --noinput && python create_initial_superuser.py && gunicorn ecommerce.wsgi:application --bind 0.0.0.0:$PORT"]
