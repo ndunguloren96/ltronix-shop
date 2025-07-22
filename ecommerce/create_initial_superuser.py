@@ -14,6 +14,8 @@ django.setup()
 User = get_user_model()
 
 # Use EMAIL for all operations since 'username' field does not exist
+# However, the create_superuser method seems to still require a 'username' argument.
+# We will pass the email as the username to satisfy this requirement.
 superuser_email = os.environ.get('DJANGO_SUPERUSER_EMAIL')
 superuser_password = os.environ.get('DJANGO_SUPERUSER_PASSWORD')
 
@@ -25,11 +27,11 @@ else:
     if not User.objects.filter(email=superuser_email).exists():
         print(f"Creating superuser with email '{superuser_email}'...")
         try:
-            # Call create_superuser using only the fields that exist and are required.
-            # If your custom user model's USERNAME_FIELD is 'email', then `create_superuser`
-            # will expect `email` as the first argument, and `password`.
-            # Do NOT pass a 'username' keyword argument if the field doesn't exist.
+            # The error "missing 1 required positional argument: 'username'" indicates
+            # that the create_superuser method being called still expects a 'username'.
+            # We will pass the email as the username to fulfill this requirement.
             User.objects.create_superuser(
+                username=superuser_email, # <--- ADDED THIS LINE TO SATISFY THE ERROR
                 email=superuser_email,
                 password=superuser_password
                 # Add any other required fields for your custom User model here if necessary,
@@ -40,3 +42,4 @@ else:
             print(f"Error creating superuser: {e}", file=sys.stderr)
     else:
         print(f"Superuser with email '{superuser_email}' already exists. Skipping creation.")
+
