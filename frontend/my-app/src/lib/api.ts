@@ -49,6 +49,25 @@ export interface BackendOrder {
   items: BackendOrderItem[];
 }
 
+// --- Product Interface (Copied from client_content.tsx for consistency) ---
+export interface Product {
+  id: number;
+  name: string;
+  description: string;
+  price: string;
+  digital: boolean;
+  image_file?: string;
+  category?: string;
+  stock: number;
+  brand?: string;
+  sku?: string;
+  rating: string;
+  reviews_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+
 // --- Helper for API calls ---
 export async function fetchWithSession(url: string, options?: RequestInit, guestSessionKey?: string | null) {
   const headers: Record<string, string> = {
@@ -151,3 +170,51 @@ export async function clearCartAPI(cartId: number, guestSessionKey?: string | nu
   return response;
 }
 
+// --- NEW: API Functions for Products ---
+
+/**
+ * Fetches all products from the backend.
+ */
+export async function fetchProductsAPI(): Promise<Product[]> {
+  try {
+    const url = new URL('products/', DJANGO_API_BASE_URL);
+    const response = await fetch(url.toString(), {
+      method: 'GET',
+      // No session key needed for public product listings
+      // No credentials needed as products are publicly accessible
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(`Failed to fetch products: ${response.status} ${response.statusText} - ${errorData.detail || JSON.stringify(errorData)}`);
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error("Error fetching products:", error);
+    throw error;
+  }
+}
+
+/**
+ * Fetches a single product by its ID from the backend.
+ * @param productId The ID of the product to fetch.
+ */
+export async function fetchProductByIdAPI(productId: string): Promise<Product> {
+  try {
+    const url = new URL(`products/${productId}/`, DJANGO_API_BASE_URL);
+    const response = await fetch(url.toString(), {
+      method: 'GET',
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(`Failed to fetch product ${productId}: ${response.status} ${response.statusText} - ${errorData.detail || JSON.stringify(errorData)}`);
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error(`Error fetching product ${productId}:`, error);
+    throw error;
+  }
+}
