@@ -14,10 +14,8 @@ urlpatterns = [
     path("api/v1/", include([
         # Products and orders from store.api_urls (essential for Starter)
         path("", include("store.api_urls")),
-        # Payments API (will be streamlined later for Starter)
-        # We will keep the payment.api_urls include for now, but ensure its internal views are disabled/removed
-        # This allows the URL to exist for future re-enablement without breaking other path includes.
-        path("payments/", include("payment.api_urls")),
+        # Removed payments API include as the payment app has been removed
+        # path("payments/", include("payment.api_urls")),
 
         # Schema and Swagger UI (useful for development and understanding APIs)
         path("schema/", SpectacularAPIView.as_view(), name="schema"),
@@ -29,3 +27,5 @@ urlpatterns = [
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+
