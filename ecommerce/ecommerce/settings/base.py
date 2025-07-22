@@ -6,9 +6,7 @@ from datetime import timedelta
 from pathlib import Path
 from django.core.exceptions import ImproperlyConfigured
 
-import sentry_sdk
 from environ import Env
-from sentry_sdk.integrations.django import DjangoIntegration
 
 # --- Build paths
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -32,16 +30,10 @@ INSTALLED_APPS = [
     # Third-party
     "corsheaders",
     "rest_framework",
-    "rest_framework.authtoken",
-    "rest_framework_simplejwt",
     "drf_spectacular",
-    "anymail",
 
     # Project apps
     "store.apps.StoreConfig",
-    "payment",
-    "users",
-    "emails",
     "storages",
 ]
 
@@ -81,7 +73,7 @@ WSGI_APPLICATION = "ecommerce.wsgi.application"
 DATABASES = {"default": env.db("DATABASE_URL", default="sqlite:///db.sqlite3")}
 
 # --- Auth & Password validation
-AUTH_USER_MODEL = "users.User"
+# AUTH_USER_MODEL is removed to use Django's default User model
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator", "OPTIONS": {"min_length": 8}},
@@ -117,8 +109,6 @@ MEDIA_ROOT = BASE_DIR.parent / "mediafiles"
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework.authentication.SessionAuthentication",
-        "rest_framework.authentication.TokenAuthentication",
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.AllowAny",),
     "DEFAULT_RENDERER_CLASSES": (
@@ -147,19 +137,8 @@ CSRF_COOKIE_SAMESITE = "Lax"
 SESSION_COOKIE_SECURE = env.bool("SESSION_COOKIE_SECURE", default=True)
 SESSION_COOKIE_SAMESITE = "Lax"
 
-# --- Celery
-CELERY_BROKER_URL = env("CELERY_BROKER_URL", default="redis://localhost:6379/0")
-CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default="redis://localhost:6379/0")
-CELERY_ACCEPT_CONTENT = ["json"]
-CELERY_TASK_SERIALIZER = "json"
-CELERY_RESULT_SERIALIZER = "json"
-CELERY_TIMEZONE = TIME_ZONE
-CELERY_TASK_ALWAYS_EAGER = False
-CELERY_TASK_EAGER_PROPAGATES = True
-
-# --- Email via Anymail/SendGrid
-ANYMAIL = {"SENDGRID_API_KEY": env("SENDGRID_API_KEY", default="")}
-EMAIL_BACKEND = env("EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend")
+# --- Email (console backend for basic Django messages)
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="noreply@ltronix-shop.com")
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
 EMAIL_HOST = env("EMAIL_HOST", default="localhost")
@@ -167,31 +146,6 @@ EMAIL_PORT = env.int("EMAIL_PORT", default=1025)
 EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=False)
 EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")
 EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
-
-# --- Simple JWT
-SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
-    "ROTATE_REFRESH_TOKENS": True,
-    "BLACKLIST_AFTER_ROTATION": True,
-    "AUTH_HEADER_TYPES": ("Bearer",),
-    "SIGNING_KEY": SECRET_KEY,
-    "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
-    "USER_ID_FIELD": "id",
-    "USER_ID_CLAIM": "user_id",
-}
-
-# --- Sentry
-SENTRY_DSN = env("SENTRY_DSN", default="")
-if SENTRY_DSN:
-    sentry_sdk.init(
-        dsn=SENTRY_DSN,
-        integrations=[DjangoIntegration()],
-        environment=env("DJANGO_ENVIRONMENT", default="development"),
-        release=env("RELEASE_VERSION", default="dev"),
-        send_default_pii=True,
-        traces_sample_rate=0.5,
-    )
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -224,15 +178,6 @@ LOGGING = {
             "level": "INFO",
             "propagate": False,
         },
-        "anymail": {
-            "handlers": ["console"],
-            "level": "INFO",
-            "propagate": False,
-        },
-        "sentry_sdk": {
-            "handlers": ["console"],
-            "level": "ERROR",
-            "propagate": False,
-        },
     },
 }
+
