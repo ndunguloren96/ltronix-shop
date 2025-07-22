@@ -32,6 +32,10 @@ RUN set -eux; \
     pip install --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
+# Copy the entrypoint script and make it executable
+COPY entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
 # Create a non-root user and set permissions for /app and the virtual environment
 # Ensure the non-root user (appuser) owns the application directory and the virtual environment.
 RUN set -eux; \
@@ -87,8 +91,6 @@ ENV PORT=${PORT}
 
 EXPOSE 8000
 
-COPY entrypoint.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/entrypoint.sh
 ENTRYPOINT ["entrypoint.sh"]
 
 # Command to run the application (migrations, superuser creation, then Gunicorn)
