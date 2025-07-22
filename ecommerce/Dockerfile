@@ -17,8 +17,7 @@ WORKDIR /app
 # Install system dependencies
 # These commands MUST run as root (default user in Dockerfile at this point).
 RUN set -eux; \
-    apt-get update && \
-    apt-get install -y --no-install-recommends gcc libpq-dev git && \
+    apt-get update &&     apt-get install -y --no-install-recommends gcc libpq-dev git postgresql-client &&
     rm -rf /var/lib/apt/lists/*
 
 # Copy only the requirements file first to leverage Docker cache
