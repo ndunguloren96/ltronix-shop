@@ -43,7 +43,7 @@ RUN set -eux; \
     adduser --system --group appuser && \
     mkdir -p /app/ecommerce/staticfiles /app/ecommerce/media && \
     chown -R appuser:appuser /app && \
-    chown -R appuser:appuser $VIRTUAL_ENV
+    chown -R appuser:appuser $VIRTUAL_ENV # IMPORTANT: Give appuser ownership of the venv
 
 # Switch to the non-root user for subsequent commands
 USER appuser
@@ -51,14 +51,12 @@ USER appuser
 
 # Environment variables (build-args) for build time.
 # For production, these should be securely set as environment variables in your hosting platform.
-# FIX: Changed SOCIAL_AUTH_GOOGLE_OAUTH2_KEY/SECRET to GOOGLE_CLIENT_ID/SECRET
-# to match what env() is looking for in settings.base.py
 ARG DJANGO_SECRET_KEY
 ENV DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
-ARG GOOGLE_CLIENT_ID
-ENV GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
-ARG GOOGLE_CLIENT_SECRET
-ENV GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+ARG GOOGLE_CLIENT_ID # Changed from SOCIAL_AUTH_GOOGLE_OAUTH2_KEY
+ENV GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID} # Changed from SOCIAL_AUTH_GOOGLE_OAUTH2_KEY
+ARG GOOGLE_CLIENT_SECRET # Changed from SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET
+ENV GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET} # Changed from SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET
 ARG MPESA_CONSUMER_KEY
 ENV MPESA_CONSUMER_KEY=${MPESA_CONSUMER_KEY}
 ARG MPESA_CONSUMER_SECRET
@@ -96,6 +94,15 @@ ENV DATABASE_NAME=${DATABASE_NAME}
 # Defining it as ARG/ENV here allows for local Docker builds.
 ARG PORT=8000
 ENV PORT=${PORT}
+
+# --- DEBUGGING STEP: Print all environment variables before collectstatic ---
+# This will show us exactly what variables are available during the build.
+RUN env
+RUN echo "--- Specific Google Client ID Check ---"
+RUN echo "GOOGLE_CLIENT_ID: $GOOGLE_CLIENT_ID"
+RUN echo "GOOGLE_CLIENT_SECRET: $GOOGLE_CLIENT_SECRET"
+RUN echo "---------------------------------------"
+# --- END DEBUGGING STEP ---
 
 # Run collectstatic using the virtual environment's python.
 # The `PATH` environment variable (set at the top) ensures `python` refers to the venv's Python.
