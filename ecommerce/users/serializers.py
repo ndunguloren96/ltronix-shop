@@ -1,6 +1,6 @@
 # ecommerce/users/serializers.py
-from allauth.account.adapter import get_adapter  # Import allauth adapter
-from allauth.account.utils import setup_user_email  # For allauth email setup
+from allauth.account.adapter import get_adapter # Import allauth adapter
+from allauth.account.utils import setup_user_email # For allauth email setup
 from django.db import transaction
 from rest_framework import serializers
 from django.contrib.auth import get_user_model # Import get_user_model for EmailChangeSerializer
@@ -130,7 +130,7 @@ class CustomRegisterSerializer(
         setup_user_email(request, user, [])
 
         # Create customer profile linked to the new user
-        from store.models import Customer  # Import here to avoid circular dependency
+        from store.models import Customer # Import here to avoid circular dependency
 
         Customer.objects.get_or_create(user=user)
 
