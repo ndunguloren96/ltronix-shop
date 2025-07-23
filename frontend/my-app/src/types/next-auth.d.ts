@@ -31,7 +31,7 @@ declare module "next-auth" {
       /** The user's JWT access token from Django. */
       accessToken?: string;
       /** The user's JWT refresh token from Django. */
-      refreshToken?: string; // <--- THIS IS THE CRITICAL LINE
+      refreshToken?: string;
       /** Custom Django user object. */
       djangoUser?: DjangoUser;
     } & DefaultSession["user"]; // Inherit default user properties (name, email, image)
@@ -42,7 +42,7 @@ declare module "next-auth" {
     // FIX: This must be a string for NextAuth's internal consistency
     id: string;
     accessToken?: string;
-    refreshToken?: string; // <--- THIS IS THE CRITICAL LINE
+    refreshToken?: string;
     djangoUser?: DjangoUser;
   }
 }
@@ -55,11 +55,12 @@ declare module "next-auth/jwt" {
     /** The user's unique ID. Added to JWT if available from provider or custom logic. */
     id?: string; // FIX: This must be a string for NextAuth's internal consistency
     /** The user's JWT access token from Django. */
-    accessToken?: string;
+    accessToken?: string; // <--- ADDED THIS LINE
     /** The user's JWT refresh token from Django. */
-    refreshToken?: string; // <--- THIS IS THE CRITICAL LINE
+    refreshToken?: string; // <--- ADDED THIS LINE
     /** Custom Django user object. */
     djangoUser?: DjangoUser;
     // Add any other custom properties you store in the JWT
   }
 }
+
