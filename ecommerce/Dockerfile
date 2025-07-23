@@ -51,12 +51,14 @@ USER appuser
 
 # Environment variables (build-args) for build time.
 # For production, these should be securely set as environment variables in your hosting platform.
+# FIX: Changed SOCIAL_AUTH_GOOGLE_OAUTH2_KEY/SECRET to GOOGLE_CLIENT_ID/SECRET
+# to match what env() is looking for in settings.base.py
 ARG DJANGO_SECRET_KEY
 ENV DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
-ARG SOCIAL_AUTH_GOOGLE_OAUTH2_KEY
-ENV SOCIAL_AUTH_GOOGLE_OAUTH2_KEY=${SOCIAL_AUTH_GOOGLE_OAUTH2_KEY}
-ARG SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET
-ENV SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET=${SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET}
+ARG GOOGLE_CLIENT_ID # Changed from SOCIAL_AUTH_GOOGLE_OAUTH2_KEY
+ENV GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID} # Changed from SOCIAL_AUTH_GOOGLE_OAUTH2_KEY
+ARG GOOGLE_CLIENT_SECRET # Changed from SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET
+ENV GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET} # Changed from SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET
 ARG MPESA_CONSUMER_KEY
 ENV MPESA_CONSUMER_KEY=${MPESA_CONSUMER_KEY}
 ARG MPESA_CONSUMER_SECRET
@@ -104,3 +106,4 @@ EXPOSE 8000
 # Command to run the application (migrations, superuser creation, then Gunicorn)
 # `python` here also refers to the venv's python due to the PATH setting.
 CMD ["sh", "-c", "python manage.py migrate --noinput && python create_initial_superuser.py && gunicorn ecommerce.wsgi:application --bind 0.0.0.0:$PORT"]
+

@@ -55,12 +55,15 @@ declare module "next-auth/jwt" {
     /** The user's unique ID. Added to JWT if available from provider or custom logic. */
     id?: string; // FIX: This must be a string for NextAuth's internal consistency
     /** The user's JWT access token from Django. */
-    accessToken?: string; // <--- ADDED THIS LINE
+    accessToken?: string;
     /** The user's JWT refresh token from Django. */
-    refreshToken?: string; // <--- ADDED THIS LINE
+    refreshToken?: string;
     /** Custom Django user object. */
     djangoUser?: DjangoUser;
     // Add any other custom properties you store in the JWT
   }
 }
+
+// Dummy comment to force re-evaluation of types during Vercel build.
+// This line can be removed once the build passes consistently.
 
