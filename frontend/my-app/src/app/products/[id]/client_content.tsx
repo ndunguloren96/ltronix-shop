@@ -264,7 +264,7 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
               {[...Array(5)].map((_, i) => (
                 <StarIcon
                   key={i}
-                  color={i < Math.floor(parseFloat(product.rating || '0')) ? 'gold.500' : 'gray.300'}
+                  color={i < Math.floor(parseFloat(product.rating || '0')) ? 'gold.500' : 'yellow.200'}
                 />
               ))}
               <Text fontSize="sm" color="gray.600">({product.reviews_count} reviews)</Text>
@@ -336,7 +336,7 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
 
           {status === 'unauthenticated' && (
             <Text fontSize="sm" color="gray.500" mt={2}>
-              You are currently browsing as a guest. Your cart will be saved locally.
+              You are currently Browse as a guest. Your cart will be saved locally.
               <br/>
               <Link href="/auth/login" passHref>
                 <Text as="a" color="brand.500" fontWeight="bold">Login</Text>
@@ -368,4 +368,3 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
     </Box>
   );
 }
-
