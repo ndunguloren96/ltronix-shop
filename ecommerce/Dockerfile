@@ -43,7 +43,7 @@ RUN set -eux; \
     adduser --system --group appuser && \
     mkdir -p /app/ecommerce/staticfiles /app/ecommerce/media && \
     chown -R appuser:appuser /app && \
-    chown -R appuser:appuser $VIRTUAL_ENV # IMPORTANT: Give appuser ownership of the venv
+    chown -R appuser:appuser $VIRTUAL_ENV
 
 # Switch to the non-root user for subsequent commands
 USER appuser
@@ -55,10 +55,10 @@ USER appuser
 # to match what env() is looking for in settings.base.py
 ARG DJANGO_SECRET_KEY
 ENV DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
-ARG GOOGLE_CLIENT_ID # Changed from SOCIAL_AUTH_GOOGLE_OAUTH2_KEY
-ENV GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID} # Changed from SOCIAL_AUTH_GOOGLE_OAUTH2_KEY
-ARG GOOGLE_CLIENT_SECRET # Changed from SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET
-ENV GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET} # Changed from SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET
+ARG GOOGLE_CLIENT_ID
+ENV GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+ARG GOOGLE_CLIENT_SECRET
+ENV GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
 ARG MPESA_CONSUMER_KEY
 ENV MPESA_CONSUMER_KEY=${MPESA_CONSUMER_KEY}
 ARG MPESA_CONSUMER_SECRET
