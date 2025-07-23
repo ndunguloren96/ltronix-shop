@@ -12,12 +12,21 @@ import type { DjangoUser } from "@/types/next-auth"; // Ensure this path is corr
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET;
+
+// Django Backend's OAuth Toolkit Application Credentials (from Django Admin -> OAuth Toolkit -> Applications)
+// These are the client_id and client_secret for the 'Confidential' OAuth2 Application
+// that NextAuth.js will send to Django's /convert-token/ endpoint.
+const DJANGO_OAUTH_CLIENT_ID = process.env.NEXT_PUBLIC_DJANGO_CLIENT_ID;
+const DJANGO_OAUTH_CLIENT_SECRET = process.env.NEXT_PUBLIC_DJANGO_CLIENT_SECRET;
+
 // Ensure this is correctly set and matches your Django backend's API base URL
 // It should NOT have a trailing slash for consistent URL construction
 const DJANGO_API_BASE_URL = (process.env.NEXT_PUBLIC_DJANGO_API_URL || 'http://localhost:8000/api/v1').replace(/\/$/, '');
 
+
 export const authOptions: AuthOptions = {
   providers: [
+    // 1. Credentials Provider (Email/Password Login)
     CredentialsProvider({
       name: "credentials",
       credentials: {
@@ -100,15 +109,19 @@ export const authOptions: AuthOptions = {
     maxAge: 30 * 24 * 60 * 60, // 30 days
     updateAge: 24 * 60 * 60, // 24 hours
   },
-  // JWT callbacks (critical for passing accessToken and djangoUser)
+  // JWT configuration
+  jwt: {
+    secret: NEXTAUTH_SECRET, // JWT signing secret
+  },
+  // Callbacks to customize JWT and session data
   callbacks: {
     async jwt({ token, user, account }) {
       // Step 1: Initial sign-in (user and account are available)
       if (account && user) {
         let accessToken: string | undefined;
-        let refreshToken: string | undefined; // Added refreshToken
+        let refreshToken: string | undefined;
         let djangoUser: DjangoUser | undefined;
-        let userId: string | undefined; // To store the user's ID
+        let userId: string | undefined;
 
         if (account.provider === "credentials") {
           // 'user' here is what was returned from the authorize function
@@ -119,39 +132,75 @@ export const authOptions: AuthOptions = {
           userId = credentialsUser.id; // Get ID from credentials user
           console.log("JWT Callback (Credentials): User signed in. ID:", userId, "Email:", credentialsUser.email);
         } else if (account.provider === "google") {
-          console.log("JWT Callback (Google): Attempting Django social auth...");
-          // FIX: Call Django's dj-rest-auth Google social login endpoint
-          // This should now correctly map to the GoogleLogin view we defined in urls.py
+          console.log("JWT Callback (Google): Attempting Django social auth token conversion...");
+          // Ensure backend credentials are available
+          if (!DJANGO_OAUTH_CLIENT_ID || !DJANGO_OAUTH_CLIENT_SECRET) {
+            console.error('Django OAuth Toolkit Application client ID or secret missing in .env.local for Google convert-token. Please check your .env.local.');
+            return token; // Do NOT return null here as it prevents the token from being updated.
+          }
+
           try {
-            const djangoSocialAuthRes = await fetch(`${DJANGO_API_BASE_URL}/auth/google/`, { // <--- CRITICAL CHANGE HERE
+            const requestBody = new URLSearchParams({
+              grant_type: 'convert_token',
+              backend: 'google-oauth2', // Must match your SOCIAL_AUTH_AUTHENTICATION_BACKENDS entry in Django
+              client_id: DJANGO_OAUTH_CLIENT_ID, // Django Backend's OAuth Toolkit App Client ID
+              client_secret: DJANGO_OAUTH_CLIENT_SECRET, // Django Backend's OAuth Toolkit App Client Secret
+              token: account.access_token!, // Google's access token received by NextAuth.js
+            }).toString();
+
+            console.log('Django convert-token request URL:', `${DJANGO_API_BASE_URL}/auth/convert-token/`);
+            console.log('Django convert-token request body (form-urlencoded):', requestBody);
+
+            // Call Django's drf-social-oauth2 convert-token endpoint
+            const res = await fetch(`${DJANGO_API_BASE_URL}/auth/convert-token/`, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ access_token: account.access_token }),
+              // CRITICAL: Content-Type must be 'application/x-www-form-urlencoded' for drf-social-oauth2's convert-token
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+              body: requestBody,
             });
 
-            const data = await djangoSocialAuthRes.json(); // Parse JSON first to log
-            console.log("Django Google Social Auth Raw Response Data:", data); // LOG THE RAW RESPONSE
+            const djangoTokenData = await res.json();
+            console.log("Django Google Token Conversion Raw Response Data:", djangoTokenData);
 
-            if (djangoSocialAuthRes.ok) {
-              accessToken = data.access; // Use 'access' for social login too
-              refreshToken = data.refresh; // Use 'refresh' for social login too
-              djangoUser = data.user;
-              userId = data.user.id.toString();
-              console.log("JWT Callback (Google): Django social auth successful. User ID:", userId, "Email:", djangoUser?.email);
+            if (res.ok) {
+              if (djangoTokenData && djangoTokenData.access_token) {
+                accessToken = djangoTokenData.access_token; // Store Django's access token
+                refreshToken = djangoTokenData.refresh_token; // Store Django's refresh token
+                // Optionally fetch user details from Django's /auth/user/ endpoint using the new accessToken
+                try {
+                  const userDetailsRes = await fetch(`${DJANGO_API_BASE_URL}/auth/user/`, {
+                    headers: { 'Authorization': `Bearer ${accessToken}` }
+                  });
+                  if (userDetailsRes.ok) {
+                    const userDetails = await userDetailsRes.json();
+                    djangoUser = userDetails as DjangoUser;
+                    userId = userDetails.id.toString();
+                    console.log('Fetched Django user details:', userDetails);
+                  } else {
+                    console.error('Failed to fetch Django user details (status:', userDetailsRes.status, '):', await userDetailsRes.json());
+                  }
+                } catch (fetchErr) {
+                  console.error('Error fetching Django user details:', fetchErr);
+                }
+                console.log('Google token successfully converted to Django token. Access Token received.');
+              } else {
+                console.warn('Django token conversion successful but no access_token or refresh_token found:', djangoTokenData);
+              }
             } else {
-              console.error("Django social auth failed (status:", djangoSocialAuthRes.status, "):", data);
+              console.error('Django token conversion failed (Status:', res.status, '):', djangoTokenData);
             }
-          } catch (error) {
-            console.error("Error during Django social auth:", error);
+          } catch (err) {
+            console.error('Error during Django API social token conversion (network/unhandled exception):', err);
           }
         }
-
-        // Add custom properties to the JWT token
-        if (accessToken) token.accessToken = accessToken;
-        if (refreshToken) token.refreshToken = refreshToken; // Store refresh token in JWT
-        if (djangoUser) token.djangoUser = djangoUser;
-        if (userId) token.id = userId; // Set the user ID on the token
       }
+
+      // Add custom properties to the JWT token
+      if (accessToken) token.accessToken = accessToken;
+      if (refreshToken) token.refreshToken = refreshToken; // Store refresh token in JWT
+      if (djangoUser) token.djangoUser = djangoUser;
+      if (userId) token.id = userId; // Set the user ID on the token
+
       return token;
     },
     async session({ session, token }) {
@@ -180,3 +229,4 @@ export const authOptions: AuthOptions = {
   secret: NEXTAUTH_SECRET,
   debug: process.env.NODE_ENV === "development",
 };
+
