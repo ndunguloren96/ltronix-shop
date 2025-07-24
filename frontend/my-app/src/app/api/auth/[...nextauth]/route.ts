@@ -4,14 +4,27 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import apiClient from '@/lib/apiClient';
 import { JWT } from 'next-auth/jwt';
 
+interface RefreshTokenResponse {
+  access: string;
+  refresh?: string;
+}
+
+interface AuthResponse {
+  access_token: string;
+  refresh_token: string;
+  user: {
+    pk: string;
+    email: string;
+    first_name: string;
+  };
+}
+
 async function refreshAccessToken(token: JWT): Promise<JWT> {
   try {
-    const response = await apiClient('/auth/token/refresh/', {
+    const refreshedTokens = await apiClient<RefreshTokenResponse>('/auth/token/refresh/', {
       method: 'POST',
       body: JSON.stringify({ refresh: token.refreshToken }),
     });
-
-    const refreshedTokens = response;
 
     return {
       ...token,
@@ -45,7 +58,7 @@ const handler = NextAuth({
           return null;
         }
         try {
-          const response = await apiClient('/auth/login/', {
+          const user = await apiClient<AuthResponse>('/auth/login/', {
             method: 'POST',
             body: JSON.stringify({
               email: credentials.email,
@@ -53,7 +66,6 @@ const handler = NextAuth({
             }),
           });
 
-          const user = response;
           if (user && user.access_token) {
             return {
               id: user.user.pk,
@@ -75,7 +87,7 @@ const handler = NextAuth({
       if (account && user) {
         if (account.provider === 'google') {
           try {
-            const response = await apiClient(
+            const response = await apiClient<AuthResponse>(
               '/auth/google/',
               {
                 method: 'POST',
