@@ -1,13 +1,19 @@
 import NextAuth, { DefaultSession, DefaultUser } from "next-auth";
 import { JWT } from "next-auth/jwt";
 
+export interface DjangoUser {
+  pk: string;
+  email: string;
+  first_name: string;
+}
+
 declare module "next-auth" {
   interface Session {
     user: {
       id: string;
       accessToken?: string;
       error?: string;
-      djangoUser?: any; // Define the type more specifically if possible
+      djangoUser?: DjangoUser;
     } & DefaultSession["user"];
   }
 
@@ -24,10 +30,6 @@ declare module "next-auth/jwt" {
     refreshToken?: string;
     accessTokenExpires?: number;
     error?: string;
-    djangoUser?: {
-      pk: string;
-      email: string;
-      first_name: string;
-    };
+    djangoUser?: DjangoUser;
   }
 }
