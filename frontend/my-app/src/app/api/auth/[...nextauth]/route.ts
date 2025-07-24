@@ -6,11 +6,12 @@ import { JWT } from 'next-auth/jwt';
 
 async function refreshAccessToken(token: JWT): Promise<JWT> {
   try {
-    const response = await apiClient.post('/auth/token/refresh/', {
-      refresh: token.refreshToken,
+    const response = await apiClient('/auth/token/refresh/', {
+      method: 'POST',
+      body: JSON.stringify({ refresh: token.refreshToken }),
     });
 
-    const refreshedTokens = response.data;
+    const refreshedTokens = response;
 
     return {
       ...token,
@@ -44,12 +45,15 @@ const handler = NextAuth({
           return null;
         }
         try {
-          const response = await apiClient.post('/auth/login/', {
-            email: credentials.email,
-            password: credentials.password,
+          const response = await apiClient('/auth/login/', {
+            method: 'POST',
+            body: JSON.stringify({
+              email: credentials.email,
+              password: credentials.password,
+            }),
           });
 
-          const user = response.data;
+          const user = response;
           if (user && user.access_token) {
             return {
               id: user.user.pk,
@@ -71,18 +75,17 @@ const handler = NextAuth({
       if (account && user) {
         if (account.provider === 'google') {
           try {
-            const response = await apiClient.post(
+            const response = await apiClient(
               '/auth/google/',
               {
-                access_token: account.access_token,
-              },
-              {
+                method: 'POST',
+                body: JSON.stringify({ access_token: account.access_token }),
                 headers: {
                   'Content-Type': 'application/json',
                 },
               },
             );
-            const { access_token, refresh_token, user: apiUser } = response.data;
+            const { access_token, refresh_token, user: apiUser } = response;
             token.accessToken = access_token;
             token.refreshToken = refresh_token;
             token.id = apiUser.pk;
