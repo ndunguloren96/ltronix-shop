@@ -137,3 +137,4 @@ cython_debug/
 infra/terraform/*.tfvars
 .gemini.md
 GEMINI.md
+render.yaml
