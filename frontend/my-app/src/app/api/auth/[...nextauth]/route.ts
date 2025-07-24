@@ -1,7 +1,7 @@
 import NextAuth from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import { apiClient } from '@/lib/apiClient';
+import apiClient from '@/lib/apiClient';
 import { JWT } from 'next-auth/jwt';
 
 async function refreshAccessToken(token: JWT): Promise<JWT> {

@@ -44,10 +44,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       <Box maxW="sm" borderWidth="1px" borderRadius="lg" overflow="hidden" boxShadow="md" bg="white" cursor="pointer">
         <Box position="relative" height="200px" width="100%" display="block">
           {image_file ? ( // FIX: Use image_file here
-            <img
+            <Image
               src={image_file} // FIX: Use image_file here
               alt={name}
-              style={{ objectFit: 'cover', width: '100%', height: '100%' }} // Added inline styles for img
+              layout="fill"
+              objectFit="cover"
             />
           ) : (
             <Box height="200px" width="100%" bg="gray.200" display="flex" alignItems="center" justifyContent="center">
