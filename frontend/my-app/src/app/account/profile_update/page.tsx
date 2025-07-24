@@ -11,16 +11,7 @@ import Link from 'next/link';
 // Define your Django backend URL from environment variables
 const DJANGO_API_BASE_URL = process.env.NEXT_PUBLIC_DJANGO_API_URL || 'http://127.0.0.1:8000/api';
 
-interface UserProfile {
-  pk: number;
-  email: string;
-  first_name: string;
-  middle_name?: string;
-  last_name: string;
-  phone_number?: string;
-  gender?: string;
-  date_of_birth?: string;
-}
+import { DjangoUser } from '../../../types/next-auth';
 
 export default function ProfileUpdatePage() {
   const { data: session, status, update: updateSession } = useSession();
@@ -58,7 +49,7 @@ export default function ProfileUpdatePage() {
         // For this scenario, if `djangoUser` is stored in session, we can use that.
         // FIX APPLIED HERE: Access djangoUser via session.user
         if (session?.user?.djangoUser) {
-          const user = session.user.djangoUser as UserProfile;
+          const user = session.user.djangoUser as DjangoUser;
           setEmail(user.email || '');
           setFirstName(user.first_name || '');
           setMiddleName(user.middle_name || '');
@@ -86,7 +77,7 @@ export default function ProfileUpdatePage() {
         });
 
         if (res.ok) {
-          const data: UserProfile = await res.json();
+          const data: DjangoUser = await res.json();
           setEmail(data.email || '');
           setFirstName(data.first_name || '');
           setMiddleName(data.middle_name || '');
