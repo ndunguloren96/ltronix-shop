@@ -126,8 +126,8 @@ const handler = NextAuth({
     },
     async session({ session, token }) {
       session.user.id = token.id as string;
-      session.accessToken = token.accessToken as string;
-      session.error = token.error as string | undefined;
+      session.user.accessToken = token.accessToken as string;
+      session.user.error = token.error as string | undefined;
       return session;
     },
   },
