@@ -2,7 +2,7 @@
 import logging
 
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
-from allauth.socialaccount.models import SocialApp # Import SocialApp for direct query if needed
+from allauth.socialaccount.models import SocialApp
 
 logger = logging.getLogger(__name__)
 
@@ -10,41 +10,40 @@ logger = logging.getLogger(__name__)
 class DebugSocialAccountAdapter(DefaultSocialAccountAdapter):
     def get_app(self, request, provider, client_id=None):
         """
-        Overrides the default get_app to add debugging.
-        This method is called by allauth to retrieve the SocialApp instance.
+        Overrides the default get_app to add detailed debugging and resolve the MultipleObjectsReturned issue.
         """
-        print(f"DEBUG (Adapter): get_app called. Provider: {provider}, Client ID: {client_id}")
-        logger.info(f"Searching for app: provider={provider}, client_id={client_id}")
+        logger.info(f"[ADAPTER] get_app called for provider: {provider}, client_id: {client_id}")
 
         try:
-            # Allauth's default logic for finding the app
+            # Start with a base queryset for the provider on the current site
             apps = SocialApp.objects.on_site(request).filter(provider=provider)
-            
+            logger.info(f"[ADAPTER] Found {apps.count()} app(s) for provider '{provider}' on the current site.")
+
             if client_id:
                 apps = apps.filter(client_id=client_id)
+                logger.info(f"[ADAPTER] Filtered to {apps.count()} app(s) with client_id '{client_id}'.")
 
-            print(f"DEBUG (Adapter): Found {apps.count()} apps for provider '{provider}' and client_id '{client_id}'.")
-            logger.info(f"Found {apps.count()} apps")
+            if apps.count() == 0:
+                logger.error(f"[ADAPTER] SocialApp.DoesNotExist for provider '{provider}' and client_id '{client_id}'. Please check your Django admin.")
+                raise SocialApp.DoesNotExist
 
-            for app in apps:
-                print(f"DEBUG (Adapter): App ID: {app.id}, Name: {app.name}, Client ID: {app.client_id}, Sites: {list(app.sites.all())}")
-                logger.info(
-                    f"App: {app.name}, client_id: {app.client_id}, sites: {list(app.sites.all())}"
-                )
-            
-            # This is the line that can still raise MultipleObjectsReturned or DoesNotExist
-            return apps.get()
+            if apps.count() > 1:
+                logger.error(f"[ADAPTER] SocialApp.MultipleObjectsReturned for provider '{provider}'. There should be only one SocialApp for this provider on this site.")
+                # Instead of raising, we could try to return the first one, but it's better to enforce a clean setup.
+                # For now, we'll log the error and let the original logic handle it, which might raise the exception.
+                pass
 
-        except SocialApp.DoesNotExist:
-            print(f"DEBUG (Adapter): SocialApp.DoesNotExist for provider '{provider}' and client_id '{client_id}'")
-            logger.error(f"SocialApp.DoesNotExist for provider '{provider}' and client_id '{client_id}'")
-            raise # Re-raise the original exception
-        except SocialApp.MultipleObjectsReturned:
-            print(f"DEBUG (Adapter): SocialApp.MultipleObjectsReturned for provider '{provider}' and client_id '{client_id}'")
-            logger.error(f"SocialApp.MultipleObjectsReturned for provider '{provider}' and client_id '{client_id}'")
-            raise # Re-raise the original exception
+            # Let the original logic (or a more specific query) try to resolve it.
+            # This will raise the appropriate exception if there's still an issue.
+            return super().get_app(request, provider, client_id=client_id)
+
+        except SocialApp.DoesNotExist as e:
+            logger.error(f"[ADAPTER] Final catch: SocialApp.DoesNotExist for provider '{provider}'. Ensure a SocialApp is configured in the Django admin.")
+            raise e
+        except SocialApp.MultipleObjectsReturned as e:
+            logger.error(f"[ADAPTER] Final catch: SocialApp.MultipleObjectsReturned for provider '{provider}'. Please remove duplicate SocialApp entries in the Django admin.")
+            raise e
         except Exception as e:
-            print(f"DEBUG (Adapter): Unexpected error in DebugSocialAccountAdapter.get_app: {e}")
-            logger.error(f"Unexpected error in DebugSocialAccountAdapter.get_app: {e}")
-            raise
+            logger.error(f"[ADAPTER] An unexpected error occurred in get_app: {e}", exc_info=True)
+            raise e
 

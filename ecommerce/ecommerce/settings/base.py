@@ -51,7 +51,7 @@ INSTALLED_APPS = [
     "allauth",
     "allauth.account",
     "allauth.socialaccount",
-    "allauth.socialaccount.providers.google", # Keep Google provider for allauth
+    "allauth.socialaccount.providers.google",
     "oauth2_provider", # Keep if you're using Django OAuth Toolkit for your own API clients
     "rest_framework",
     "rest_framework.authtoken", # Keep if you use Django Token Authentication directly
@@ -80,7 +80,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "allauth.account.middleware.AccountMiddleware", # Keep for allauth
+    "allauth.account.middleware.AccountMiddleware",
 ]
 
 ROOT_URLCONF = "ecommerce.urls"
@@ -117,21 +117,20 @@ AUTH_PASSWORD_VALIDATORS = [
 
 AUTHENTICATION_BACKENDS = (
     "django.contrib.auth.backends.ModelBackend",
-    "allauth.account.auth_backends.AuthenticationBackend", # Keep for allauth
+    "allauth.account.auth_backends.AuthenticationBackend",
 )
 
 SITE_ID = 1
 
 # --- AllAuth specific settings ---
-# FIX: Use ACCOUNT_LOGIN_METHODS instead of ACCOUNT_AUTHENTICATION_METHOD
 ACCOUNT_LOGIN_METHODS = ["email"]
 ACCOUNT_USERNAME_REQUIRED = False
 ACCOUNT_EMAIL_REQUIRED = True
-# ACCOUNT_AUTHENTICATION_METHOD = "email" # Deprecated, replaced by ACCOUNT_LOGIN_METHODS
 ACCOUNT_UNIQUE_EMAIL = True
-ACCOUNT_EMAIL_VERIFICATION = "none" # or "mandatory" depending on your flow
-ACCOUNT_USER_MODEL_USERNAME_FIELD = None # Ensure this is None for email-only login
-ACCOUNT_SIGNUP_FIELDS = ["email", "password"] # Simplified to match default registration
+ACCOUNT_EMAIL_VERIFICATION = "none"
+ACCOUNT_USER_MODEL_USERNAME_FIELD = None
+ACCOUNT_SIGNUP_FIELDS = ["email", "password"]
+SOCIALACCOUNT_ADAPTER = 'users.adapters.DebugSocialAccountAdapter'
 
 
 
