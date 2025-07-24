@@ -5,7 +5,15 @@ export interface DjangoUser {
   pk: number;
   id: number;
   email: string;
-  first_name: string;
+  first_name?: string;
+  middle_name?: string;
+  last_name?: string;
+  phone_number?: string;
+  gender?: string;
+  date_of_birth?: string;
+  is_staff?: boolean;
+  is_active?: boolean;
+  date_joined?: string;
 }
 
 declare module "next-auth" {
