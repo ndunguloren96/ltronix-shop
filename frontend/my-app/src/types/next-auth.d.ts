@@ -2,7 +2,8 @@ import NextAuth, { DefaultSession, DefaultUser } from "next-auth";
 import { JWT } from "next-auth/jwt";
 
 export interface DjangoUser {
-  pk: string;
+  pk: number;
+  id: number;
   email: string;
   first_name: string;
 }
