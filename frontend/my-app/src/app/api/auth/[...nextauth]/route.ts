@@ -103,6 +103,7 @@ const handler = NextAuth({
             token.id = apiUser.pk;
             token.email = apiUser.email;
             token.name = apiUser.first_name;
+            token.djangoUser = apiUser;
           } catch (error) {
             console.error('Error converting Google token', error);
             return { ...token, error: 'GoogleTokenConversionError' };
@@ -128,6 +129,7 @@ const handler = NextAuth({
       session.user.id = token.id as string;
       session.user.accessToken = token.accessToken as string;
       session.user.error = token.error as string | undefined;
+      session.user.djangoUser = token.djangoUser as any; // Cast to any for now, will refine if needed
       return session;
     },
   },

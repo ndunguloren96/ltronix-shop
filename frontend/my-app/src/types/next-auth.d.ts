@@ -7,6 +7,7 @@ declare module "next-auth" {
       id: string;
       accessToken?: string;
       error?: string;
+      djangoUser?: any; // Define the type more specifically if possible
     } & DefaultSession["user"];
   }
 
@@ -23,5 +24,10 @@ declare module "next-auth/jwt" {
     refreshToken?: string;
     accessTokenExpires?: number;
     error?: string;
+    djangoUser?: {
+      pk: string;
+      email: string;
+      first_name: string;
+    };
   }
 }
