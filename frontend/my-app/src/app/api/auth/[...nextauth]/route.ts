@@ -3,6 +3,7 @@ import GoogleProvider from 'next-auth/providers/google';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import apiClient from '@/lib/apiClient';
 import { JWT } from 'next-auth/jwt';
+import { DjangoUser } from '@/types/next-auth';
 
 interface RefreshTokenResponse {
   access: string;
@@ -12,11 +13,7 @@ interface RefreshTokenResponse {
 interface AuthResponse {
   access_token: string;
   refresh_token: string;
-  user: {
-    pk: string;
-    email: string;
-    first_name: string;
-  };
+  user: DjangoUser;
 }
 
 async function refreshAccessToken(token: JWT): Promise<JWT> {
