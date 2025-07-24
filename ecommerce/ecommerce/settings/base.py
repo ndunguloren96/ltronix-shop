@@ -133,8 +133,7 @@ ACCOUNT_EMAIL_VERIFICATION = "none" # or "mandatory" depending on your flow
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None # Ensure this is None for email-only login
 ACCOUNT_SIGNUP_FIELDS = ["email", "password"] # Simplified to match default registration
 
-# FIX: Add this line to link your custom adapter
-SOCIALACCOUNT_ADAPTER = "users.serializers.CustomSocialAccountAdapter"
+
 
 
 # Redirect after login/logout (can be overridden by frontend)
