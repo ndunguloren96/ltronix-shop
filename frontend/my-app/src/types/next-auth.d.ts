@@ -21,6 +21,7 @@ declare module "next-auth" {
       id: string;
       accessToken?: string;
       error?: string;
+      refreshToken?: string;
       djangoUser?: DjangoUser;
     } & DefaultSession["user"];
   }
