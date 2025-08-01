@@ -74,6 +74,7 @@ export default function CheckoutPage() {
 
   const { isOpen, onOpen, onClose } = useDisclosure();
 
+  // Retrieve guestSessionKey from the Zustand store
   const guestSessionKey = useCartStore((state) => state.guestSessionKey);
   const clearLocalCart = useCartStore((state) => state.clearCart);
 
@@ -101,6 +102,9 @@ export default function CheckoutPage() {
     }
   }, [currentTransactionId]);
 
+  // Determine if the component is ready to fetch cart data.
+  const isReadyToFetch = authStatus !== 'loading' && (authStatus === 'authenticated' || (authStatus === 'unauthenticated' && !!guestSessionKey));
+
   // Fetch the current cart data
   const {
     data: cart,
@@ -110,15 +114,19 @@ export default function CheckoutPage() {
   } = useQuery<BackendCart | null, Error>({
     queryKey: ['cart', authStatus, guestSessionKey],
     queryFn: async () => {
+      // Add a debug log to see what the values are before fetching
+      console.log('Fetching cart with:', { authStatus, guestSessionKey });
+      
       if (authStatus === 'authenticated') {
         return fetchUserCart();
       }
       if (authStatus === 'unauthenticated' && guestSessionKey) {
         return fetchUserCart(guestSessionKey);
       }
+      // If not authenticated and no guest key, return null to show empty cart
       return null;
     },
-    enabled: authStatus !== 'loading' && (authStatus === 'authenticated' || (authStatus === 'unauthenticated' && !!guestSessionKey)),
+    enabled: isReadyToFetch,
     staleTime: 0,
     refetchOnWindowFocus: false,
   });
@@ -244,7 +252,6 @@ export default function CheckoutPage() {
         return;
       }
 
-      // Check if cart or its total is valid before proceeding
       if (!cart || !cart.id || parseFloat(cart.get_cart_total) <= 0) {
         toast({
           title: 'Cart Error',
@@ -297,24 +304,36 @@ export default function CheckoutPage() {
     }
   };
 
-  // Determine if the guest key is ready.
-  const isGuestKeyReady = authStatus === 'authenticated' || (authStatus === 'unauthenticated' && !!guestSessionKey);
+  const totalItems = cart?.get_cart_items || 0;
+  const totalAmount = parseFloat(cart?.get_cart_total || '0.00').toFixed(2);
 
-  // Initial loading state, now including the new check for guest key readiness.
-  if (authStatus === 'loading' || isLoadingCart || !isGuestKeyReady) {
+  // Use a more specific loading message based on the status
+  if (!isReadyToFetch) {
     return (
       <Center minH="80vh">
         <VStack spacing={4}>
           <Spinner size="xl" />
           <Text fontSize="xl">
-            {authStatus === 'loading' ? 'Authenticating...' : 'Loading your cart for checkout...'}
+            {authStatus === 'loading' ? 'Authenticating...' : 'Preparing your session...'}
           </Text>
         </VStack>
       </Center>
     );
   }
 
-  // Handle errors separately
+  if (isLoadingCart) {
+    return (
+      <Center minH="80vh">
+        <VStack spacing={4}>
+          <Spinner size="xl" />
+          <Text fontSize="xl">
+            Loading your cart for checkout...
+          </Text>
+        </VStack>
+      </Center>
+    );
+  }
+
   if (isErrorCart) {
     return (
       <Center minH="80vh">
@@ -336,12 +355,6 @@ export default function CheckoutPage() {
     );
   }
 
-  // Fallback for cart totals, ensuring they are always a number
-  const totalItems = cart?.get_cart_items || 0;
-  const totalAmount = parseFloat(cart?.get_cart_total || '0.00').toFixed(2);
-
-
-  // Check if the cart is genuinely empty AFTER the loading state is resolved.
   if (totalItems === 0) {
     return (
       <VStack spacing={4} textAlign="center" py={10} minH="80vh" justifyContent="center">
@@ -428,7 +441,6 @@ export default function CheckoutPage() {
             </Heading>
             <Divider mb={4} />
 
-            {/* FIX: Use optional chaining to safely access 'items' */}
             {cart?.items?.map((item) => (
               <HStack key={item.product.id} justifyContent="space-between" py={2} borderBottom="1px solid" borderColor="gray.100">
                 <HStack spacing={4} flex={1}>
