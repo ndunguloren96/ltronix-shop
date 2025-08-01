@@ -17,8 +17,15 @@ import {
   Alert,
   AlertIcon,
   AlertDescription,
+  FormControl,
+  FormLabel,
+  Input,
+  RadioGroup,
+  Radio,
+  Stack,
+  FormHelperText,
 } from '@chakra-ui/react';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
@@ -46,6 +53,11 @@ export default function CheckoutPage() {
   const getLocalTotalPrice = useCartStore((state) => state.getTotalPrice);
   const guestSessionKey = useCartStore((state) => state.guestSessionKey);
   const setGuestSessionKey = useCartStore((state) => state.setGuestSessionKey);
+
+  // --- New state for checkout form ---
+  const [shippingAddress, setShippingAddress] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('mpesa');
+  const [phoneNumber, setPhoneNumber] = useState('');
 
   // Determine the session key to use for API calls
   const currentSessionKey = status === 'unauthenticated' ? guestSessionKey : null;
@@ -143,16 +155,38 @@ export default function CheckoutPage() {
       return;
     }
 
-    // Assuming you have a form or state to capture shipping details and other info
-    // For this example, we'll use placeholder data.
+    // Validation for user input
+    if (!shippingAddress) {
+      toast({
+        title: 'Shipping Address Required',
+        description: 'Please enter a shipping address to proceed.',
+        status: 'warning',
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    if (paymentMethod === 'mpesa' && !phoneNumber) {
+      toast({
+        title: 'Phone Number Required',
+        description: 'Please enter your M-Pesa phone number.',
+        status: 'warning',
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    // Construct the order data from the form state
     const orderData: CreateOrderRequest = {
-      // You'll need to fill this out with actual data from a form
-      shipping_address: '123 E-commerce St, Nairobi, Kenya',
-      payment_method: 'Card',
+      shipping_address: shippingAddress,
+      payment_method: paymentMethod,
       items: localCartItems.map(item => ({
         product_id: item.id,
         quantity: item.quantity,
-      }))
+      })),
+      phone_number: paymentMethod === 'mpesa' ? phoneNumber : undefined,
     };
 
     checkoutMutation.mutate(orderData);
@@ -209,9 +243,49 @@ export default function CheckoutPage() {
 
       {itemsToRender.length > 0 && (
         <Flex direction={{ base: 'column', lg: 'row' }} gap={10}>
-          {/* Order Summary & Items Section */}
+          {/* Checkout Form Section */}
           <VStack spacing={6} align="stretch" flex={2}>
-            <Heading as="h2" size="lg" mb={2}>Order Summary</Heading>
+            <Heading as="h2" size="lg" mb={2}>Shipping & Payment</Heading>
+            <Box p={6} borderWidth="1px" borderRadius="lg" boxShadow="sm" bg="white">
+              <FormControl id="shipping-address" mb={6}>
+                <FormLabel fontWeight="bold">Shipping Address</FormLabel>
+                <Input
+                  placeholder="Enter your full shipping address"
+                  value={shippingAddress}
+                  onChange={(e) => setShippingAddress(e.target.value)}
+                />
+              </FormControl>
+
+              <FormControl id="payment-method">
+                <FormLabel fontWeight="bold">Payment Method</FormLabel>
+                <RadioGroup onChange={setPaymentMethod} value={paymentMethod}>
+                  <Stack direction="row">
+                    <Radio value="card" isDisabled>
+                      Card (Coming Soon)
+                    </Radio>
+                    <Radio value="mpesa">
+                      M-Pesa
+                    </Radio>
+                  </Stack>
+                </RadioGroup>
+              </FormControl>
+
+              {paymentMethod === 'mpesa' && (
+                <FormControl id="mpesa-phone" mt={4}>
+                  <FormLabel>M-Pesa Phone Number</FormLabel>
+                  <Input
+                    type="tel"
+                    placeholder="e.g., 254712345678"
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                  />
+                  <FormHelperText>
+                    A STK Push will be sent to this number.
+                  </FormHelperText>
+                </FormControl>
+              )}
+            </Box>
+            <Heading as="h2" size="lg" mb={2}>Order Items</Heading>
             <Box
               p={6}
               borderWidth="1px"
@@ -223,9 +297,9 @@ export default function CheckoutPage() {
                 <HStack key={item.id} justifyContent="space-between" alignItems="center" py={4} borderBottom="1px solid" borderColor="gray.100">
                   <HStack spacing={4} flex={1}>
                     {/* Product Image */}
-                    {item.image_file && ( // FIXED: changed `item.product.image` to `item.image_file`
+                    {item.image_file && (
                       <Image
-                        src={item.image_file} // FIXED: changed `item.product.image` to `item.image_file`
+                        src={item.image_file}
                         alt={item.name}
                         boxSize="80px"
                         objectFit="contain"
@@ -307,3 +381,4 @@ export default function CheckoutPage() {
     </Box>
   );
 }
+
