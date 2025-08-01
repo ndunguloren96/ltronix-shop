@@ -1,7 +1,7 @@
 //src/app/checkout/page.tsx
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Heading,
@@ -13,6 +13,7 @@ import {
   Input,
   InputGroup,
   InputLeftAddon,
+  InputLeftElement, // For adding an icon/image inside input
   Spinner,
   Center,
   useToast,
@@ -29,29 +30,38 @@ import {
   ModalFooter,
   useDisclosure,
   Flex,
+  Image, // Import Image for M-Pesa logo
+  RadioGroup,
+  Stack,
+  Radio,
+  Collapse,
 } from '@chakra-ui/react';
-import { useQuery, useMutation, useQueryClient, UseQueryOptions } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link'; // For Next.js Link
 
-// FIX: Import cart and M-Pesa related functions from '@/api/cart'
 import {
-  fetchUserCart, // Renamed from fetchCartAPI to fetchUserCart
+  fetchUserCart,
   initiateStkPushAPI,
   fetchTransactionStatusAPI,
-} from '@/api/cart';
+} from '@/api/cart'; // Assuming these functions are in '@/api/cart' or a suitable location
 
-// FIX: Import types from src/types/order.ts
 import {
-  BackendCart, // Use BackendCart alias
+  BackendCart,
   BackendTransaction,
-} from '@/types/order';
+} from '@/types/order'; // Assuming these types are correctly defined
 
 import { useCartStore } from '@/store/useCartStore';
 
+// Static assets
+import MpesaLogo from '../../../../public/mpesa_logo.png'; // Adjust path if necessary
+import KenyaFlag from '../../../../public/kenya_flag.png'; // Adjust path if necessary
+
 const POLLING_INTERVAL_MS = 3000; // Poll every 3 seconds
 const POLLING_TIMEOUT_MS = 120 * 1000; // Stop polling after 120 seconds (2 minutes)
+const PAYMENT_CHOICE_KEY = 'preferredPaymentMethod';
+const MPESA_PHONE_NUMBER_KEY = 'mpesaPhoneNumber';
 
 export default function CheckoutPage() {
   const toast = useToast();
@@ -63,11 +73,24 @@ export default function CheckoutPage() {
 
   const guestSessionKey = useCartStore((state) => state.guestSessionKey);
   const setGuestSessionKey = useCartStore((state) => state.setGuestSessionKey);
-  const clearLocalCart = useCartStore((state) => state.clearCart); // New action to clear local cart state
+  const clearLocalCart = useCartStore((state) => state.clearCart);
 
   const [mpesaPhoneNumber, setMpesaPhoneNumber] = useState('');
   const [currentTransactionId, setCurrentTransactionId] = useState<number | null>(null);
   const [pollingAttempts, setPollingAttempts] = useState(0);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | null>(null);
+
+  // Effect to load saved payment method and phone number
+  useEffect(() => {
+    const savedMethod = localStorage.getItem(PAYMENT_CHOICE_KEY);
+    if (savedMethod) {
+      setSelectedPaymentMethod(savedMethod);
+    }
+    const savedPhoneNumber = localStorage.getItem(MPESA_PHONE_NUMBER_KEY);
+    if (savedPhoneNumber) {
+      setMpesaPhoneNumber(savedPhoneNumber);
+    }
+  }, []);
 
   // Effect to reset polling attempts when a new transaction is initiated
   useEffect(() => {
@@ -82,31 +105,29 @@ export default function CheckoutPage() {
     isLoading: isLoadingCart,
     isError: isErrorCart,
     error: cartError,
-  } = useQuery<BackendCart | null, Error>({ // Use BackendCart here
+  } = useQuery<BackendCart | null, Error>({
     queryKey: ['cart', authStatus, guestSessionKey],
     queryFn: async () => {
-      // Only fetch if authenticated or if unauthenticated but has a guest session key
       if (authStatus === 'authenticated') {
         return fetchUserCart();
       }
       if (authStatus === 'unauthenticated' && guestSessionKey) {
         return fetchUserCart(guestSessionKey);
       }
-      // If conditions are not met, return null to indicate no active cart
       return null;
     },
-    // `enabled` ensures the query only runs when conditions are met
     enabled: authStatus !== 'loading' && (authStatus === 'authenticated' || (authStatus === 'unauthenticated' && !!guestSessionKey)),
-    staleTime: 0, // Always refetch cart data when this query becomes active
-    refetchOnWindowFocus: false, // Don't refetch on window focus to manage polling manually
+    staleTime: 0,
+    refetchOnWindowFocus: false,
   });
 
   // Mutation for initiating STK Push
   const initiateStkPushMutation = useMutation<BackendTransaction, Error, { orderId: number; phoneNumber: string }>({
-    mutationFn: (payload) => initiateStkPushAPI(payload, guestSessionKey), // Pass guestSessionKey to the API function
+    mutationFn: (payload) => initiateStkPushAPI(payload, guestSessionKey),
     onSuccess: (data) => {
       setCurrentTransactionId(data.id);
       onOpen(); // Open the payment modal
+      localStorage.setItem(MPESA_PHONE_NUMBER_KEY, mpesaPhoneNumber); // Remember phone number
       toast({
         title: 'STK Push Initiated',
         description: 'Please enter your M-Pesa PIN on your phone to complete the payment.',
@@ -133,15 +154,13 @@ export default function CheckoutPage() {
     queryKey: ['transactionStatus', currentTransactionId],
     queryFn: async () => {
       if (currentTransactionId) {
-        return fetchTransactionStatusAPI(currentTransactionId, guestSessionKey); // Pass guestSessionKey
+        return fetchTransactionStatusAPI(currentTransactionId, guestSessionKey);
       }
-      return null; // Return null if no transaction ID is set
+      return null;
     },
-    // Query is only enabled if a transaction ID exists and the modal is open
     enabled: !!currentTransactionId && isOpen,
-    refetchInterval: POLLING_INTERVAL_MS, // Keep polling every X milliseconds
+    refetchInterval: POLLING_INTERVAL_MS,
     retry: (_failureCount: number, error: Error) => {
-      // Check for overall polling timeout
       if (pollingAttempts * POLLING_INTERVAL_MS >= POLLING_TIMEOUT_MS) {
         console.warn("Polling timed out for transaction:", currentTransactionId);
         toast({
@@ -152,18 +171,16 @@ export default function CheckoutPage() {
           isClosable: true,
           position: 'top-right',
         });
-        queryClient.invalidateQueries({ queryKey: ['cart'] }); // Invalidate cart to re-fetch its status
-        setCurrentTransactionId(null); // Stop polling by disabling query
-        onClose(); // Close modal
-        return false; // Do not retry further
+        queryClient.invalidateQueries({ queryKey: ['cart'] });
+        setCurrentTransactionId(null);
+        onClose();
+        return false;
       }
 
       setPollingAttempts(prev => prev + 1);
-      return true; // Continue retrying on error (e.g., network issues)
+      return true;
     },
     onSuccess: (data: BackendTransaction | null) => {
-      // This `data` is the successfully fetched `BackendTransaction | null`.
-      // We can now safely check its status if it's not null.
       if (data && ['COMPLETED', 'FAILED', 'CANCELLED', 'TIMEOUT'].includes(data.status)) {
         toast({
           title: `Payment ${data.status.replace('_', ' ')}`,
@@ -174,34 +191,41 @@ export default function CheckoutPage() {
           position: 'top-right',
         });
         if (data.status === 'COMPLETED') {
-          clearLocalCart(); // Clear local cart state
-          queryClient.invalidateQueries({ queryKey: ['cart'] }); // Invalidate cart to ensure it's empty on next fetch
-          queryClient.invalidateQueries({ queryKey: ['orders'] }); // Invalidate orders history to show new order
-          router.push('/account/orders'); // Redirect to order history
+          clearLocalCart();
+          queryClient.invalidateQueries({ queryKey: ['cart'] });
+          queryClient.invalidateQueries({ queryKey: ['orders'] });
+          router.push('/account/orders');
         } else {
-          queryClient.invalidateQueries({ queryKey: ['cart'] }); // Invalidate cart to re-fetch if payment failed
+          queryClient.invalidateQueries({ queryKey: ['cart'] });
         }
-        setCurrentTransactionId(null); // Stop polling by setting transaction ID to null
-        onClose(); // Close modal
+        setCurrentTransactionId(null);
+        onClose();
       }
-      // If data is null or its status is not one of the final states, polling continues due to refetchInterval.
     },
     onError: (error: Error) => {
       console.error("Polling Transaction Status Error:", error);
-      // This onError will fire if `fetchTransactionStatusAPI` consistently fails (after retries)
-      // or if an unretriable error occurs.
-      // A specific toast for a final polling error could go here if desired, but general errors are handled by retry.
     }
   };
 
   const { data: transactionStatus, isLoading: isLoadingTransactionStatus } = useQuery(transactionStatusQueryOptions);
 
+  const handleMpesaPhoneNumberChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value.replace(/\s/g, ''); // Remove spaces
+    // Allow only digits
+    value = value.replace(/\D/g, '');
+
+    // Auto-correct 07x to 7x or 01x to 1x if 10 digits
+    if (value.startsWith('0') && value.length === 10) {
+      value = value.substring(1); // Remove the leading '0'
+    }
+    setMpesaPhoneNumber(value);
+  }, []);
 
   const handleInitiatePayment = async () => {
-    if (!mpesaPhoneNumber) {
+    if (!selectedPaymentMethod) {
       toast({
-        title: 'Phone Number Required',
-        description: 'Please enter your M-Pesa phone number.',
+        title: 'Payment Method Required',
+        description: 'Please select your preferred payment method.',
         status: 'warning',
         duration: 3000,
         isClosable: true,
@@ -209,63 +233,71 @@ export default function CheckoutPage() {
       return;
     }
 
-    // Ensure cart is valid before proceeding
-    if (!cart || !cart.id || parseFloat(cart.get_cart_total) <= 0) {
-      toast({
-        title: 'Cart Error',
-        description: 'Your cart is empty or could not be loaded for payment.',
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      });
-      return;
-    }
-
-    // Robust Kenyan M-Pesa phone number validation
-    const cleanedPhoneNumber = mpesaPhoneNumber.replace(/\s/g, ''); // Use 'const' as it's not reassigned
-    let formattedPhoneNumber = cleanedPhoneNumber;
-
-    // Convert 07/01 to 2547/2541
-    if (cleanedPhoneNumber.startsWith('0') && cleanedPhoneNumber.length === 10) {
-        formattedPhoneNumber = '254' + cleanedPhoneNumber.substring(1);
-    }
-
-    // Basic regex for 2547XXXXXXXX or 2541XXXXXXXX
-    const kenyanPhoneRegex = /^254(7|1)\d{8}$/;
-
-    if (!kenyanPhoneRegex.test(formattedPhoneNumber)) {
+    if (selectedPaymentMethod === 'mpesa') {
+      if (!mpesaPhoneNumber) {
         toast({
-            title: 'Invalid Phone Number',
-            description: 'Please enter a valid Kenyan M-Pesa number (e.g., 07xxxxxxxx or 2547xxxxxxxx).',
-            status: 'error',
-            duration: 5000,
-            isClosable: true,
+          title: 'Phone Number Required',
+          description: 'Please enter your M-Pesa phone number.',
+          status: 'warning',
+          duration: 3000,
+          isClosable: true,
         });
         return;
-    }
+      }
 
-    initiateStkPushMutation.mutate({
-      orderId: cart.id,
-      phoneNumber: formattedPhoneNumber,
-    });
+      if (!cart || !cart.id || parseFloat(cart.get_cart_total) <= 0) {
+        toast({
+          title: 'Cart Error',
+          description: 'Your cart is empty or could not be loaded for payment.',
+          status: 'error',
+          duration: 3000,
+          isClosable: true,
+        });
+        return;
+      }
+
+      // Final validation and formatting for M-Pesa
+      let formattedPhoneNumber = mpesaPhoneNumber;
+
+      // Ensure it starts with 254 and is 12 digits long
+      if (!formattedPhoneNumber.startsWith('254') && (formattedPhoneNumber.startsWith('7') || formattedPhoneNumber.startsWith('1')) && formattedPhoneNumber.length === 9) {
+        formattedPhoneNumber = '254' + formattedPhoneNumber;
+      }
+
+      // Basic regex for 2547XXXXXXXX or 2541XXXXXXXX
+      const kenyanPhoneRegex = /^254(7|1)\d{8}$/;
+
+      if (!kenyanPhoneRegex.test(formattedPhoneNumber)) {
+        toast({
+          title: 'Invalid Phone Number',
+          description: 'Please enter a valid Kenyan M-Pesa number (e.g., 07xxxxxxxx or 2547xxxxxxxx).',
+          status: 'error',
+          duration: 5000,
+          isClosable: true,
+        });
+        return;
+      }
+
+      initiateStkPushMutation.mutate({
+        orderId: cart.id,
+        phoneNumber: formattedPhoneNumber,
+      });
+    }
+    // Add logic for other payment methods here in the future
   };
 
   const handleModalClose = () => {
-    // Only allow closing the modal if polling is not active
-    // OR if a final transaction status has been reached.
-    // The `transactionStatus?.status || ''` provides a default empty string
-    // so `includes` works safely even if transactionStatus is null/undefined.
     if (!isLoadingTransactionStatus && (!transactionStatus || ['COMPLETED', 'FAILED', 'CANCELLED', 'TIMEOUT'].includes(transactionStatus.status || ''))) {
       onClose();
-      setCurrentTransactionId(null); // Ensure polling stops when modal is manually closed after completion/failure
+      setCurrentTransactionId(null);
     } else {
-        toast({
-            title: 'Payment in Progress',
-            description: 'Please wait for the payment to complete or check your phone. The modal will close automatically.',
-            status: 'info',
-            duration: 4000,
-            isClosable: true,
-        });
+      toast({
+        title: 'Payment in Progress',
+        description: 'Please wait for the payment to complete or check your phone. The modal will close automatically.',
+        status: 'info',
+        duration: 4000,
+        isClosable: true,
+      });
     }
   };
 
@@ -361,22 +393,60 @@ export default function CheckoutPage() {
         <Heading as="h2" size="md" mt={4} mb={2}>
           Payment Method
         </Heading>
-        <Text fontSize="md" color="gray.600">
-          We currently only support M-Pesa.
-        </Text>
+        {/* Payment Method Selection */}
+        <RadioGroup
+          onChange={(nextValue) => {
+            setSelectedPaymentMethod(nextValue);
+            localStorage.setItem(PAYMENT_CHOICE_KEY, nextValue); // Remember choice
+          }}
+          value={selectedPaymentMethod || ''} // Handle null initial state
+        >
+          <Stack direction="column" spacing={3}>
+            <Radio value="mpesa">
+              <HStack>
+                <Image src={MpesaLogo.src} alt="M-Pesa Logo" boxSize="30px" objectFit="contain" />
+                <Text fontWeight="medium">M-Pesa (Safaricom)</Text>
+              </HStack>
+            </Radio>
+            {/* Future payment methods can be added here */}
+            {/*
+            <Radio value="paypal" isDisabled>
+              <HStack>
+                <Image src="/path/to/paypal_logo.png" alt="PayPal Logo" boxSize="30px" objectFit="contain" />
+                <Text fontWeight="medium">PayPal (Coming Soon)</Text>
+              </HStack>
+            </Radio>
+            */}
+          </Stack>
+        </RadioGroup>
 
-        <InputGroup size="lg">
-          <InputLeftAddon children="+254" />
-          <Input
-            type="tel"
-            placeholder="7XXXXXXXXX or 1XXXXXXXXX"
-            value={mpesaPhoneNumber}
-            onChange={(e) => setMpesaPhoneNumber(e.target.value)}
-            maxLength={10} // Max 10 digits for the suffix (e.g., 7xxxxxxxx)
-            required
-            isDisabled={initiateStkPushMutation.isPending}
-          />
-        </InputGroup>
+        {/* M-Pesa Specific Inputs - Collapsible */}
+        <Collapse in={selectedPaymentMethod === 'mpesa'} animateOpacity>
+          <VStack mt={4} spacing={4} p={4} borderWidth="1px" borderRadius="md" bg="gray.50">
+            <Text fontSize="md" color="gray.700" width="full" textAlign="left">
+              Enter your M-Pesa phone number:
+            </Text>
+            <InputGroup size="lg">
+              <InputLeftElement pointerEvents="none" width="5rem"> {/* Adjust width as needed */}
+                <HStack spacing={1} pl={2}>
+                  <Image src={KenyaFlag.src} alt="Kenya Flag" boxSize="20px" borderRadius="sm" />
+                  <Text fontWeight="bold" color="gray.600">+254</Text>
+                </HStack>
+              </InputLeftElement>
+              <Input
+                type="tel"
+                placeholder="7XXXXXXXXX or 1XXXXXXXXX"
+                value={mpesaPhoneNumber}
+                onChange={handleMpesaPhoneNumberChange}
+                maxLength={9} // Max 9 digits for the suffix (e.g., 7xxxxxxxx)
+                required
+                isDisabled={initiateStkPushMutation.isPending}
+                pl="5rem" // Padding to make space for the InputLeftElement
+                pattern="[7-9]{1}[0-9]{8}" // Basic client-side pattern for 7xxxxxxxx or 1xxxxxxxx
+              />
+            </InputGroup>
+          </VStack>
+        </Collapse>
 
         <Button
           colorScheme="brand"
@@ -384,10 +454,17 @@ export default function CheckoutPage() {
           width="full"
           onClick={handleInitiatePayment}
           isLoading={initiateStkPushMutation.isPending}
-          isDisabled={initiateStkPushMutation.isPending || !mpesaPhoneNumber || parseFloat(cart.get_cart_total) <= 0}
+          isDisabled={
+            initiateStkPushMutation.isPending ||
+            !selectedPaymentMethod ||
+            (selectedPaymentMethod === 'mpesa' && !mpesaPhoneNumber) ||
+            parseFloat(cart.get_cart_total) <= 0
+          }
           mt={4}
         >
-          {initiateStkPushMutation.isPending ? 'Initiating STK Push...' : 'Pay with M-Pesa'}
+          {initiateStkPushMutation.isPending
+            ? 'Initiating STK Push...'
+            : (selectedPaymentMethod === 'mpesa' ? 'Pay with M-Pesa' : 'Place Order')}
         </Button>
       </VStack>
 
@@ -438,4 +515,3 @@ export default function CheckoutPage() {
     </Box>
   );
 }
-

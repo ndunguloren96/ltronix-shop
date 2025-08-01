@@ -9,10 +9,9 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django_daraja.mpesa.core import MpesaClient
 from rest_framework import permissions, status
-from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from store.models import Order
+from store.models import Order, Customer # Import Customer model
 from emails.services import send_payment_receipt
 
 from .models import Transaction
@@ -22,11 +21,13 @@ logger = logging.getLogger(__name__)
 
 
 class MpesaStkPushAPIView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    # Allow unauthenticated users for guest checkout, but also authenticated users
+    permission_classes = [permissions.AllowAny]
 
     def post(self, request):
         phone_number = request.data.get("phone_number")
         order_id = request.data.get("order_id")
+        guest_session_key = request.headers.get("X-Session-Key") # Get session key from headers
 
         if not phone_number or not order_id:
             return Response(
@@ -43,15 +44,30 @@ class MpesaStkPushAPIView(APIView):
             )
 
         try:
-            order = get_object_or_404(Order, id=order_id, complete=False)
-            if order.customer and order.customer.user != request.user:
+            # Determine how to fetch the order based on authentication status
+            if request.user.is_authenticated:
+                order = get_object_or_404(Order, id=order_id, customer__user=request.user, complete=False)
+                logger.info(f"Authenticated user {request.user.email} initiating STK Push for order {order_id}")
+            elif guest_session_key:
+                # For guest users, associate the order with the session_key
+                order = get_object_or_404(Order, id=order_id, session_key=guest_session_key, complete=False)
+                logger.info(f"Guest user (session_key: {guest_session_key[:8]}...) initiating STK Push for order {order_id}")
+            else:
                 return Response(
-                    {"detail": "You do not have permission to checkout this order."},
-                    status=status.HTTP_403_FORBIDDEN,
+                    {"detail": "Authentication required or missing guest session key."},
+                    status=status.HTTP_401_UNAUTHORIZED,
                 )
+            
+            # Ensure the customer for the order exists and has an email for potential receipt sending
+            if not order.customer:
+                # This case should ideally not happen if cart creation ensures a customer (even an anonymous one)
+                # is linked. However, as a safeguard, try to link an anonymous customer or return error.
+                # For now, let's assume order.customer always exists.
+                pass 
+
         except Order.DoesNotExist:
             return Response(
-                {"detail": "Active order not found."}, status=status.HTTP_404_NOT_FOUND
+                {"detail": "Active order not found for this user/session."}, status=status.HTTP_404_NOT_FOUND
             )
 
         amount_to_pay = int(order.get_cart_total)
@@ -62,6 +78,7 @@ class MpesaStkPushAPIView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        # Check for existing PENDING transaction for this order
         existing_transaction = Transaction.objects.filter(
             order=order, status="PENDING"
         ).first()
@@ -195,8 +212,10 @@ class MpesaConfirmationAPIView(APIView):
                 )
 
             try:
+                # Use select_related to get the order and customer in one query for email sending
                 transaction = get_object_or_404(
-                    Transaction, merchant_request_id=merchant_request_id
+                    Transaction.objects.select_related('order__customer__user'),
+                    merchant_request_id=merchant_request_id
                 )
 
                 if transaction.is_callback_received:
@@ -217,26 +236,31 @@ class MpesaConfirmationAPIView(APIView):
                     logger.info(
                         f"Transaction {transaction.id} COMPLETED. Receipt: {mpesa_receipt_number}"
                     )
+                    
                     # Send payment receipt email
-                    recipient_email = transaction.order.customer.email or (
-                        transaction.order.customer.user.email
-                        if transaction.order.customer.user
-                        else None
-                    )
+                    recipient_email = None
+                    if transaction.order and transaction.order.customer:
+                        if transaction.order.customer.user:
+                            recipient_email = transaction.order.customer.user.email
+                        else: # Guest customer associated directly with email
+                            recipient_email = transaction.order.customer.email
+
                     if recipient_email:
                         send_payment_receipt(recipient_email, {
-                            'id': transaction.order.id,
+                            'order_id': transaction.order.id, # Changed from 'id' to 'order_id' for clarity in template
                             'customer_name': transaction.order.customer.name if transaction.order.customer else 'Guest',
-                            'get_cart_total': str(transaction.order.get_cart_total),
+                            'amount_paid': str(transaction.amount), # Use transaction amount
+                            'mpesa_receipt_number': mpesa_receipt_number,
+                            'transaction_date': transaction.created_at.strftime("%Y-%m-%d %H:%M:%S"), # Format date
                             'items': [{
                                 'product_name': item.product.name,
                                 'quantity': item.quantity,
                                 'get_total': str(item.get_total)
                             } for item in transaction.order.orderitem_set.all()]
                         })
-                    logger.info(
-                        f"Payment receipt email sent to {recipient_email} for order {transaction.order.id}"
-                    )
+                        logger.info(
+                            f"Payment receipt email sent to {recipient_email} for order {transaction.order.id}"
+                        )
                 else:
                     if result_code == 1032:
                         transaction.mark_cancelled(
@@ -292,11 +316,13 @@ class MpesaConfirmationAPIView(APIView):
 
 
 class MpesaPaymentStatusAPIView(APIView):
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    # Allow unauthenticated users to check status by transaction ID or checkout request ID
+    permission_classes = [permissions.AllowAny] 
 
     def get(self, request):
         transaction_id = request.query_params.get("transaction_id")
         checkout_request_id = request.query_params.get("checkout_request_id")
+        guest_session_key = request.headers.get("X-Session-Key")
 
         if not transaction_id and not checkout_request_id:
             return Response(
@@ -305,19 +331,23 @@ class MpesaPaymentStatusAPIView(APIView):
             )
 
         try:
-            if transaction_id:
-                transaction = get_object_or_404(Transaction, id=transaction_id)
-            elif checkout_request_id:
-                transaction = get_object_or_404(
-                    Transaction, checkout_request_id=checkout_request_id
-                )
+            transaction_query = Transaction.objects.all()
 
-            if (
-                request.user.is_authenticated
-                and transaction.order
-                and transaction.order.customer
-                and transaction.order.customer.user != request.user
-            ):
+            if transaction_id:
+                transaction_query = transaction_query.filter(id=transaction_id)
+            elif checkout_request_id:
+                transaction_query = transaction_query.filter(checkout_request_id=checkout_request_id)
+            
+            transaction = get_object_or_404(transaction_query)
+
+            # Permission check: ensure the user/session owns the transaction's order
+            is_owner = False
+            if request.user.is_authenticated and transaction.order and transaction.order.customer and transaction.order.customer.user == request.user:
+                is_owner = True
+            elif guest_session_key and transaction.order and transaction.order.session_key == guest_session_key:
+                is_owner = True
+            
+            if not is_owner:
                 return Response(
                     {"detail": "You do not have permission to view this transaction."},
                     status=status.HTTP_403_FORBIDDEN,
