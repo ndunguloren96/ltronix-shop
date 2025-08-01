@@ -244,6 +244,7 @@ export default function CheckoutPage() {
         return;
       }
 
+      // Check if cart or its total is valid before proceeding
       if (!cart || !cart.id || parseFloat(cart.get_cart_total) <= 0) {
         toast({
           title: 'Cart Error',
@@ -330,7 +331,12 @@ export default function CheckoutPage() {
     );
   }
 
-  if (!cart || cart.get_cart_items === 0) {
+  // Fallback for cart totals, ensuring they are always a number
+  const totalItems = cart?.get_cart_items || 0;
+  const totalAmount = parseFloat(cart?.get_cart_total || '0.00').toFixed(2);
+
+
+  if (!cart || totalItems === 0) {
     return (
       <VStack spacing={4} textAlign="center" py={10} minH="80vh" justifyContent="center">
         <Text fontSize="xl" color="gray.600">
@@ -464,8 +470,8 @@ export default function CheckoutPage() {
           <Divider mb={4} />
 
           <Flex justifyContent="space-between" mb={2}>
-            <Text>Total Items ({cart.get_cart_items})</Text>
-            <Text fontWeight="semibold">{cart.get_cart_items}</Text>
+            <Text>Total Items ({totalItems})</Text>
+            <Text fontWeight="semibold">{totalItems}</Text>
           </Flex>
 
           <Divider my={4} />
@@ -475,7 +481,7 @@ export default function CheckoutPage() {
               Amount Due:
             </Text>
             <Text fontSize="xl" fontWeight="bold" color="brand.600">
-              Ksh {parseFloat(cart.get_cart_total).toFixed(2)}
+              Ksh {totalAmount}
             </Text>
           </Flex>
 
@@ -489,7 +495,7 @@ export default function CheckoutPage() {
               initiateStkPushMutation.isPending ||
               !selectedPaymentMethod ||
               (selectedPaymentMethod === 'mpesa' && !mpesaPhoneNumber) ||
-              parseFloat(cart.get_cart_total) <= 0
+              parseFloat(cart?.get_cart_total || '0.00') <= 0
             }
           >
             {initiateStkPushMutation.isPending
