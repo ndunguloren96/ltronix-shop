@@ -18,7 +18,7 @@ interface CardProps {
 const FeatureCard: React.FC<CardProps> = ({ icon: Icon, title, description, href, isExternal = false }) => {
   return (
     // The Link component is used here to make the entire card clickable.
-    // The duplicate _hover prop has been fixed by combining them into one object.
+    // The 'isTruncated' prop has been removed to allow the text to wrap.
     <Link
       href={href}
       isExternal={isExternal}
@@ -26,11 +26,10 @@ const FeatureCard: React.FC<CardProps> = ({ icon: Icon, title, description, href
       rounded="lg"
       transition="all 0.2s ease-in-out"
       _hover={{
-        textDecoration: 'none', // Remove the underline on hover
-        transform: 'scale(1.02)', // Scale up slightly for a subtle hover effect
-        boxShadow: 'xl', // Increase the shadow on hover
+        textDecoration: 'none',
+        transform: 'scale(1.02)',
+        boxShadow: 'xl',
       }}
-      isTruncated
     >
       <Box p={6} bg="white" rounded="lg" h="100%">
         <VStack spacing={4} align="center" textAlign="center">
