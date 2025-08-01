@@ -3,6 +3,7 @@ import logging
 
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 from allauth.socialaccount.models import SocialApp
+from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist # Import ObjectDoesNotExist
 
 logger = logging.getLogger(__name__)
 
@@ -25,25 +26,33 @@ class DebugSocialAccountAdapter(DefaultSocialAccountAdapter):
 
             if apps.count() == 0:
                 logger.error(f"[ADAPTER] SocialApp.DoesNotExist for provider '{provider}' and client_id '{client_id}'. Please check your Django admin.")
-                raise SocialApp.DoesNotExist
+                raise SocialApp.DoesNotExist # Or ObjectDoesNotExist for clarity with allauth
 
             if apps.count() > 1:
-                logger.error(f"[ADAPTER] SocialApp.MultipleObjectsReturned for provider '{provider}'. There should be only one SocialApp for this provider on this site.")
-                # Instead of raising, we could try to return the first one, but it's better to enforce a clean setup.
-                # For now, we'll log the error and let the original logic handle it, which might raise the exception.
-                pass
+                # If multiple apps are found even after site and provider filtering,
+                # it's still an issue that needs to be addressed in the admin.
+                # But for the purpose of getting one, we can return the first,
+                # or raise the error more definitively from here.
+                # Given allauth expects unique, raising here is better than silently picking one.
+                logger.error(f"[ADAPTER] SocialApp.MultipleObjectsReturned for provider '{provider}' and client_id '{client_id}'. Found {apps.count()} apps. There should be only one SocialApp for this provider on this site.")
+                raise MultipleObjectsReturned # Explicitly raise here if you find multiple
+            
+            # If exactly one app is found after filtering, return it.
+            if apps.count() == 1:
+                logger.info(f"[ADAPTER] Successfully retrieved single app for provider '{provider}'.")
+                return apps.first() # Return the single app found by your query
 
-            # Let the original logic (or a more specific query) try to resolve it.
-            # This will raise the appropriate exception if there's still an issue.
+            # Fallback to super() if for some reason the above logic doesn't return,
+            # though ideally the above covers all expected scenarios (0, 1, >1).
+            # This line might not be strictly necessary with the above, but kept for safety.
             return super().get_app(request, provider, client_id=client_id)
 
-        except SocialApp.DoesNotExist as e:
+        except ObjectDoesNotExist as e: # Catch ObjectDoesNotExist from your raise or super()
             logger.error(f"[ADAPTER] Final catch: SocialApp.DoesNotExist for provider '{provider}'. Ensure a SocialApp is configured in the Django admin.")
             raise e
-        except SocialApp.MultipleObjectsReturned as e:
+        except MultipleObjectsReturned as e: # Catch MultipleObjectsReturned from your raise or super()
             logger.error(f"[ADAPTER] Final catch: SocialApp.MultipleObjectsReturned for provider '{provider}'. Please remove duplicate SocialApp entries in the Django admin.")
             raise e
         except Exception as e:
             logger.error(f"[ADAPTER] An unexpected error occurred in get_app: {e}", exc_info=True)
             raise e
-
