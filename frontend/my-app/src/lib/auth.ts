@@ -1,6 +1,7 @@
 // src/lib/auth.ts
 import { type AuthOptions } from "next-auth";
 import { type SessionStrategy } from "next-auth";
+import { getServerSession } from "next-auth/next";
 
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
@@ -180,3 +181,20 @@ export const authOptions: AuthOptions = {
   secret: NEXTAUTH_SECRET,
   debug: process.env.NODE_ENV === "development",
 };
+
+/**
+ * Retrieves the Authorization header for an authenticated user.
+ * This function is used to make secure API calls to the Django backend.
+ *
+ * @returns A promise that resolves to the 'Authorization: Bearer <token>' string or null if not authenticated.
+ */
+export const getAuthHeader = async (): Promise<string | null> => {
+  const session = await getServerSession(authOptions);
+
+  if (session?.user?.accessToken) {
+    return `Bearer ${session.user.accessToken}`;
+  }
+
+  return null;
+};
+
