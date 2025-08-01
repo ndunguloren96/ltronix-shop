@@ -1,6 +1,8 @@
 // src/api/checkout.ts
 import { API_BASE_URL } from '@/lib/apiConfig';
 import { getAuthHeader } from '@/lib/auth';
+// Import the correct BackendTransaction type from the centralized types file
+import { BackendTransaction } from '@/types/order';
 
 /**
  * Type definitions for checkout-related data.
@@ -15,27 +17,6 @@ export interface CreateOrderRequest {
   shipping_address: string;
   payment_method: string;
   items: OrderItemRequest[];
-}
-
-export interface BackendTransaction {
-  id: number;
-  order: {
-    id: number;
-    items: {
-      product: {
-        id: number;
-        name: string;
-        price: string;
-        image_file: string | null;
-      };
-      quantity: number;
-    }[];
-    total_price: string;
-  };
-  total_amount: string;
-  status: 'PENDING' | 'SUCCESS' | 'FAILED';
-  created_at: string;
-  updated_at: string;
 }
 
 /**
@@ -72,10 +53,10 @@ export const createOrder = async (
       throw new Error(`Failed to create order: ${response.status} - ${errorText}`);
     }
 
+    // The returned JSON will now be correctly typed as BackendTransaction from src/types/order.ts
     return (await response.json()) as BackendTransaction;
   } catch (error) {
     console.error('Error in createOrder API call:', error);
     throw error;
   }
 };
-
