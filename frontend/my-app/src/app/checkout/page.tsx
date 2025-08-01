@@ -13,7 +13,7 @@ import {
   Input,
   InputGroup,
   InputLeftAddon,
-  InputLeftElement, // For adding an icon/image inside input
+  InputLeftElement,
   Spinner,
   Center,
   useToast,
@@ -30,7 +30,7 @@ import {
   ModalFooter,
   useDisclosure,
   Flex,
-  Image, // Import Image for M-Pesa logo
+  Image, // Import Image
   RadioGroup,
   Stack,
   Radio,
@@ -39,27 +39,26 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link'; // For Next.js Link
+import Link from 'next/link';
 
 import {
   fetchUserCart,
   initiateStkPushAPI,
   fetchTransactionStatusAPI,
-} from '@/api/cart'; // Assuming these functions are in '@/api/cart' or a suitable location
+} from '@/api/cart';
 
 import {
   BackendCart,
   BackendTransaction,
-} from '@/types/order'; // Assuming these types are correctly defined
+} from '@/types/order';
 
 import { useCartStore } from '@/store/useCartStore';
 
-// Static assets
-import MpesaLogo from '../../../../public/mpesa_logo.png'; // Adjust path if necessary
-import KenyaFlag from '../../../../public/kenya_flag.png'; // Adjust path if necessary
+// NO LONGER IMPORTING THEM AS MODULES.
+// We will reference them directly as static assets from the public folder.
 
-const POLLING_INTERVAL_MS = 3000; // Poll every 3 seconds
-const POLLING_TIMEOUT_MS = 120 * 1000; // Stop polling after 120 seconds (2 minutes)
+const POLLING_INTERVAL_MS = 3000;
+const POLLING_TIMEOUT_MS = 120 * 1000;
 const PAYMENT_CHOICE_KEY = 'preferredPaymentMethod';
 const MPESA_PHONE_NUMBER_KEY = 'mpesaPhoneNumber';
 
@@ -69,7 +68,7 @@ export default function CheckoutPage() {
   const queryClient = useQueryClient();
   const { data: session, status: authStatus } = useSession();
 
-  const { isOpen, onOpen, onClose } = useDisclosure(); // For the payment modal
+  const { isOpen, onOpen, onClose } = useDisclosure();
 
   const guestSessionKey = useCartStore((state) => state.guestSessionKey);
   const setGuestSessionKey = useCartStore((state) => state.setGuestSessionKey);
@@ -404,7 +403,8 @@ export default function CheckoutPage() {
           <Stack direction="column" spacing={3}>
             <Radio value="mpesa">
               <HStack>
-                <Image src={MpesaLogo.src} alt="M-Pesa Logo" boxSize="30px" objectFit="contain" />
+                {/* Reference directly from public folder */}
+                <Image src="/mpesa_logo.png" alt="M-Pesa Logo" boxSize="30px" objectFit="contain" />
                 <Text fontWeight="medium">M-Pesa (Safaricom)</Text>
               </HStack>
             </Radio>
@@ -429,7 +429,8 @@ export default function CheckoutPage() {
             <InputGroup size="lg">
               <InputLeftElement pointerEvents="none" width="5rem"> {/* Adjust width as needed */}
                 <HStack spacing={1} pl={2}>
-                  <Image src={KenyaFlag.src} alt="Kenya Flag" boxSize="20px" borderRadius="sm" />
+                  {/* Reference directly from public folder */}
+                  <Image src="/kenya_flag.png" alt="Kenya Flag" boxSize="20px" borderRadius="sm" />
                   <Text fontWeight="bold" color="gray.600">+254</Text>
                 </HStack>
               </InputLeftElement>
