@@ -297,7 +297,11 @@ export default function CheckoutPage() {
     }
   };
 
-  if (authStatus === 'loading' || isLoadingCart) {
+  // Determine if the guest key is ready. This is a new, crucial check.
+  const isGuestKeyReady = authStatus === 'authenticated' || (authStatus === 'unauthenticated' && !!guestSessionKey);
+
+  // Initial loading state, now including the new check for guest key readiness.
+  if (authStatus === 'loading' || isLoadingCart || !isGuestKeyReady) {
     return (
       <Center minH="80vh">
         <VStack spacing={4}>
@@ -310,6 +314,7 @@ export default function CheckoutPage() {
     );
   }
 
+  // Handle errors separately
   if (isErrorCart) {
     return (
       <Center minH="80vh">
@@ -336,7 +341,8 @@ export default function CheckoutPage() {
   const totalAmount = parseFloat(cart?.get_cart_total || '0.00').toFixed(2);
 
 
-  if (!cart || totalItems === 0) {
+  // Check if the cart is genuinely empty AFTER the loading state is resolved.
+  if (totalItems === 0) {
     return (
       <VStack spacing={4} textAlign="center" py={10} minH="80vh" justifyContent="center">
         <Text fontSize="xl" color="gray.600">
