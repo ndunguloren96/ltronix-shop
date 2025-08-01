@@ -297,7 +297,7 @@ export default function CheckoutPage() {
     }
   };
 
-  // Determine if the guest key is ready. This is a new, crucial check.
+  // Determine if the guest key is ready.
   const isGuestKeyReady = authStatus === 'authenticated' || (authStatus === 'unauthenticated' && !!guestSessionKey);
 
   // Initial loading state, now including the new check for guest key readiness.
@@ -428,7 +428,8 @@ export default function CheckoutPage() {
             </Heading>
             <Divider mb={4} />
 
-            {cart.items.map((item) => (
+            {/* FIX: Use optional chaining to safely access 'items' */}
+            {cart?.items?.map((item) => (
               <HStack key={item.product.id} justifyContent="space-between" py={2} borderBottom="1px solid" borderColor="gray.100">
                 <HStack spacing={4} flex={1}>
                   {item.product.image_file && (
