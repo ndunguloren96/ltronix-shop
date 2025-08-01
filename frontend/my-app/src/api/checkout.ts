@@ -1,7 +1,6 @@
 // src/api/checkout.ts
 import { API_BASE_URL } from '@/lib/apiConfig';
 import { getAuthHeader } from '@/lib/auth';
-// Import the correct BackendTransaction type from the centralized types file
 import { BackendTransaction } from '@/types/order';
 
 /**
@@ -17,6 +16,8 @@ export interface CreateOrderRequest {
   shipping_address: string;
   payment_method: string;
   items: OrderItemRequest[];
+  // Add the phone_number field for M-Pesa payments
+  phone_number?: string;
 }
 
 /**
@@ -53,7 +54,6 @@ export const createOrder = async (
       throw new Error(`Failed to create order: ${response.status} - ${errorText}`);
     }
 
-    // The returned JSON will now be correctly typed as BackendTransaction from src/types/order.ts
     return (await response.json()) as BackendTransaction;
   } catch (error) {
     console.error('Error in createOrder API call:', error);
