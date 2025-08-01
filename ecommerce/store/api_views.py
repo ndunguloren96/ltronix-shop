@@ -36,6 +36,11 @@ class OrderViewSet(
     mixins.ListModelMixin,
     viewsets.GenericViewSet,
 ):
+    """
+    API endpoint for managing orders and carts.
+    Supports cart creation, updating, retrieval, and order completion for both
+    authenticated users and guests. Guest carts are managed via a session key.
+    """
     queryset = Order.objects.all().order_by("-date_ordered")
     serializer_class = OrderSerializer
     permission_classes = [AllowAny]
@@ -44,6 +49,7 @@ class OrderViewSet(
         user = self.request.user
         session_key = self.request.headers.get("X-Session-Key")
 
+        # Annotate queryset with cart totals and shipping status
         queryset = self.queryset.annotate(
             cart_total=Sum(F('orderitem__quantity') * F('orderitem__product__price')),
             cart_items_count=Sum('orderitem__quantity'),
@@ -56,21 +62,30 @@ class OrderViewSet(
 
         if user.is_authenticated:
             customer, _ = Customer.objects.get_or_create(user=user)
+            # The 'list' action is for viewing completed order history
             if self.action == 'list':
                 return queryset.filter(customer=customer, complete=True)
+            # For other actions, return all of the user's orders (active and complete)
             return queryset.filter(customer=customer)
         elif session_key:
+            # For guests, filter by session key
             return queryset.filter(session_key=session_key)
         
+        # No user or session key, return an empty queryset
         return queryset.none()
 
     def _update_cart_items(self, order, items_payload):
+        """
+        Helper method to add, update, or remove items from a cart based on a payload.
+        Ensures atomicity of database operations.
+        """
         with transaction.atomic():
             current_product_ids_in_payload = [
                 item.get("product_id")
                 for item in items_payload
                 if item.get("product_id") is not None
             ]
+            # Delete any order items not present in the new payload
             order.orderitem_set.exclude(
                 product__id__in=[int(pid) for pid in current_product_ids_in_payload]
             ).delete()
@@ -106,6 +121,10 @@ class OrderViewSet(
                 )
 
     def create(self, request, *args, **kwargs):
+        """
+        Handles creating a new cart or updating an existing one.
+        Merges guest cart if an authenticated user has an active guest session.
+        """
         user = request.user
         session_key = request.headers.get("X-Session-Key")
         items_payload = request.data.get("items", [])
@@ -119,9 +138,11 @@ class OrderViewSet(
         with transaction.atomic():
             order, created = self._get_or_create_cart(user, session_key)
 
+            # If user logs in with a session key, merge the guest cart
             if user.is_authenticated and session_key:
                 self._merge_guest_cart(user, session_key, order)
 
+            # Update the cart items from the request payload
             self._update_cart_items(order, items_payload)
 
             order.refresh_from_db()
@@ -137,6 +158,9 @@ class OrderViewSet(
             )
 
     def update(self, request, *args, **kwargs):
+        """
+        Updates an existing cart.
+        """
         instance = self.get_object()
         items_payload = request.data.get("items", [])
 
@@ -154,6 +178,9 @@ class OrderViewSet(
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def _get_or_create_cart(self, user, session_key):
+        """
+        Helper method to get or create an active cart.
+        """
         if user.is_authenticated:
             customer, _ = Customer.objects.get_or_create(user=user)
             order, created = Order.objects.get_or_create(
@@ -172,6 +199,9 @@ class OrderViewSet(
         return order, created
 
     def _merge_guest_cart(self, user, session_key, user_cart):
+        """
+        Helper method to merge a guest cart into a user's cart.
+        """
         guest_order = Order.objects.filter(
             session_key=session_key, complete=False
         ).prefetch_related('orderitem_set__product').first()
@@ -284,35 +314,24 @@ class OrderViewSet(
         user = request.user
         session_key = request.headers.get("X-Session-Key")
 
-        # FIX: Added print statements for debugging
-        print(f"DEBUG: my_cart called. User authenticated: {user.is_authenticated}, Session Key: {session_key}")
-
+        order = None
         if user.is_authenticated:
             customer, _ = Customer.objects.get_or_create(user=user)
             order = Order.objects.filter(customer=customer, complete=False).first()
-            print(f"DEBUG: Authenticated user cart lookup. Customer: {customer.id if customer else 'None'}, Order found: {order.id if order else 'None'}")
         elif session_key:
             order = Order.objects.filter(session_key=session_key, complete=False).first()
-            print(f"DEBUG: Guest cart lookup. Session Key: {session_key}, Order found: {order.id if order else 'None'}")
-        else:
-            print("DEBUG: No user authenticated and no session key provided.")
-            return Response(
-                {"detail": "No active cart found for this session/user."},
-                status=status.HTTP_404_NOT_FOUND,
-            )
 
         if not order:
-            print("DEBUG: No active cart found after lookup.")
             return Response(
-                {"detail": "No active cart found."},
+                {"detail": "No active cart found for this session/user."},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
         serializer = self.get_serializer(order)
         response_data = serializer.data
         if not user.is_authenticated and order.session_key:
-            response_data["session_key"] = order.session_key # Return session key for guest
-            print(f"DEBUG: Returning guest cart with session key: {order.session_key}")
+            # Return session key for guest carts
+            response_data["session_key"] = order.session_key
 
         return Response(response_data)
 
@@ -325,7 +344,7 @@ class OrderViewSet(
     def merge_guest_cart(self, request):
         """
         Merges a guest cart into an authenticated user's cart.
-        Requires authentication.
+        Requires authentication and a guest session key.
         """
         user = request.user
         guest_session_key = request.data.get("guest_session_key")
@@ -361,8 +380,6 @@ class OrderViewSet(
                 guest_order.delete() # Ensure the old guest cart is deleted
 
             # After merging, update the user_cart with any new items from the payload
-            # This handles cases where the user might have added items to their
-            # authenticated cart *before* the merge request.
             self._update_cart_items(user_cart, guest_items_payload)
 
 
@@ -451,4 +468,3 @@ class OrderViewSet(
             )
 
         return super().destroy(request, *args, **kwargs)
-
