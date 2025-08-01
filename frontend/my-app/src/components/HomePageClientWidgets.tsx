@@ -5,6 +5,8 @@ import { LucideIcon, HandCoins, MessageCircleHeart, Users } from 'lucide-react';
 import React from 'react';
 
 // A reusable component for the feature cards to keep the code clean and organized.
+// This component encapsulates the styling and structure for each card,
+// making the main component more readable.
 interface CardProps {
   icon: LucideIcon;
   title: string;
@@ -15,18 +17,24 @@ interface CardProps {
 
 const FeatureCard: React.FC<CardProps> = ({ icon: Icon, title, description, href, isExternal = false }) => {
   return (
+    // The Link component is used here to make the entire card clickable.
+    // The duplicate _hover prop has been fixed by combining them into one object.
     <Link
       href={href}
       isExternal={isExternal}
-      _hover={{ textDecoration: 'none' }}
       boxShadow="lg"
       rounded="lg"
       transition="all 0.2s ease-in-out"
-      _hover={{ transform: 'scale(1.02)', boxShadow: 'xl' }}
+      _hover={{
+        textDecoration: 'none', // Remove the underline on hover
+        transform: 'scale(1.02)', // Scale up slightly for a subtle hover effect
+        boxShadow: 'xl', // Increase the shadow on hover
+      }}
       isTruncated
     >
       <Box p={6} bg="white" rounded="lg" h="100%">
         <VStack spacing={4} align="center" textAlign="center">
+          {/* Icon is wrapped in a Box for consistent styling */}
           <Box p={3} bg="brand.500" rounded="full" color="white">
             <Icon size={28} />
           </Box>
@@ -54,12 +62,14 @@ export default function HomePageClientWidgets() {
         </Text>
       </VStack>
       <SimpleGrid columns={{ base: 1, md: 3 }} spacing={8} maxW="6xl" mx="auto">
+        {/* Card for "Become a Seller" */}
         <FeatureCard
           icon={HandCoins}
           title="Become a Seller"
           description="Monetize your passion for technology by selling products on our platform. Get started today!"
           href="https://ltronix-shop.vercel.app/seller"
         />
+        {/* Card for "Share Feedback" */}
         <FeatureCard
           icon={MessageCircleHeart}
           title="Share Feedback"
@@ -67,6 +77,7 @@ export default function HomePageClientWidgets() {
           href="https://bit.ly/wevaluefeedback"
           isExternal
         />
+        {/* Card for "Join Community" */}
         <FeatureCard
           icon={Users}
           title="Join Community"
