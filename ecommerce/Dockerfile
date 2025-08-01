@@ -51,7 +51,7 @@ USER appuser
 
 # Environment variables (build-args) for build time.
 # For production, these should be securely set as environment variables in your hosting platform.
-ARG DJANGO_SECRET_KEY
+ARG DJANGO_SECRET_KEY=a_temporary_secret_key_for_development_only
 ENV DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
 ARG SOCIAL_AUTH_GOOGLE_OAUTH2_KEY
 ENV SOCIAL_AUTH_GOOGLE_OAUTH2_KEY=${SOCIAL_AUTH_GOOGLE_OAUTH2_KEY}

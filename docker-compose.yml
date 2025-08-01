@@ -40,7 +40,7 @@ services:
       - ./ecommerce:/app
       - static_volume:/app/staticfiles
       - media_volume:/app/mediafiles
-   # expose:
+    # expose:
     #  - "8000"
     ports:
       - "8000:8000"
@@ -65,14 +65,15 @@ services:
       # The frontend app is now built into the image itself.
       # This anonymous volume is fine if you still want node_modules to be separate.
       - /app/node_modules
-  #  expose:
-     # - "3000"
+    # expose:
+    #  - "3000"
     ports:
       - "3000:3000"
     env_file:
       - ./frontend/my-app/.env.local
     environment:
-      NEXT_PUBLIC_DJANGO_API_URL: http://localhost/api/v1
+      # CHANGE THIS LINE: Point to the Nginx service within the Docker network
+      NEXT_PUBLIC_DJANGO_API_URL: http://nginx/api/v1
     depends_on:
       - backend
 
@@ -96,3 +97,4 @@ volumes:
   postgres_data:
   static_volume:
   media_volume:
+
