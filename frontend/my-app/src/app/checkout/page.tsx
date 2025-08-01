@@ -19,6 +19,7 @@ import {
   Alert,
   AlertIcon,
   AlertDescription,
+  AlertTitle,
   Link as ChakraLink,
   Modal,
   ModalOverlay,
@@ -349,44 +350,8 @@ export default function CheckoutPage() {
       </Heading>
 
       <Flex direction={{ base: 'column', md: 'row' }} gap={10}>
-        {/* Left Column: Order Summary & Payment Method */}
+        {/* Left Column: Payment Method & Order Summary */}
         <VStack spacing={6} align="stretch" flex={2}>
-          {/* Order Summary Section */}
-          <Box p={6} borderWidth="1px" borderRadius="lg" boxShadow="md" bg="white">
-            <Heading as="h2" size="md" mb={4}>
-              Order Summary
-            </Heading>
-            <Divider mb={4} />
-
-            {cart.items.map((item) => (
-              <HStack key={item.product.id} justifyContent="space-between" py={2} borderBottom="1px solid" borderColor="gray.100">
-                <HStack spacing={4} flex={1}>
-                  {item.product.image_file && (
-                    <Image
-                      src={item.product.image_file}
-                      alt={item.product.name}
-                      boxSize="80px"
-                      objectFit="contain"
-                      borderRadius="md"
-                      fallbackSrc="https://via.placeholder.com/80?text=No+Image"
-                    />
-                  )}
-                  <VStack align="flex-start" spacing={0}>
-                    <Text fontWeight="semibold" fontSize="md">
-                      {item.product.name}
-                    </Text>
-                    <Text fontSize="sm" color="gray.600">
-                      Qty: {item.quantity}
-                    </Text>
-                  </VStack>
-                </HStack>
-                <Text fontWeight="semibold">
-                  Ksh {(parseFloat(item.product.price) * item.quantity).toFixed(2)}
-                </Text>
-              </HStack>
-            ))}
-          </Box>
-
           {/* Payment Method Section */}
           <Box p={6} borderWidth="1px" borderRadius="lg" boxShadow="md" bg="white">
             <Heading as="h2" size="md" mb={4}>
@@ -400,7 +365,7 @@ export default function CheckoutPage() {
               }}
               value={selectedPaymentMethod || ''}
             >
-              <Stack direction="column" spacing={3}>
+              <Stack direction="row" spacing={6} wrap="wrap">
                 <Radio value="mpesa">
                   <HStack>
                     <Image src="/mpesa_logo.png" alt="M-Pesa Logo" boxSize="55px" objectFit="contain" />
@@ -442,6 +407,42 @@ export default function CheckoutPage() {
                 </InputGroup>
               </VStack>
             </Collapse>
+          </Box>
+          
+          {/* Order Summary Section */}
+          <Box p={6} borderWidth="1px" borderRadius="lg" boxShadow="md" bg="white">
+            <Heading as="h2" size="md" mb={4}>
+              Order Summary
+            </Heading>
+            <Divider mb={4} />
+
+            {cart.items.map((item) => (
+              <HStack key={item.product.id} justifyContent="space-between" py={2} borderBottom="1px solid" borderColor="gray.100">
+                <HStack spacing={4} flex={1}>
+                  {item.product.image_file && (
+                    <Image
+                      src={item.product.image_file}
+                      alt={item.product.name}
+                      boxSize="80px"
+                      objectFit="contain"
+                      borderRadius="md"
+                      fallbackSrc="https://via.placeholder.com/80?text=No+Image"
+                    />
+                  )}
+                  <VStack align="flex-start" spacing={0}>
+                    <Text fontWeight="semibold" fontSize="md">
+                      {item.product.name}
+                    </Text>
+                    <Text fontSize="sm" color="gray.600">
+                      Qty: {item.quantity}
+                    </Text>
+                  </VStack>
+                </HStack>
+                <Text fontWeight="semibold">
+                  Ksh {(parseFloat(item.product.price) * item.quantity).toFixed(2)}
+                </Text>
+              </HStack>
+            ))}
           </Box>
         </VStack>
 
