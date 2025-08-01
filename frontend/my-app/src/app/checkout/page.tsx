@@ -12,7 +12,6 @@ import {
   Divider,
   Input,
   InputGroup,
-  InputLeftAddon,
   InputLeftElement,
   Spinner,
   Center,
@@ -20,7 +19,7 @@ import {
   Alert,
   AlertIcon,
   AlertDescription,
-  AlertTitle,
+  Heading,
   Link as ChakraLink,
   Modal,
   ModalOverlay,
@@ -407,7 +406,6 @@ export default function CheckoutPage() {
                   <HStack>
                     <Image src="/mpesa_logo.png" alt="M-Pesa Logo" boxSize="55px" objectFit="contain" />
                     <Text fontWeight="medium">M-Pesa</Text>
-                    <Image src="/kenya_flag.png" alt="Kenyan Flag" boxSize="24px" borderRadius="sm" ml={4} />
                   </HStack>
                 </Radio>
                 <Radio value="card" isDisabled>
@@ -482,7 +480,7 @@ export default function CheckoutPage() {
           </Flex>
 
           <Button
-            colorScheme="brand"
+            colorScheme={selectedPaymentMethod === 'mpesa' ? 'green' : 'brand'}
             size="lg"
             width="full"
             onClick={handleInitiatePayment}
@@ -548,4 +546,3 @@ export default function CheckoutPage() {
     </Box>
   );
 }
-
