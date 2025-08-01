@@ -404,7 +404,7 @@ export default function CheckoutPage() {
             <Radio value="mpesa">
               <HStack>
                 {/* Reference directly from public folder */}
-                <Image src="/mpesa_logo.png" alt="M-Pesa Logo" boxSize="40px" objectFit="contain" />
+                <Image src="/mpesa_logo.png" alt="M-Pesa Logo" boxSize="55px" objectFit="contain" />
                 <Text fontWeight="medium">M-Pesa</Text>
               </HStack>
             </Radio>
@@ -412,7 +412,7 @@ export default function CheckoutPage() {
             <Radio value="card" isDisabled>
               <HStack>
                 {/* Reference directly from public folder */}
-                <Image src="/bank_card.png" alt="Bank Card Logo" boxSize="40px" objectFit="contain" />
+                <Image src="/bank_card.png" alt="Bank Card Logo" boxSize="55px" objectFit="contain" />
                 <Text fontWeight="medium">Card (Coming Soon)</Text>
               </HStack>
             </Radio>
