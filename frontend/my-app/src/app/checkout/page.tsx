@@ -19,7 +19,6 @@ import {
   Alert,
   AlertIcon,
   AlertDescription,
-  Heading,
   Link as ChakraLink,
   Modal,
   ModalOverlay,
