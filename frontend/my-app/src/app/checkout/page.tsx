@@ -12,7 +12,6 @@ import {
   Divider,
   Input,
   InputGroup,
-  InputLeftAddon,
   InputLeftElement,
   Spinner,
   Center,
@@ -29,8 +28,8 @@ import {
   ModalBody,
   ModalFooter,
   useDisclosure,
-  Flex,
-  Image, // Import Image
+  Flex, // Added Flex for layout
+  Image,
   RadioGroup,
   Stack,
   Radio,
@@ -53,9 +52,6 @@ import {
 } from '@/types/order';
 
 import { useCartStore } from '@/store/useCartStore';
-
-// NO LONGER IMPORTING THEM AS MODULES.
-// We will reference them directly as static assets from the public folder.
 
 const POLLING_INTERVAL_MS = 3000;
 const POLLING_TIMEOUT_MS = 120 * 1000;
@@ -244,7 +240,9 @@ export default function CheckoutPage() {
         return;
       }
 
-      if (!cart || !cart.id || parseFloat(cart.get_cart_total) <= 0) {
+      // Ensure cart total is a valid number before proceeding
+      const cartTotal = parseFloat(cart?.get_cart_total || '0');
+      if (!cart || !cart.id || cartTotal <= 0) {
         toast({
           title: 'Cart Error',
           description: 'Your cart is empty or could not be loaded for payment.',
@@ -336,7 +334,9 @@ export default function CheckoutPage() {
     );
   }
 
-  if (!cart || cart.get_cart_items === 0) {
+  // Handle cases where cart is null or empty after loading
+  const cartTotal = parseFloat(cart?.get_cart_total || '0'); // Safely parse, default to '0'
+  if (!cart || cart.get_cart_items === 0 || cartTotal === 0) {
     return (
       <VStack spacing={4} textAlign="center" py={10} minH="80vh" justifyContent="center">
         <Text fontSize="xl" color="gray.600">
@@ -350,135 +350,180 @@ export default function CheckoutPage() {
   }
 
   return (
-    <Box p={8} maxWidth="container.md" mx="auto" minH="80vh">
+    <Box p={8} maxWidth="container.xl" mx="auto" minH="80vh"> {/* Increased maxWidth */}
       <Heading as="h1" size="xl" textAlign="center" mb={8} color="brand.700">
         Checkout
       </Heading>
 
-      <VStack spacing={6} align="stretch" p={6} borderWidth="1px" borderRadius="lg" boxShadow="md" bg="white">
-        <Heading as="h2" size="md" mb={4}>
-          Order Summary
-        </Heading>
-        <Divider />
+      <Flex
+        direction={{ base: 'column', lg: 'row' }} // Stack vertically on small screens, side-by-side on large
+        gap={8}
+        alignItems="flex-start" // Align content to the top
+      >
+        {/* Left Column: Order Summary (and optionally Shipping later) */}
+        <VStack flex={1.5} spacing={6} align="stretch"> {/* Give more space to order summary */}
+          {/* Order Summary Card */}
+          <Box p={6} borderWidth="1px" borderRadius="lg" boxShadow="md" bg="white">
+            <Heading as="h2" size="md" mb={4}>
+              Order Summary
+            </Heading>
+            <Divider mb={4} />
 
-        {cart.items.map((item) => (
-          <HStack key={item.product.id} justifyContent="space-between">
-            <Text>
-              {item.product.name} (x{item.quantity})
-            </Text>
-            <Text fontWeight="semibold">Ksh {(parseFloat(item.product.price) * item.quantity).toFixed(2)}</Text>
-          </HStack>
-        ))}
-
-        <Divider />
-
-        <Flex justifyContent="space-between">
-          <Text fontSize="lg" fontWeight="bold">
-            Total Items:
-          </Text>
-          <Text fontSize="lg" fontWeight="bold">{cart.get_cart_items}</Text>
-        </Flex>
-        <Flex justifyContent="space-between" mb={4}>
-          <Text fontSize="xl" fontWeight="bold" color="brand.800">
-            Amount Due:
-          </Text>
-          <Text fontSize="xl" fontWeight="bold" color="brand.600">
-            Ksh {parseFloat(cart.get_cart_total).toFixed(2)}
-          </Text>
-        </Flex>
-
-        <Divider />
-
-        <Heading as="h2" size="md" mt={4} mb={2}>
-          Payment Method
-        </Heading>
-        {/* Payment Method Selection */}
-        <RadioGroup
-          onChange={(nextValue) => {
-            setSelectedPaymentMethod(nextValue);
-            localStorage.setItem(PAYMENT_CHOICE_KEY, nextValue); // Remember choice
-          }}
-          value={selectedPaymentMethod || ''} // Handle null initial state
-        >
-          <Stack direction="column" spacing={3}>
-            <Radio value="mpesa">
-              <HStack>
-                {/* Reference directly from public folder */}
-                <Image src="/mpesa_logo.png" alt="M-Pesa Logo" boxSize="55px" objectFit="contain" />
-                <Text fontWeight="medium">M-Pesa</Text>
-              </HStack>
-            </Radio>
-
-            <Radio value="card" isDisabled>
-              <HStack>
-                {/* Reference directly from public folder */}
-                <Image src="/bank_card.png" alt="Bank Card Logo" boxSize="55px" objectFit="contain" />
-                <Text fontWeight="medium">Card (Coming Soon)</Text>
-              </HStack>
-            </Radio>
-            
-            {/* Future payment methods can be added here */}
-            {/*
-            <Radio value="paypal" isDisabled>
-              <HStack>
-                <Image src="/path/to/paypal_logo.png" alt="PayPal Logo" boxSize="30px" objectFit="contain" />
-                <Text fontWeight="medium">PayPal (Coming Soon)</Text>
-              </HStack>
-            </Radio>
-            */}
-          </Stack>
-        </RadioGroup>
-
-        {/* M-Pesa Specific Inputs - Collapsible */}
-        <Collapse in={selectedPaymentMethod === 'mpesa'} animateOpacity>
-          <VStack mt={4} spacing={4} p={4} borderWidth="1px" borderRadius="md" bg="gray.50">
-            <Text fontSize="md" color="gray.700" width="full" textAlign="left">
-              Enter your M-Pesa phone number:
-            </Text>
-            <InputGroup size="lg">
-              <InputLeftElement pointerEvents="none" width="5rem"> {/* Adjust width as needed */}
-                <HStack spacing={1} pl={2}>
-                  {/* Reference directly from public folder */}
-                  <Image src="/kenya_flag.png" alt="Kenya Flag" boxSize="20px" borderRadius="sm" />
-                  <Text fontWeight="bold" color="gray.600">+254</Text>
+            <VStack spacing={4} align="stretch">
+              {cart.items.map((item) => (
+                <HStack key={item.product.id} justifyContent="space-between" alignItems="center">
+                  <HStack spacing={4} flex={1}>
+                    {/* Product Image */}
+                    {item.product.image && (
+                      <Image
+                        src={item.product.image} // Assuming item.product.image is a direct URL
+                        alt={item.product.name}
+                        boxSize="80px" // Larger image size for clarity
+                        objectFit="contain"
+                        borderRadius="md"
+                        fallbackSrc="https://via.placeholder.com/80?text=No+Image" // Fallback image
+                      />
+                    )}
+                    <VStack align="flex-start" spacing={0}>
+                      <Text fontWeight="semibold" fontSize="md">
+                        {item.product.name}
+                      </Text>
+                      <Text fontSize="sm" color="gray.600">
+                        Qty: {item.quantity}
+                      </Text>
+                    </VStack>
+                  </HStack>
+                  <Text fontWeight="semibold">
+                    Ksh {(parseFloat(item.product.price) * item.quantity).toFixed(2)}
+                  </Text>
                 </HStack>
-              </InputLeftElement>
-              <Input
-                type="tel"
-                placeholder="7XXXXXXXXX or 1XXXXXXXXX"
-                value={mpesaPhoneNumber}
-                onChange={handleMpesaPhoneNumberChange}
-                maxLength={9} // Max 9 digits for the suffix (e.g., 7xxxxxxxx)
-                required
-                isDisabled={initiateStkPushMutation.isPending}
-                pl="5rem" // Padding to make space for the InputLeftElement
-                pattern="[7-9]{1}[0-9]{8}" // Basic client-side pattern for 7xxxxxxxx or 1xxxxxxxx
-              />
-            </InputGroup>
-          </VStack>
-        </Collapse>
+              ))}
+            </VStack>
 
-        <Button
-          colorScheme="brand"
-          size="lg"
-          width="full"
-          onClick={handleInitiatePayment}
-          isLoading={initiateStkPushMutation.isPending}
-          isDisabled={
-            initiateStkPushMutation.isPending ||
-            !selectedPaymentMethod ||
-            (selectedPaymentMethod === 'mpesa' && !mpesaPhoneNumber) ||
-            parseFloat(cart.get_cart_total) <= 0
-          }
-          mt={4}
-        >
-          {initiateStkPushMutation.isPending
-            ? 'Initiating STK Push...'
-            : (selectedPaymentMethod === 'mpesa' ? 'Pay with M-Pesa' : 'Place Order')}
-        </Button>
-      </VStack>
+            <Divider mt={6} />
 
-      {/* Payment Status Modal */}
+            <Flex justifyContent="space-between" mt={4}>
+              <Text fontSize="lg" fontWeight="bold">
+                Total Items:
+              </Text>
+              <Text fontSize="lg" fontWeight="bold">{cart.get_cart_items}</Text>
+            </Flex>
+          </Box>
+
+          {/* Shipping Information Section (Commented Out for now) */}
+          {/*
+          <Box p={6} borderWidth="1px" borderRadius="lg" boxShadow="md" bg="white">
+            <Heading as="h2" size="md" mb={4}>
+              Shipping Information
+            </Heading>
+            <Text color="gray.600">
+              Shipping details will be configured here in a future update.
+            </Text>
+            <Divider mt={4} />
+            <Text fontSize="sm" color="gray.500">
+              For now, all orders are assumed to be digital or for pickup.
+            </Text>
+          </Box>
+          */}
+        </VStack>
+
+        {/* Right Column: Payment Method & Order Total */}
+        <VStack flex={1} spacing={6} align="stretch"> {/* Smaller flex ratio for right column */}
+          {/* Payment Method Card */}
+          <Box p={6} borderWidth="1px" borderRadius="lg" boxShadow="md" bg="white">
+            <Heading as="h2" size="md" mb={4}>
+              Payment Method
+            </Heading>
+            <Divider mb={4} />
+            <RadioGroup
+              onChange={(nextValue) => {
+                setSelectedPaymentMethod(nextValue);
+                localStorage.setItem(PAYMENT_CHOICE_KEY, nextValue); // Remember choice
+              }}
+              value={selectedPaymentMethod || ''}
+            >
+              <Stack direction="column" spacing={3}>
+                <Radio value="mpesa">
+                  <HStack>
+                    <Image src="/mpesa_logo.png" alt="M-Pesa Logo" boxSize="40px" objectFit="contain" />
+                    <Text fontWeight="medium">M-Pesa</Text>
+                  </HStack>
+                </Radio>
+                <Radio value="card" isDisabled>
+                  <HStack>
+                    <Image src="/bank_card.png" alt="Card Logo" boxSize="40px" objectFit="contain" /> {/* Assuming you have bank_card.png in public */}
+                    <Text fontWeight="medium">Card (Coming Soon)</Text>
+                  </HStack>
+                </Radio>
+              </Stack>
+            </RadioGroup>
+
+            {/* M-Pesa Specific Inputs - Collapsible */}
+            <Collapse in={selectedPaymentMethod === 'mpesa'} animateOpacity>
+              <VStack mt={4} spacing={4} p={4} borderWidth="1px" borderRadius="md" bg="gray.50">
+                <Text fontSize="md" color="gray.700" width="full" textAlign="left">
+                  Enter your M-Pesa phone number:
+                </Text>
+                <InputGroup size="lg">
+                  <InputLeftElement pointerEvents="none" width="5rem">
+                    <HStack spacing={1} pl={2}>
+                      <Image src="/kenya_flag.png" alt="Kenya Flag" boxSize="20px" borderRadius="sm" />
+                      <Text fontWeight="bold" color="gray.600">+254</Text>
+                    </HStack>
+                  </InputLeftElement>
+                  <Input
+                    type="tel"
+                    placeholder="7XXXXXXXXX or 1XXXXXXXXX"
+                    value={mpesaPhoneNumber}
+                    onChange={handleMpesaPhoneNumberChange}
+                    maxLength={9}
+                    required
+                    isDisabled={initiateStkPushMutation.isPending}
+                    pl="5rem"
+                    pattern="[7-9]{1}[0-9]{8}"
+                  />
+                </InputGroup>
+              </VStack>
+            </Collapse>
+          </Box>
+
+          {/* Order Total and Pay Button Card */}
+          <Box p={6} borderWidth="1px" borderRadius="lg" boxShadow="md" bg="white">
+            <Heading as="h2" size="md" mb={4}>
+              Order Total
+            </Heading>
+            <Divider mb={4} />
+            <Flex justifyContent="space-between" mb={6}>
+              <Text fontSize="xl" fontWeight="bold" color="brand.800">
+                Amount Due:
+              </Text>
+              <Text fontSize="xl" fontWeight="bold" color="brand.600">
+                Ksh {cartTotal.toFixed(2)} {/* Use the safely parsed total */}
+              </Text>
+            </Flex>
+
+            <Button
+              colorScheme="brand"
+              size="lg"
+              width="full"
+              onClick={handleInitiatePayment}
+              isLoading={initiateStkPushMutation.isPending}
+              isDisabled={
+                initiateStkPushMutation.isPending ||
+                !selectedPaymentMethod ||
+                (selectedPaymentMethod === 'mpesa' && !mpesaPhoneNumber) ||
+                cartTotal <= 0 // Use the safely parsed total here too
+              }
+            >
+              {initiateStkPushMutation.isPending
+                ? 'Initiating STK Push...'
+                : (selectedPaymentMethod === 'mpesa' ? 'Pay with M-Pesa' : 'Place Order')}
+            </Button>
+          </Box>
+        </VStack>
+      </Flex>
+
+      {/* Payment Status Modal (no changes needed here) */}
       <Modal isOpen={isOpen} onClose={handleModalClose} closeOnOverlayClick={false} closeOnEsc={false}>
         <ModalOverlay />
         <ModalContent>
@@ -525,4 +570,3 @@ export default function CheckoutPage() {
     </Box>
   );
 }
-
