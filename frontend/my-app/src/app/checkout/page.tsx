@@ -1,7 +1,6 @@
-//src/app/checkout/page.tsx
+// src/app/checkout/page.tsx
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Heading,
@@ -9,134 +8,118 @@ import {
   VStack,
   HStack,
   Button,
+  Image,
   Divider,
-  Input,
-  InputGroup,
-  InputLeftElement,
+  Flex,
+  useToast,
   Spinner,
   Center,
-  useToast,
   Alert,
   AlertIcon,
   AlertDescription,
-  AlertTitle,
-  Link as ChakraLink,
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  useDisclosure,
-  Flex, // Added Flex for layout
-  Image,
-  RadioGroup,
-  Stack,
-  Radio,
-  Collapse,
 } from '@chakra-ui/react';
+import React, { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 
+// Import cart-related functions and types
+import { fetchUserCart } from '@/api/cart';
 import {
-  fetchUserCart,
-  initiateStkPushAPI,
-  fetchTransactionStatusAPI,
-} from '@/api/cart';
-
-import {
-  BackendCart,
+  BackendOrder,
+  BackendOrderItem,
   BackendTransaction,
+  ProductInCart,
 } from '@/types/order';
-
 import { useCartStore } from '@/store/useCartStore';
-
-const POLLING_INTERVAL_MS = 3000;
-const POLLING_TIMEOUT_MS = 120 * 1000;
-const PAYMENT_CHOICE_KEY = 'preferredPaymentMethod';
-const MPESA_PHONE_NUMBER_KEY = 'mpesaPhoneNumber';
+import { createOrder, CreateOrderRequest } from '@/api/checkout';
 
 export default function CheckoutPage() {
   const toast = useToast();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { data: session, status: authStatus } = useSession();
+  const { data: _session, status } = useSession();
 
-  const { isOpen, onOpen, onClose } = useDisclosure();
-
+  const localCartItems = useCartStore((state) => state.items);
+  const setLocalCartItems = useCartStore((state) => state.setItems);
+  const getLocalTotalItems = useCartStore((state) => state.getTotalItems);
+  const getLocalTotalPrice = useCartStore((state) => state.getTotalPrice);
   const guestSessionKey = useCartStore((state) => state.guestSessionKey);
   const setGuestSessionKey = useCartStore((state) => state.setGuestSessionKey);
-  const clearLocalCart = useCartStore((state) => state.clearCart);
 
-  const [mpesaPhoneNumber, setMpesaPhoneNumber] = useState('');
-  const [currentTransactionId, setCurrentTransactionId] = useState<number | null>(null);
-  const [pollingAttempts, setPollingAttempts] = useState(0);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | null>(null);
+  // Determine the session key to use for API calls
+  const currentSessionKey = status === 'unauthenticated' ? guestSessionKey : null;
 
-  // Effect to load saved payment method and phone number
-  useEffect(() => {
-    const savedMethod = localStorage.getItem(PAYMENT_CHOICE_KEY);
-    if (savedMethod) {
-      setSelectedPaymentMethod(savedMethod);
-    }
-    const savedPhoneNumber = localStorage.getItem(MPESA_PHONE_NUMBER_KEY);
-    if (savedPhoneNumber) {
-      setMpesaPhoneNumber(savedPhoneNumber);
-    }
-  }, []);
-
-  // Effect to reset polling attempts when a new transaction is initiated
-  useEffect(() => {
-    if (currentTransactionId !== null) {
-      setPollingAttempts(0);
-    }
-  }, [currentTransactionId]);
-
-  // Fetch the current cart data
+  // Fetch the canonical cart state from the backend
   const {
-    data: cart,
-    isLoading: isLoadingCart,
-    isError: isErrorCart,
-    error: cartError,
-  } = useQuery<BackendCart | null, Error>({
-    queryKey: ['cart', authStatus, guestSessionKey],
-    queryFn: async () => {
-      if (authStatus === 'authenticated') {
+    data: backendCart,
+    isLoading,
+    isError,
+    error,
+    isFetching,
+  } = useQuery<BackendOrder | null, Error>({
+    queryKey: ['cart', status, currentSessionKey],
+    queryFn: () => {
+      if (status === 'authenticated') {
         return fetchUserCart();
       }
-      if (authStatus === 'unauthenticated' && guestSessionKey) {
-        return fetchUserCart(guestSessionKey);
+      if (status === 'unauthenticated' && currentSessionKey) {
+        return fetchUserCart(currentSessionKey);
       }
-      return null;
+      return Promise.resolve(null);
     },
-    enabled: authStatus !== 'loading' && (authStatus === 'authenticated' || (authStatus === 'unauthenticated' && !!guestSessionKey)),
+    enabled: status !== 'loading' && (status === 'authenticated' || (status === 'unauthenticated' && !!currentSessionKey)),
     staleTime: 0,
-    refetchOnWindowFocus: false,
+    gcTime: 0,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    refetchOnReconnect: true,
   });
 
-  // Mutation for initiating STK Push
-  const initiateStkPushMutation = useMutation<BackendTransaction, Error, { orderId: number; phoneNumber: string }>({
-    mutationFn: (payload) => initiateStkPushAPI(payload, guestSessionKey),
+  // Keep local Zustand cart in sync with backend data
+  useEffect(() => {
+    if (status !== 'loading') {
+      if (backendCart) {
+        setLocalCartItems(
+          backendCart.items.map((item) => ({
+            id: item.product.id,
+            name: item.product.name,
+            price: parseFloat(item.product.price),
+            quantity: item.quantity,
+            image_file: item.product.image_file,
+          }))
+        );
+        if (backendCart.session_key && !guestSessionKey && status === 'unauthenticated') {
+          setGuestSessionKey(backendCart.session_key);
+        }
+      } else if (status === 'authenticated' || (status === 'unauthenticated' && !!currentSessionKey)) {
+        setLocalCartItems([]);
+      }
+    }
+  }, [backendCart, status, setLocalCartItems, guestSessionKey, setGuestSessionKey, currentSessionKey]);
+
+  // Mutation to handle the checkout process
+  const checkoutMutation = useMutation<BackendTransaction, Error, CreateOrderRequest>({
+    mutationFn: (orderData) => createOrder(orderData, currentSessionKey),
     onSuccess: (data) => {
-      setCurrentTransactionId(data.id);
-      onOpen(); // Open the payment modal
-      localStorage.setItem(MPESA_PHONE_NUMBER_KEY, mpesaPhoneNumber); // Remember phone number
+      // Clear the local cart after successful checkout
+      setLocalCartItems([]);
+      setGuestSessionKey(null);
       toast({
-        title: 'STK Push Initiated',
-        description: 'Please enter your M-Pesa PIN on your phone to complete the payment.',
-        status: 'info',
+        title: 'Order Placed!',
+        description: `Your order has been placed successfully. Transaction ID: ${data.id}`,
+        status: 'success',
         duration: 9000,
         isClosable: true,
-        position: 'top-right',
       });
+      // Redirect to a thank you or order confirmation page
+      router.push('/order-confirmation');
     },
-    onError: (error) => {
-      console.error("STK Push Initiation Error:", error);
+    onError: (err) => {
+      console.error("Checkout failed:", err);
       toast({
-        title: 'Payment Failed',
-        description: error.message || 'Failed to initiate M-Pesa STK Push. Please try again.',
+        title: 'Checkout Failed',
+        description: err.message || 'An error occurred while processing your order.',
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -144,83 +127,11 @@ export default function CheckoutPage() {
     },
   });
 
-  // Query for polling transaction status
-  const transactionStatusQueryOptions = {
-    queryKey: ['transactionStatus', currentTransactionId],
-    queryFn: async () => {
-      if (currentTransactionId) {
-        return fetchTransactionStatusAPI(currentTransactionId, guestSessionKey);
-      }
-      return null;
-    },
-    enabled: !!currentTransactionId && isOpen,
-    refetchInterval: POLLING_INTERVAL_MS,
-    retry: (_failureCount: number, error: Error) => {
-      if (pollingAttempts * POLLING_INTERVAL_MS >= POLLING_TIMEOUT_MS) {
-        console.warn("Polling timed out for transaction:", currentTransactionId);
-        toast({
-          title: 'Payment Timeout',
-          description: 'Payment did not complete within the expected time. Please check your M-Pesa messages or try again.',
-          status: 'warning',
-          duration: 7000,
-          isClosable: true,
-          position: 'top-right',
-        });
-        queryClient.invalidateQueries({ queryKey: ['cart'] });
-        setCurrentTransactionId(null);
-        onClose();
-        return false;
-      }
-
-      setPollingAttempts(prev => prev + 1);
-      return true;
-    },
-    onSuccess: (data: BackendTransaction | null) => {
-      if (data && ['COMPLETED', 'FAILED', 'CANCELLED', 'TIMEOUT'].includes(data.status)) {
-        toast({
-          title: `Payment ${data.status.replace('_', ' ')}`,
-          description: data.result_desc || `Transaction ${data.status.toLowerCase()}.`,
-          status: data.status === 'COMPLETED' ? 'success' : 'error',
-          duration: 5000,
-          isClosable: true,
-          position: 'top-right',
-        });
-        if (data.status === 'COMPLETED') {
-          clearLocalCart();
-          queryClient.invalidateQueries({ queryKey: ['cart'] });
-          queryClient.invalidateQueries({ queryKey: ['orders'] });
-          router.push('/account/orders');
-        } else {
-          queryClient.invalidateQueries({ queryKey: ['cart'] });
-        }
-        setCurrentTransactionId(null);
-        onClose();
-      }
-    },
-    onError: (error: Error) => {
-      console.error("Polling Transaction Status Error:", error);
-    }
-  };
-
-  const { data: transactionStatus, isLoading: isLoadingTransactionStatus } = useQuery(transactionStatusQueryOptions);
-
-  const handleMpesaPhoneNumberChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    let value = e.target.value.replace(/\s/g, ''); // Remove spaces
-    // Allow only digits
-    value = value.replace(/\D/g, '');
-
-    // Auto-correct 07x to 7x or 01x to 1x if 10 digits
-    if (value.startsWith('0') && value.length === 10) {
-      value = value.substring(1); // Remove the leading '0'
-    }
-    setMpesaPhoneNumber(value);
-  }, []);
-
-  const handleInitiatePayment = async () => {
-    if (!selectedPaymentMethod) {
+  const handlePlaceOrder = () => {
+    if (localCartItems.length === 0) {
       toast({
-        title: 'Payment Method Required',
-        description: 'Please select your preferred payment method.',
+        title: 'Cart is Empty',
+        description: 'Please add items to your cart before placing an order.',
         status: 'warning',
         duration: 3000,
         isClosable: true,
@@ -228,165 +139,103 @@ export default function CheckoutPage() {
       return;
     }
 
-    if (selectedPaymentMethod === 'mpesa') {
-      if (!mpesaPhoneNumber) {
-        toast({
-          title: 'Phone Number Required',
-          description: 'Please enter your M-Pesa phone number.',
-          status: 'warning',
-          duration: 3000,
-          isClosable: true,
-        });
-        return;
-      }
-
-      // Ensure cart total is a valid number before proceeding
-      const cartTotal = parseFloat(cart?.get_cart_total || '0');
-      if (!cart || !cart.id || cartTotal <= 0) {
-        toast({
-          title: 'Cart Error',
-          description: 'Your cart is empty or could not be loaded for payment.',
-          status: 'error',
-          duration: 3000,
-          isClosable: true,
-        });
-        return;
-      }
-
-      // Final validation and formatting for M-Pesa
-      let formattedPhoneNumber = mpesaPhoneNumber;
-
-      // Ensure it starts with 254 and is 12 digits long
-      if (!formattedPhoneNumber.startsWith('254') && (formattedPhoneNumber.startsWith('7') || formattedPhoneNumber.startsWith('1')) && formattedPhoneNumber.length === 9) {
-        formattedPhoneNumber = '254' + formattedPhoneNumber;
-      }
-
-      // Basic regex for 2547XXXXXXXX or 2541XXXXXXXX
-      const kenyanPhoneRegex = /^254(7|1)\d{8}$/;
-
-      if (!kenyanPhoneRegex.test(formattedPhoneNumber)) {
-        toast({
-          title: 'Invalid Phone Number',
-          description: 'Please enter a valid Kenyan M-Pesa number (e.g., 07xxxxxxxx or 2547xxxxxxxx).',
-          status: 'error',
-          duration: 5000,
-          isClosable: true,
-        });
-        return;
-      }
-
-      initiateStkPushMutation.mutate({
-        orderId: cart.id,
-        phoneNumber: formattedPhoneNumber,
-      });
+    if (checkoutMutation.isPending) {
+      return;
     }
-    // Add logic for other payment methods here in the future
+
+    // Assuming you have a form or state to capture shipping details and other info
+    // For this example, we'll use placeholder data.
+    const orderData: CreateOrderRequest = {
+      // You'll need to fill this out with actual data from a form
+      shipping_address: '123 E-commerce St, Nairobi, Kenya',
+      payment_method: 'Card',
+      items: localCartItems.map(item => ({
+        product_id: item.id,
+        quantity: item.quantity,
+      }))
+    };
+
+    checkoutMutation.mutate(orderData);
   };
 
-  const handleModalClose = () => {
-    if (!isLoadingTransactionStatus && (!transactionStatus || ['COMPLETED', 'FAILED', 'CANCELLED', 'TIMEOUT'].includes(transactionStatus.status || ''))) {
-      onClose();
-      setCurrentTransactionId(null);
-    } else {
-      toast({
-        title: 'Payment in Progress',
-        description: 'Please wait for the payment to complete or check your phone. The modal will close automatically.',
-        status: 'info',
-        duration: 4000,
-        isClosable: true,
-      });
-    }
-  };
-
-  if (authStatus === 'loading' || isLoadingCart) {
+  // Show loading state while fetching cart data
+  if (status === 'loading' || isLoading || isFetching) {
     return (
       <Center minH="80vh">
         <VStack spacing={4}>
           <Spinner size="xl" />
           <Text fontSize="xl">
-            {authStatus === 'loading' ? 'Authenticating...' : 'Loading your cart for checkout...'}
+            {status === 'loading' ? 'Authenticating...' : 'Loading your cart for checkout...'}
           </Text>
         </VStack>
       </Center>
     );
   }
 
-  if (isErrorCart) {
-    return (
-      <Center minH="80vh">
-        <Alert status="error" flexDirection="column" alignItems="center" justifyContent="center" textAlign="center" height="200px" borderRadius="lg" boxShadow="md" m={8}>
-          <AlertIcon boxSize="40px" mr={0} />
-          <Heading size="md" mt={4} mb={1}>Failed to load cart for checkout</Heading>
-          <AlertDescription maxWidth="sm">
-            {cartError?.message || 'An unexpected error occurred while fetching your cart.'}
-            <br />
-            Please ensure your Django backend is running and reachable, and that your cart is valid.
-            <br />
-            <Button onClick={() => queryClient.invalidateQueries({ queryKey: ['cart'] })} mt={4} colorScheme="brand">
-              Try Again
-            </Button>
-            <Link href="/cart" passHref>
-                <ChakraLink mt={2} color="brand.500">Go back to Cart</ChakraLink>
-            </Link>
-          </AlertDescription>
-        </Alert>
-      </Center>
-    );
-  }
-
-  // Handle cases where cart is null or empty after loading
-  const cartTotal = parseFloat(cart?.get_cart_total || '0'); // Safely parse, default to '0'
-  if (!cart || cart.get_cart_items === 0 || cartTotal === 0) {
-    return (
-      <VStack spacing={4} textAlign="center" py={10} minH="80vh" justifyContent="center">
-        <Text fontSize="xl" color="gray.600">
-          Your cart is empty. Please add items before checking out.
-        </Text>
-        <Button colorScheme="brand" onClick={() => router.push('/products')}>
-          Start Shopping
-        </Button>
-      </VStack>
-    );
-  }
+  const itemsToRender = localCartItems;
+  const subtotal = getLocalTotalPrice();
+  const shipping = 500; // Placeholder for shipping cost
+  const tax = subtotal * 0.16; // Placeholder for 16% tax
+  const total = subtotal + shipping + tax;
 
   return (
-    <Box p={8} maxWidth="container.xl" mx="auto" minH="80vh"> {/* Increased maxWidth */}
+    <Box p={8} maxWidth="container.xl" mx="auto" minH="80vh">
       <Heading as="h1" size="xl" textAlign="center" mb={8} color="brand.700">
         Checkout
       </Heading>
 
-      <Flex
-        direction={{ base: 'column', lg: 'row' }} // Stack vertically on small screens, side-by-side on large
-        gap={8}
-        alignItems="flex-start" // Align content to the top
-      >
-        {/* Left Column: Order Summary (and optionally Shipping later) */}
-        <VStack flex={1.5} spacing={6} align="stretch"> {/* Give more space to order summary */}
-          {/* Order Summary Card */}
-          <Box p={6} borderWidth="1px" borderRadius="lg" boxShadow="md" bg="white">
-            <Heading as="h2" size="md" mb={4}>
-              Order Summary
-            </Heading>
-            <Divider mb={4} />
+      {isError && (
+        <Alert status="error" flexDirection="column" alignItems="center" justifyContent="center" textAlign="center" height="200px" borderRadius="lg" boxShadow="md" mb={6}>
+          <AlertIcon boxSize="40px" mr={0} />
+          <Heading size="md" mt={4} mb={1}>Failed to load cart</Heading>
+          <AlertDescription maxWidth="sm">
+            {error?.message || 'An unexpected error occurred while fetching your cart.'}
+            <br />
+            Please ensure your backend is running and reachable.
+          </AlertDescription>
+        </Alert>
+      )}
 
-            <VStack spacing={4} align="stretch">
-              {cart.items.map((item) => (
-                <HStack key={item.product.id} justifyContent="space-between" alignItems="center">
+      {itemsToRender.length === 0 && (
+        <VStack spacing={4} textAlign="center" py={10}>
+          <Text fontSize="xl" color="gray.600">
+            Your cart is empty. Please add items to proceed.
+          </Text>
+          <Button colorScheme="brand" onClick={() => router.push('/products')}>
+            Start Shopping
+          </Button>
+        </VStack>
+      )}
+
+      {itemsToRender.length > 0 && (
+        <Flex direction={{ base: 'column', lg: 'row' }} gap={10}>
+          {/* Order Summary & Items Section */}
+          <VStack spacing={6} align="stretch" flex={2}>
+            <Heading as="h2" size="lg" mb={2}>Order Summary</Heading>
+            <Box
+              p={6}
+              borderWidth="1px"
+              borderRadius="lg"
+              boxShadow="sm"
+              bg="white"
+            >
+              {itemsToRender.map((item) => (
+                <HStack key={item.id} justifyContent="space-between" alignItems="center" py={4} borderBottom="1px solid" borderColor="gray.100">
                   <HStack spacing={4} flex={1}>
                     {/* Product Image */}
-                    {item.product.image && (
+                    {item.image_file && ( // FIXED: changed `item.product.image` to `item.image_file`
                       <Image
-                        src={item.product.image} // Assuming item.product.image is a direct URL
-                        alt={item.product.name}
-                        boxSize="80px" // Larger image size for clarity
+                        src={item.image_file} // FIXED: changed `item.product.image` to `item.image_file`
+                        alt={item.name}
+                        boxSize="80px"
                         objectFit="contain"
                         borderRadius="md"
-                        fallbackSrc="https://via.placeholder.com/80?text=No+Image" // Fallback image
+                        fallbackSrc="https://via.placeholder.com/80?text=No+Image"
                       />
                     )}
                     <VStack align="flex-start" spacing={0}>
                       <Text fontWeight="semibold" fontSize="md">
-                        {item.product.name}
+                        {item.name}
                       </Text>
                       <Text fontSize="sm" color="gray.600">
                         Qty: {item.quantity}
@@ -394,179 +243,67 @@ export default function CheckoutPage() {
                     </VStack>
                   </HStack>
                   <Text fontWeight="semibold">
-                    Ksh {(parseFloat(item.product.price) * item.quantity).toFixed(2)}
+                    Ksh {(item.price * item.quantity).toFixed(2)}
                   </Text>
                 </HStack>
               ))}
-            </VStack>
+            </Box>
+          </VStack>
 
-            <Divider mt={6} />
+          {/* Payment & Total Section */}
+          <Box
+            flex={1}
+            p={6}
+            borderWidth="1px"
+            borderRadius="lg"
+            boxShadow="md"
+            bg="white"
+            position={{ lg: 'sticky' }}
+            top="4"
+            alignSelf="flex-start"
+          >
+            <Heading as="h2" size="md" mb={4}>
+              Payment Details
+            </Heading>
+            <Divider mb={4} />
 
-            <Flex justifyContent="space-between" mt={4}>
-              <Text fontSize="lg" fontWeight="bold">
-                Total Items:
-              </Text>
-              <Text fontSize="lg" fontWeight="bold">{cart.get_cart_items}</Text>
+            <Flex justifyContent="space-between" mb={2}>
+              <Text>Subtotal ({getLocalTotalItems()} items)</Text>
+              <Text fontWeight="semibold">Ksh {subtotal.toFixed(2)}</Text>
             </Flex>
-          </Box>
+            <Flex justifyContent="space-between" mb={2}>
+              <Text>Shipping</Text>
+              <Text fontWeight="semibold">Ksh {shipping.toFixed(2)}</Text>
+            </Flex>
+            <Flex justifyContent="space-between" mb={4}>
+              <Text>Tax (16%)</Text>
+              <Text fontWeight="semibold">Ksh {tax.toFixed(2)}</Text>
+            </Flex>
 
-          {/* Shipping Information Section (Commented Out for now) */}
-          {/*
-          <Box p={6} borderWidth="1px" borderRadius="lg" boxShadow="md" bg="white">
-            <Heading as="h2" size="md" mb={4}>
-              Shipping Information
-            </Heading>
-            <Text color="gray.600">
-              Shipping details will be configured here in a future update.
-            </Text>
-            <Divider mt={4} />
-            <Text fontSize="sm" color="gray.500">
-              For now, all orders are assumed to be digital or for pickup.
-            </Text>
-          </Box>
-          */}
-        </VStack>
-
-        {/* Right Column: Payment Method & Order Total */}
-        <VStack flex={1} spacing={6} align="stretch"> {/* Smaller flex ratio for right column */}
-          {/* Payment Method Card */}
-          <Box p={6} borderWidth="1px" borderRadius="lg" boxShadow="md" bg="white">
-            <Heading as="h2" size="md" mb={4}>
-              Payment Method
-            </Heading>
             <Divider mb={4} />
-            <RadioGroup
-              onChange={(nextValue) => {
-                setSelectedPaymentMethod(nextValue);
-                localStorage.setItem(PAYMENT_CHOICE_KEY, nextValue); // Remember choice
-              }}
-              value={selectedPaymentMethod || ''}
-            >
-              <Stack direction="column" spacing={3}>
-                <Radio value="mpesa">
-                  <HStack>
-                    <Image src="/mpesa_logo.png" alt="M-Pesa Logo" boxSize="40px" objectFit="contain" />
-                    <Text fontWeight="medium">M-Pesa</Text>
-                  </HStack>
-                </Radio>
-                <Radio value="card" isDisabled>
-                  <HStack>
-                    <Image src="/bank_card.png" alt="Card Logo" boxSize="40px" objectFit="contain" /> {/* Assuming you have bank_card.png in public */}
-                    <Text fontWeight="medium">Card (Coming Soon)</Text>
-                  </HStack>
-                </Radio>
-              </Stack>
-            </RadioGroup>
 
-            {/* M-Pesa Specific Inputs - Collapsible */}
-            <Collapse in={selectedPaymentMethod === 'mpesa'} animateOpacity>
-              <VStack mt={4} spacing={4} p={4} borderWidth="1px" borderRadius="md" bg="gray.50">
-                <Text fontSize="md" color="gray.700" width="full" textAlign="left">
-                  Enter your M-Pesa phone number:
-                </Text>
-                <InputGroup size="lg">
-                  <InputLeftElement pointerEvents="none" width="5rem">
-                    <HStack spacing={1} pl={2}>
-                      <Image src="/kenya_flag.png" alt="Kenya Flag" boxSize="20px" borderRadius="sm" />
-                      <Text fontWeight="bold" color="gray.600">+254</Text>
-                    </HStack>
-                  </InputLeftElement>
-                  <Input
-                    type="tel"
-                    placeholder="7XXXXXXXXX or 1XXXXXXXXX"
-                    value={mpesaPhoneNumber}
-                    onChange={handleMpesaPhoneNumberChange}
-                    maxLength={9}
-                    required
-                    isDisabled={initiateStkPushMutation.isPending}
-                    pl="5rem"
-                    pattern="[7-9]{1}[0-9]{8}"
-                  />
-                </InputGroup>
-              </VStack>
-            </Collapse>
-          </Box>
-
-          {/* Order Total and Pay Button Card */}
-          <Box p={6} borderWidth="1px" borderRadius="lg" boxShadow="md" bg="white">
-            <Heading as="h2" size="md" mb={4}>
-              Order Total
-            </Heading>
-            <Divider mb={4} />
-            <Flex justifyContent="space-between" mb={6}>
-              <Text fontSize="xl" fontWeight="bold" color="brand.800">
-                Amount Due:
+            <Flex justifyContent="space-between" mb={4}>
+              <Text fontSize="xl" fontWeight="bold">
+                Total:
               </Text>
               <Text fontSize="xl" fontWeight="bold" color="brand.600">
-                Ksh {cartTotal.toFixed(2)} {/* Use the safely parsed total */}
+                Ksh {total.toFixed(2)}
               </Text>
             </Flex>
 
             <Button
-              colorScheme="brand"
+              colorScheme="green"
               size="lg"
               width="full"
-              onClick={handleInitiatePayment}
-              isLoading={initiateStkPushMutation.isPending}
-              isDisabled={
-                initiateStkPushMutation.isPending ||
-                !selectedPaymentMethod ||
-                (selectedPaymentMethod === 'mpesa' && !mpesaPhoneNumber) ||
-                cartTotal <= 0 // Use the safely parsed total here too
-              }
+              onClick={handlePlaceOrder}
+              isDisabled={checkoutMutation.isPending || itemsToRender.length === 0}
+              isLoading={checkoutMutation.isPending}
             >
-              {initiateStkPushMutation.isPending
-                ? 'Initiating STK Push...'
-                : (selectedPaymentMethod === 'mpesa' ? 'Pay with M-Pesa' : 'Place Order')}
+              Place Order
             </Button>
           </Box>
-        </VStack>
-      </Flex>
-
-      {/* Payment Status Modal (no changes needed here) */}
-      <Modal isOpen={isOpen} onClose={handleModalClose} closeOnOverlayClick={false} closeOnEsc={false}>
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>M-Pesa Payment Status</ModalHeader>
-          <ModalBody>
-            {isLoadingTransactionStatus ? (
-              <Center py={4}>
-                <VStack>
-                  <Spinner size="lg" />
-                  <Text>Waiting for M-Pesa payment confirmation...</Text>
-                  <Text fontSize="sm" color="gray.500">
-                    Please check your phone for the STK Push prompt.
-                  </Text>
-                </VStack>
-              </Center>
-            ) : transactionStatus ? (
-              <VStack spacing={3}>
-                <Text fontSize="xl" fontWeight="bold" color={transactionStatus.status === 'COMPLETED' ? 'green.500' : 'red.500'}>
-                  Status: {transactionStatus.status}
-                </Text>
-                {transactionStatus.mpesa_receipt_number && (
-                  <Text>Receipt: {transactionStatus.mpesa_receipt_number}</Text>
-                )}
-                {transactionStatus.result_desc && (
-                  <Text textAlign="center" color="gray.700">
-                    {transactionStatus.result_desc}
-                  </Text>
-                )}
-                <Text fontSize="sm" color="gray.500">
-                  You can close this window now.
-                </Text>
-              </VStack>
-            ) : (
-                <Text>No transaction status available. Please try initiating payment again.</Text>
-            )}
-          </ModalBody>
-          <ModalFooter>
-            <Button onClick={handleModalClose} colorScheme="brand" isDisabled={isLoadingTransactionStatus}>
-              Close
-            </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
+        </Flex>
+      )}
     </Box>
   );
 }
