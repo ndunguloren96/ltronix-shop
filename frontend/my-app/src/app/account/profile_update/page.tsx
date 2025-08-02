@@ -52,7 +52,8 @@ export default function ProfileUpdatePage() {
           const user = session.user.djangoUser as DjangoUser;
           setEmail(user.email || '');
           setFirstName(user.first_name || '');
-          setMiddleName(user.middle_name || '');
+          // CORRECTED: Access middle_name from the nested profile object
+          setMiddleName(user.profile?.middle_name || '');
           setLastName(user.last_name || '');
           setPhoneNumber(user.phone_number || '');
           setGender(user.gender || '');
@@ -80,7 +81,8 @@ export default function ProfileUpdatePage() {
           const data: DjangoUser = await res.json();
           setEmail(data.email || '');
           setFirstName(data.first_name || '');
-          setMiddleName(data.middle_name || '');
+          // CORRECTED: Access middle_name from the nested profile object
+          setMiddleName(data.profile?.middle_name || '');
           setLastName(data.last_name || '');
           setPhoneNumber(data.phone_number || '');
           setGender(data.gender || '');
