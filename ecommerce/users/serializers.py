@@ -8,7 +8,8 @@ from dj_rest_auth.registration.serializers import RegisterSerializer # Import Re
 
 from .models import User, UserProfile # Assuming UserProfile is also in .models
 from sellers.models import Seller # Import the Seller model
-from sellers.serializers import SellerSerializer # Import the new SellerSerializer
+# The SellerSerializer is now being imported from sellers.serializers, which must exist.
+from sellers.serializers import SellerSerializer
 
 # Get the custom User model
 User = get_user_model()
@@ -18,7 +19,8 @@ User = get_user_model()
 class UserDetailsSerializer(serializers.ModelSerializer):
     middle_name = serializers.CharField(source='profile.middle_name', required=False, allow_blank=True)
     is_seller = serializers.SerializerMethodField()
-    seller_profile = SellerSerializer(source='seller_profile', read_only=True) # Nested serializer for seller details
+    # Use the SellerSerializer for the nested seller details.
+    seller_profile = SellerSerializer(source='seller_profile', read_only=True)
 
     class Meta:
         model = User
