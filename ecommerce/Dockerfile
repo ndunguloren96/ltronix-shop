@@ -101,6 +101,6 @@ RUN python manage.py collectstatic --noinput
 
 EXPOSE 8000
 
-# Command to run the application (migrations, superuser creation, then Gunicorn)
+# Command to run the application (superuser creation, then Gunicorn)
 # `python` here also refers to the venv's python due to the PATH setting.
-CMD ["sh", "-c", "python manage.py migrate --noinput && python create_initial_superuser.py && gunicorn ecommerce.wsgi:application --bind 0.0.0.0:$PORT"]
+CMD ["sh", "-c", "python create_initial_superuser.py && gunicorn ecommerce.wsgi:application --bind 0.0.0.0:$PORT"]
