@@ -17,12 +17,6 @@ export default function SignupPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [middleName, setMiddleName] = useState(''); // New state for middle name
-  const [phoneNumber, setPhoneNumber] = useState(''); // New state for phone number
-  const [gender, setGender] = useState(''); // New state for gender
-  const [dateOfBirth, setDateOfBirth] = useState(''); // New state for date of birth
   const [isLoading, setIsLoading] = useState(false);
   const toast = useToast();
   const router = useRouter();
@@ -55,12 +49,6 @@ export default function SignupPage() {
           email,
           password,
           password2: confirmPassword,
-          first_name: firstName,
-          last_name: lastName,
-          middle_name: middleName,
-          phone_number: phoneNumber,
-          gender: gender,
-          date_of_birth: dateOfBirth || null, // Send null if date is not provided
         }),
       });
 
@@ -176,32 +164,6 @@ export default function SignupPage() {
                 <FormLabel>Email</FormLabel>
                 <Input type="email" value={email} onChange={e => setEmail(e.target.value)} />
               </FormControl>
-              <Flex gap={4}>
-                <FormControl id="first-name">
-                  <FormLabel>First Name</FormLabel>
-                  <Input type="text" value={firstName} onChange={e => setFirstName(e.target.value)} />
-                </FormControl>
-                <FormControl id="last-name">
-                  <FormLabel>Last Name</FormLabel>
-                  <Input type="text" value={lastName} onChange={e => setLastName(e.target.value)} />
-                </FormControl>
-              </Flex>
-              <FormControl id="middle-name">
-                <FormLabel>Middle Name (Optional)</FormLabel>
-                <Input type="text" value={middleName} onChange={e => setMiddleName(e.target.value)} />
-              </FormControl>
-              <FormControl id="phone-number">
-                <FormLabel>Phone Number</FormLabel>
-                <Input type="tel" value={phoneNumber} onChange={e => setPhoneNumber(e.target.value)} />
-              </FormControl>
-              <FormControl id="gender">
-                <FormLabel>Gender</FormLabel>
-                <Input type="text" value={gender} onChange={e => setGender(e.target.value)} />
-              </FormControl>
-              <FormControl id="date-of-birth">
-                <FormLabel>Date of Birth</FormLabel>
-                <Input type="date" value={dateOfBirth} onChange={e => setDateOfBirth(e.target.value)} />
-              </FormControl>
               <FormControl id="password" isRequired>
                 <FormLabel>Password</FormLabel>
                 <Input type="password" value={password} onChange={e => setPassword(e.target.value)} />
@@ -232,4 +194,3 @@ export default function SignupPage() {
     </Flex>
   );
 }
-
