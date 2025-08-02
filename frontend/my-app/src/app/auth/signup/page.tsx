@@ -46,13 +46,13 @@ export default function SignupPage() {
         },
         credentials: 'include',
         body: JSON.stringify({
-          // The error message from Django indicates it expects 'username', 'password1', and 'password2'.
-          // We will send the 'email' value as the 'username' to satisfy this requirement.
-          // The 'password' and 'confirmPassword' will be sent as 'password1' and 'password2'.
-          username: email,
-          email,
-          password: password,
-          password2: confirmPassword,
+          // Based on the Django error:
+          // "username: Ensure this field has no more than 0 characters." implies it should be an empty string.
+          // "password1: This field is required." implies 'password' state should be sent as 'password1'.
+          username: '', // Send an empty string for username to satisfy the backend's specific validation
+          email: email,
+          password1: password, // Change key from 'password' to 'password1'
+          password2: confirmPassword, // 'password2' remains the same
         }),
       });
 
@@ -106,6 +106,8 @@ export default function SignupPage() {
                 return;
             } else if (errorData.password && Array.isArray(errorData.password)) {
                 errorMessage = `Password: ${errorData.password[0]}`;
+            } else if (errorData.password1 && Array.isArray(errorData.password1)) { // Check for password1 errors
+                errorMessage = `Password: ${errorData.password1[0]}`;
             } else if (errorData.password2 && Array.isArray(errorData.password2)) { // Check for password2 errors
                 errorMessage = `Confirm Password: ${errorData.password2[0]}`;
             } else if (errorData.non_field_errors && Array.isArray(errorData.non_field_errors)) {
@@ -197,3 +199,4 @@ export default function SignupPage() {
     </Flex>
   );
 }
+
