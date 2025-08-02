@@ -3,18 +3,19 @@ import uuid  # Import uuid for generating unique transaction IDs if needed
 
 from django.db import models
 from django.utils.translation import gettext_lazy as _
-from store.models import Order  # Ensure Order is correctly imported
+from store.models import Cart, Order  # Ensure Order is correctly imported
 
 
 class Transaction(models.Model):
     # Link to the Order model; set null if order can be deleted but transaction remains
     # For Ltronix Shop, a transaction should always be associated with an order.
-    order = models.ForeignKey(
-        Order,
+    cart = models.ForeignKey(
+        Cart,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        verbose_name=_("Associated Order"),
+        verbose_name=_("Associated Cart"),
+        help_text=_("The shopping cart associated with this transaction.")
     )
 
     # Phone number used for the STK Push
@@ -103,7 +104,7 @@ class Transaction(models.Model):
         ]
 
     def __str__(self):
-        return f"TXN {self.id} | Order {self.order.id if self.order else 'N/A'} | {self.phone} | {self.amount} | {self.status}"
+        return f"TXN {self.id} | Cart {self.cart.id if self.cart else 'N/A'} | {self.phone} | {self.amount} | {self.status}"
 
     def mark_completed(self, mpesa_receipt=None, result_code=None, result_desc=None):
         """Marks the transaction as completed and updates associated order."""
@@ -113,15 +114,13 @@ class Transaction(models.Model):
         self.result_desc = result_desc
         self.is_callback_received = True
         self.save()
-        if self.order and not self.order.complete:
-            self.order.complete = True
-            self.order.transaction_id = (
-                self.mpesa_receipt_number
-            )  # Use Mpesa receipt as transaction_id
-            self.order.save()
-            print(
-                f"Order {self.order.id} marked as complete and transaction_id set to {self.mpesa_receipt_number}"
-            )
+        if self.cart:
+            for order in self.cart.orders.all():
+                if not order.complete:
+                    order.complete = True
+                    order.transaction_id = self.mpesa_receipt_number
+                    order.save()
+                    print(f"Order {order.id} marked as complete and transaction_id set to {self.mpesa_receipt_number}")
 
     def mark_failed(self, result_code=None, result_desc=None):
         """Marks the transaction as failed."""
