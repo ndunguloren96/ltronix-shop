@@ -141,7 +141,7 @@ export default function Footer() {
           pt={4}
         >
           {/* Left-aligned content: Copyright */}
-          <Text fontSize="sm" textAlign={{ base: 'center', md: 'left' }} mb={{ base: 4, md: 0 }}>
+          <Text fontSize="sm" textAlign={{ base: 'center', md: 'left' }} mb={{ base: 4, md: 0 }} color="whiteAlpha.900" fontWeight="semibold">
             &copy; {currentYear} Ltronix Shop. All rights reserved.
           </Text>
 
