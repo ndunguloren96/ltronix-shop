@@ -46,8 +46,12 @@ export default function SignupPage() {
         },
         credentials: 'include',
         body: JSON.stringify({
+          // The error message from Django indicates it expects 'username', 'password1', and 'password2'.
+          // We will send the 'email' value as the 'username' to satisfy this requirement.
+          // The 'password' and 'confirmPassword' will be sent as 'password1' and 'password2'.
+          username: email,
           email,
-          password,
+          password: password,
           password2: confirmPassword,
         }),
       });
@@ -193,4 +197,3 @@ export default function SignupPage() {
     </Flex>
   );
 }
-
