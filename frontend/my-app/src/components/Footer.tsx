@@ -1,4 +1,4 @@
-// src/components/Footer.tsx
+// /var/www/ltronix-shop/frontend/my-app/src/components/Footer.tsx
 'use client'; // This component might include interactive elements or relies on client-side features.
 
 import {
@@ -16,7 +16,8 @@ import {
 } from '@chakra-ui/react';
 import Image from 'next/image'; // Import Next.js Image component
 import NextLink from 'next/link'; // Renamed Next.js Link to NextLink to avoid conflict
-import { FaFacebook, FaTwitter, FaInstagram, FaLinkedin, FaYoutube, FaTiktok } from 'react-icons/fa'; // Import all social media icons
+// Import all social media icons, using FaXTwitter for the new X logo
+import { FaFacebook, FaXTwitter, FaInstagram, FaLinkedin, FaYoutube, FaTiktok } from 'react-icons/fa6';
 
 // Define the social media data to make the code cleaner and more scalable.
 const socialLinks = [
@@ -26,9 +27,9 @@ const socialLinks = [
     icon: FaFacebook,
   },
   {
-    label: 'Twitter',
+    label: 'X', // Updated label to match the new icon
     href: 'https://www.twitter.com/ltronixshop', // Placeholder link
-    icon: FaTwitter,
+    icon: FaXTwitter, // Changed to the new X icon
   },
   {
     label: 'Instagram',
@@ -132,36 +133,42 @@ export default function Footer() {
 
         <Divider borderColor="gray.600" my={8} />
 
-        {/* Copyright and Social Media */}
+        {/* Copyright and Social Media Section */}
         <Flex
           direction={{ base: 'column', md: 'row' }}
           justify="space-between"
           align="center"
           pt={4}
         >
-          <Text fontSize="sm" textAlign={{ base: 'center', md: 'left' }} mb={{ base: 4, md: 0 }}>
-            &copy; {currentYear} Ltronix Shop. All rights reserved.
-          </Text>
-          <HStack spacing={4}>
-            {/* Social media icons */}
-            {socialLinks.map((social) => (
-              <ChakraLink
-                key={social.label}
-                href={social.href}
-                isExternal // This prop is essential for opening external links in a new tab
-                aria-label={social.label}
-                _hover={{ color: 'brand.300' }}
-              >
-                <IconButton
+          {/* Left-aligned content: Copyright and Social Icons */}
+          <HStack spacing={4} direction={{ base: 'column', md: 'row' }} mb={{ base: 4, md: 0 }}>
+            <Text fontSize="sm" textAlign={{ base: 'center', md: 'left' }}>
+              &copy; {currentYear} Ltronix Shop. All rights reserved.
+            </Text>
+            <HStack spacing={2}>
+              {/* Social media icons */}
+              {socialLinks.map((social) => (
+                <ChakraLink
+                  key={social.label}
+                  href={social.href}
+                  isExternal // This prop is essential for opening external links in a new tab
                   aria-label={social.label}
-                  icon={<social.icon />}
-                  variant="ghost"
-                  color="gray.200"
-                  fontSize="24px" // Larger icon size for better visibility
-                />
-              </ChakraLink>
-            ))}
-            {/* Other links */}
+                  _hover={{ color: 'brand.300' }}
+                >
+                  <IconButton
+                    aria-label={social.label}
+                    icon={<social.icon />}
+                    variant="ghost"
+                    color="gray.200"
+                    fontSize="24px" // Larger icon size for better visibility
+                  />
+                </ChakraLink>
+              ))}
+            </HStack>
+          </HStack>
+
+          {/* Right-aligned content: Privacy and Terms links */}
+          <HStack spacing={4}>
             <ChakraLink as={NextLink} href="/privacy-policy" fontSize="sm" _hover={{ color: 'brand.300' }}>Privacy Policy</ChakraLink>
             <ChakraLink as={NextLink} href="/terms-of-service" fontSize="sm" _hover={{ color: 'brand.300' }}>Terms of Service</ChakraLink>
           </HStack>
