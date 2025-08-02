@@ -125,7 +125,7 @@ class Product(models.Model):
 class Order(models.Model):
     # This now represents a sub-order for a single seller
     cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name='orders', null=True) # Link to parent cart
-    seller = models.ForeignKey(Seller, on_delete=models.PROTECT, related_name='orders') # Each order belongs to one seller
+    seller = models.ForeignKey(Seller, on_delete=models.PROTECT, related_name='orders', null=True, blank=True) # <-- MODIFIED: Added null=True, blank=True
     # This represents both a shopping cart (complete=False) and a placed order (complete=True)
     customer = models.ForeignKey(
         Customer, on_delete=models.SET_NULL, null=True, blank=True
