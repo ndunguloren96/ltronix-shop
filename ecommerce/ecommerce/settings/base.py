@@ -8,7 +8,7 @@ from django.core.exceptions import ImproperlyConfigured # Keep this import, migh
 
 # Suppress dj_rest_auth deprecation warnings
 warnings.filterwarnings(
-    "ignore",
+    "ignore",
     message=r"app_settings\.(USERNAME|EMAIL)_REQUIRED is deprecated",
     module="dj_rest_auth.registration.serializers",
 )
