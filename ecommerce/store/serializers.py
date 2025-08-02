@@ -1,11 +1,12 @@
 # ecommerce/store/serializers.py
 from rest_framework import serializers
 
-from .models import Customer, Order, OrderItem, Product
+from .models import Cart, Customer, Order, OrderItem, Product
 
 
 # --- Read-only Product Serializer (for nested use in OrderItem) ---
 class ProductSerializer(serializers.ModelSerializer):
+    seller = serializers.StringRelatedField()
     # FIX: Reverted to directly exposing 'image_file' field.
     # Django REST Framework will automatically provide the URL for ImageField
     # when DEFAULT_FILE_STORAGE is configured for S3.
@@ -15,6 +16,7 @@ class ProductSerializer(serializers.ModelSerializer):
         model = Product
         fields = [
             "id",
+            "seller",
             "name",
             "description",
             "price",
@@ -108,4 +110,12 @@ class OrderSerializer(serializers.ModelSerializer):
             "has_shipping_items",
             "items",
         ]
+
+
+class CartSerializer(serializers.ModelSerializer):
+    orders = OrderSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Cart
+        fields = ["id", "customer", "session_key", "orders"]
 

@@ -40,6 +40,14 @@ class Customer(models.Model):
         return self.name if self.name else f"Customer {self.id}"
 
 
+class Cart(models.Model):
+    """Represents a user's shopping session."""
+    customer = models.ForeignKey(Customer, on_delete=models.SET_NULL, null=True, blank=True)
+    session_key = models.CharField(max_length=255, null=True, blank=True, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+
 class Product(models.Model):
     name = models.CharField(_("name"), max_length=200)
     # Changed to DecimalField for currency accuracy
@@ -115,6 +123,9 @@ class Product(models.Model):
 
 
 class Order(models.Model):
+    # This now represents a sub-order for a single seller
+    cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name='orders', null=True) # Link to parent cart
+    seller = models.ForeignKey(Seller, on_delete=models.PROTECT, related_name='orders') # Each order belongs to one seller
     # This represents both a shopping cart (complete=False) and a placed order (complete=True)
     customer = models.ForeignKey(
         Customer, on_delete=models.SET_NULL, null=True, blank=True

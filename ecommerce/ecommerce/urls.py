@@ -36,6 +36,7 @@ urlpatterns = [
     path("api/v1/", include([
         path("", include("store.api_urls")),
         path("payments/", include("payment.api_urls")),
+        path("seller/", include("sellers.api_urls")),
 
         # dj-rest-auth core URLs (login, logout, user details, password reset/change)
         path("auth/", include("dj_rest_auth.urls")),
