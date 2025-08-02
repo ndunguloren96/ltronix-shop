@@ -153,7 +153,7 @@ export default function Footer() {
                   href={social.href}
                   isExternal // This prop is essential for opening external links in a new tab
                   aria-label={social.label}
-                  _hover={{ color: 'brand.300' }}
+                  _hover={{ transform: 'scale(1.1)', transition: 'transform 0.2s' }} // Added a new hover effect
                 >
                   <IconButton
                     aria-label={social.label}
