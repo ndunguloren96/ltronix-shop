@@ -45,8 +45,16 @@ export interface BackendOrder {
     items: BackendOrderItem[];
 }
 
-// FIX: Explicitly export BackendCart as an alias of BackendOrder
-export type BackendCart = BackendOrder;
+export interface BackendCartResponse {
+    id: number | null;
+    customer: number | null;
+    session_key: string | null;
+    message?: string;
+    orders: BackendOrder[];
+}
+
+// FIX: Explicitly export BackendCart as an alias of BackendCartResponse
+export type BackendCart = BackendCartResponse;
 
 // FIX: Ensure CartItemBackend is exported here, as it's used in src/api/cart.ts
 export interface CartItemBackend {

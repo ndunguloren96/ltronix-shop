@@ -1,7 +1,7 @@
 // frontend/my-app/src/api/orders.ts
 import apiClient from '../lib/apiClient'; // Import the new generic apiClient
 // CORRECTED IMPORT: Import types from the dedicated types file
-import { BackendCart, BackendTransaction } from '../types/order'; // Use BackendCart as it's the alias for BackendOrder
+import { BackendCart, BackendTransaction, BackendOrder, BackendCartResponse } from '../types/order'; // Use BackendCart as it's the alias for BackendOrder
 
 // Note: Cart-specific API functions (fetchCartAPI, updateEntireCartAPI, clearCartAPI, checkoutCartAPI)
 // are now assumed to be in src/api/cart.ts and use fetchWithCartAuth.
@@ -10,15 +10,15 @@ import { BackendCart, BackendTransaction } from '../types/order'; // Use Backend
 /**
  * Fetches the order history for the authenticated user.
  */
-export async function fetchOrdersAPI(): Promise<BackendCart[]> { // Use BackendCart
+export async function fetchOrdersAPI(): Promise<BackendOrder[]> {
   console.log("API: Fetching order history...");
   try {
-    const response = await apiClient<BackendCart[]>('orders/', { // Use BackendCart
+    const response = await apiClient<BackendCartResponse[]>('orders/', {
       method: 'GET',
     });
-    // Assuming your backend's /orders/ endpoint returns all orders,
-    // and you only want completed ones on the frontend for "order history".
-    return response.filter((order: BackendCart) => order.complete === true); // Use BackendCart
+    // Flatten the array of BackendCartResponse into a single array of BackendOrder
+    // and then filter for complete orders.
+    return response.flatMap(cartResponse => cartResponse.orders || []).filter(order => order.complete === true);
   } catch (error) {
     console.error("API: Failed to fetch order history:", error);
     throw error;

@@ -46,13 +46,17 @@ export function CartInitializer() {
               localCartItems.map(toBackendCartItem)
             );
             // Update local cart with the merged data from the backend
-            setItems(mergedBackendCart.items.map((item: any) => ({
-                id: item.product.id, // Use item.product.id as the product ID
-                name: item.product.name,
-                price: parseFloat(item.product.price), // Convert price to number
-                quantity: item.quantity,
-                image_file: item.product.image_file,
-            })));
+            if (mergedBackendCart && mergedBackendCart.orders && mergedBackendCart.orders.length > 0 && mergedBackendCart.orders[0].items) {
+              setItems(mergedBackendCart.orders[0].items.map((item: any) => ({
+                  id: item.product.id, // Use item.product.id as the product ID
+                  name: item.product.name,
+                  price: parseFloat(item.product.price), // Convert price to number
+                  quantity: item.quantity,
+                  image_file: item.product.image_file,
+              })));
+            } else {
+              setItems([]);
+            }
             setGuestSessionKey(null); // CRITICAL: Clear guest key after successful merge
             console.log('CartInitializer: Guest cart merged successfully, local guest key cleared.');
           } catch (error) {
@@ -61,8 +65,8 @@ export function CartInitializer() {
             try {
               const userBackendCart = await fetchUserCart();
               // FIX: Add null check for userBackendCart
-              if (userBackendCart) {
-                setItems(userBackendCart.items.map((item: any) => ({
+              if (userBackendCart && userBackendCart.orders && userBackendCart.orders.length > 0 && userBackendCart.orders[0].items) {
+                setItems(userBackendCart.orders[0].items.map((item: any) => ({
                   id: item.product.id, // Use item.product.id as the product ID
                   name: item.product.name,
                   price: parseFloat(item.product.price), // Convert price to number
@@ -87,8 +91,8 @@ export function CartInitializer() {
           try {
             const userBackendCart = await fetchUserCart();
             // FIX: Add null check for userBackendCart
-            if (userBackendCart) {
-              setItems(userBackendCart.items.map((item: any) => ({
+            if (userBackendCart && userBackendCart.orders && userBackendCart.orders.length > 0 && userBackendCart.orders[0].items) {
+              setItems(userBackendCart.orders[0].items.map((item: any) => ({
                 id: item.product.id, // Use item.product.id as the product ID
                 name: item.product.name,
                 price: parseFloat(item.product.price), // Convert price to number

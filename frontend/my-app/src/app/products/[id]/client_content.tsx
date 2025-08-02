@@ -26,7 +26,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 // Import createOrUpdateCart from '@/api/cart'
 import { createOrUpdateCart } from '@/api/cart';
 // Import types from src/types/order.ts and src/types/product.ts
-import { BackendOrder, ProductInCart, BackendOrderItem, CartItemBackend } from '@/types/order'; // Ensure CartItemBackend is imported
+import { BackendOrder, ProductInCart, BackendOrderItem, CartItemBackend, BackendCartResponse } from '@/types/order'; // Ensure CartItemBackend is imported
 import { Product } from '@/types/product'; // Import Product interface from types/product.ts
 
 import { useSession } from 'next-auth/react';
@@ -74,7 +74,7 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
 
   const priceAsNumber = parseFloat(product.price);
 
-  const addToCartMutation = useMutation<BackendOrder, Error, ProductInCart[], { previousCart?: BackendOrder }>({
+  const addToCartMutation = useMutation<BackendCartResponse, Error, ProductInCart[], { previousCart?: BackendCartResponse }>({
     // mutationFn expects ProductInCart[], but createOrUpdateCart expects CartItemBackend[]
     // So, we map ProductInCart[] to CartItemBackend[] here.
     mutationFn: (items) => createOrUpdateCart(
@@ -83,11 +83,11 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
     ),
     onMutate: async (newCartItems: ProductInCart[]) => {
       await queryClient.cancelQueries({ queryKey: ['cart'] });
-      const previousCart = queryClient.getQueryData<BackendOrder>(['cart']);
+      const previousCart = queryClient.getQueryData<BackendCartResponse>(['cart']);
 
-      queryClient.setQueryData<BackendOrder>(['cart'], (oldCart) => {
+      queryClient.setQueryData<BackendCartResponse>(['cart'], (oldCart) => {
         const updatedBackendItems: BackendOrderItem[] = newCartItems.map(item => ({
-          id: oldCart?.items.find(pi => pi.product.id === item.id)?.id || Math.random(), // Keep Math.random() for temporary client-side ID
+          id: oldCart?.orders[0]?.items.find(pi => pi.product.id === item.id)?.id || Math.random(), // Keep Math.random() for temporary client-side ID
           product: {
             id: item.id, // This `item.id` is already a number from ProductInCart
             name: item.name,
@@ -110,14 +110,22 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
           id: null,
           customer: session?.user?.id ? parseInt(session.user.id) : null,
           session_key: guestSessionKey,
-          date_ordered: new Date().toISOString(),
-          complete: false,
-          transaction_id: null,
-          get_cart_total: newCartItems.reduce((acc, item) => acc + item.price * item.quantity, 0).toFixed(2),
-          get_cart_items: newCartItems.reduce((acc, item) => acc + item.quantity, 0),
-          shipping: false,
-          items: updatedBackendItems,
-        } as BackendOrder;
+          message: "Cart created/updated successfully",
+          orders: [
+            {
+              id: null,
+              customer: session?.user?.id ? parseInt(session.user.id) : null,
+              session_key: guestSessionKey,
+              date_ordered: new Date().toISOString(),
+              complete: false,
+              transaction_id: null,
+              get_cart_total: newCartItems.reduce((acc, item) => acc + item.price * item.quantity, 0).toFixed(2),
+              get_cart_items: newCartItems.reduce((acc, item) => acc + item.quantity, 0),
+              shipping: false,
+              items: updatedBackendItems,
+            },
+          ],
+        } as BackendCartResponse;
       });
 
       setLocalCartItems(newCartItems);
@@ -134,8 +142,8 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
         isClosable: true,
       });
       queryClient.setQueryData(['cart'], context?.previousCart);
-      if (context?.previousCart) {
-        setLocalCartItems(context.previousCart.items.map(bi => ({
+      if (context?.previousCart && context.previousCart.orders && context.previousCart.orders.length > 0 && context.previousCart.orders[0].items) {
+        setLocalCartItems(context.previousCart.orders[0].items.map(bi => ({
             id: bi.product.id, name: bi.product.name, price: parseFloat(bi.product.price),
             quantity: bi.quantity, image_file: bi.product.image_file
         })));

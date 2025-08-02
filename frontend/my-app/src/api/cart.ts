@@ -3,7 +3,7 @@ import { getSession } from "next-auth/react";
 import toast from "react-hot-toast";
 // CORRECTED IMPORT: Ensure all necessary types are imported from src/types/order.ts
 // This import will now correctly find CartItemBackend after the fix in src/types/order.ts
-import { BackendCart, BackendTransaction, CartItemBackend, OrderItemPayload, OrderPayload, BackendOrderItem } from '../types/order';
+import { BackendCart, BackendTransaction, CartItemBackend, OrderItemPayload, OrderPayload, BackendOrderItem, BackendOrder, BackendCartResponse } from '../types/order';
 
 
 // Ensure this matches your Django API URL from .env
@@ -185,13 +185,19 @@ export async function fetchTransactionStatusAPI(transactionId: number, guestSess
  * @param guestSessionKey Optional: The session key for guest users.
  * @returns The updated BackendOrder (cleared cart).
  */
-export async function clearCartAPI(cartId: number, guestSessionKey?: string | null): Promise<BackendCart> {
+export async function clearCartAPI(cartId: number, guestSessionKey?: string | null): Promise<BackendOrder | null> {
   const url = new URL(`orders/${cartId}/`, DJANGO_API_BASE_URL);
-  const response = await fetchWithCartAuth<BackendCart>(url.toString(), {
+  const response = await fetchWithCartAuth<BackendCartResponse>(url.toString(), {
     method: 'PUT', // Use PUT to update the entire cart (clear it by sending no items)
     body: JSON.stringify({ items: [] }), // Send an empty items array
   }, guestSessionKey);
-  return response;
+  // Assuming the backend returns a BackendCartResponse with an array of orders
+  // and we are interested in the first order after clearing.
+  if (response && response.orders && response.orders.length > 0) {
+    return response.orders[0];
+  } else {
+    return null;
+  }
 }
 
 /**
@@ -211,11 +217,13 @@ export async function checkoutCartAPI(cartId: number, guestSessionKey?: string |
 /**
  * Fetches the order history for the authenticated user.
  */
-export async function fetchOrdersAPI(): Promise<BackendCart[]> {
+export async function fetchOrdersAPI(): Promise<BackendOrder[]> {
   const url = new URL('orders/', DJANGO_API_BASE_URL);
-  const response = await fetchWithCartAuth<BackendCart[]>(url.toString(), {
+  const response = await fetchWithCartAuth<BackendCartResponse[]>(url.toString(), {
     method: 'GET',
   });
-  return response.filter((order: BackendCart) => order.complete === true);
+  // Flatten the array of BackendCartResponse into a single array of BackendOrder
+  // and then filter for complete orders.
+  return response.flatMap(cartResponse => cartResponse.orders || []).filter(order => order.complete === true);
 }
 

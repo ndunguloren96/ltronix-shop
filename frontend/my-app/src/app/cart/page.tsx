@@ -41,13 +41,14 @@ import {
   ProductInCart,
   BackendOrderItem,
   CartItemBackend,
+  BackendCartResponse,
 } from '@/types/order';
 
 import { useCartStore } from '@/store/useCartStore';
 
 // Define the context interface for useMutation
 interface UpdateCartContext {
-  previousCart?: BackendOrder | null;
+  previousCart?: BackendCartResponse | null;
 }
 
 export default function CartPage() {
@@ -81,7 +82,7 @@ export default function CartPage() {
     isError,
     error,
     isFetching,
-  } = useQuery<BackendOrder | null, Error>({
+  } = useQuery<BackendCartResponse | null, Error>({
     queryKey: ['cart', status, currentSessionKey],
     queryFn: () => {
       if (isUserAuthenticated) {
@@ -110,9 +111,9 @@ export default function CartPage() {
   useEffect(() => {
     // Only proceed if the session status is resolved AND the store has initialized.
     if (status !== 'loading' && isInitialized) {
-      if (backendCart) {
+      if (backendCart && backendCart.orders && backendCart.orders.length > 0 && backendCart.orders[0].items) {
         setLocalCartItems(
-          backendCart.items.map((item) => ({
+          backendCart.orders[0].items.map((item) => ({
             id: item.product.id,
             name: item.product.name,
             price: parseFloat(item.product.price),
@@ -133,14 +134,14 @@ export default function CartPage() {
   }, [backendCart, status, setLocalCartItems, guestSessionKey, setGuestSessionKey, currentSessionKey, isInitialized, isUserAuthenticated]);
 
 
-  const updateCartMutation = useMutation<BackendOrder, Error, ProductInCart[], UpdateCartContext>({
+  const updateCartMutation = useMutation<BackendCartResponse, Error, ProductInCart[], UpdateCartContext>({
     mutationFn: (items) => createOrUpdateCart(
       items.map(item => ({ product_id: item.id, quantity: item.quantity })),
       currentSessionKey
     ),
     onMutate: async (newFrontendCartItems: ProductInCart[]) => {
       await queryClient.cancelQueries({ queryKey: ['cart', status, currentSessionKey] });
-      const previousCart = queryClient.getQueryData<BackendOrder>(['cart', status, currentSessionKey]);
+      const previousCart = queryClient.getQueryData<BackendCartResponse>(['cart', status, currentSessionKey]);
       setLocalCartItems(newFrontendCartItems);
       return { previousCart };
     },
@@ -153,9 +154,9 @@ export default function CartPage() {
         duration: 5000,
         isClosable: true,
       });
-      if (context?.previousCart) {
+      if (context?.previousCart && context.previousCart.orders && context.previousCart.orders.length > 0 && context.previousCart.orders[0].items) {
         setLocalCartItems(
-          context.previousCart.items.map((bi) => ({
+          context.previousCart.orders[0].items.map((bi) => ({
             id: bi.product.id, name: bi.product.name, price: parseFloat(bi.product.price),
             quantity: bi.quantity, image_file: bi.product.image_file
           }))
@@ -166,7 +167,7 @@ export default function CartPage() {
     },
     onSuccess: (data) => {
       // Ensure data.orders exists and has at least one element
-      if (data.orders && data.orders.length > 0) {
+      if (data.orders && data.orders.length > 0 && data.orders[0].items) {
         setLocalCartItems(
           data.orders[0].items.map((backendItem) => ({
             id: backendItem.product.id,
@@ -197,7 +198,7 @@ export default function CartPage() {
     },
   });
 
-  const clearCartMutation = useMutation<BackendOrder, Error, number>({
+  const clearCartMutation = useMutation<BackendOrder | null, Error, number>({
     mutationFn: (cartId) => clearCartAPI(cartId, currentSessionKey),
     onMutate: async (cartId) => {
       await queryClient.cancelQueries({ queryKey: ['cart', status, currentSessionKey] });

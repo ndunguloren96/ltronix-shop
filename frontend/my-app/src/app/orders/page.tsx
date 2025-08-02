@@ -37,7 +37,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 import { fetchOrdersAPI } from '@/api/orders'; // Only import the function
-import { BackendCart } from '@/types/order'; // FIX: Import BackendCart from types/order.ts
+import { BackendOrder } from '@/types/order';
 
 export default function OrderHistoryPage() {
   const router = useRouter();
@@ -50,7 +50,7 @@ export default function OrderHistoryPage() {
     isError,
     error,
     isFetching, // Useful to show background refetching
-  } = useQuery<BackendCart[], Error>({ // FIX: Use BackendCart here
+  } = useQuery<BackendOrder[], Error>({
     queryKey: ['orders'],
     queryFn: fetchOrdersAPI,
     enabled: status === 'authenticated', // Only fetch if user is authenticated
