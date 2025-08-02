@@ -7,11 +7,10 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { MyButton } from '../../components/MyButton'; // Assuming MyButton is available
 import Link from 'next/link';
+import { DjangoUser } from '../../types/next-auth';
 
 // Define your Django backend URL from environment variables
-const DJANGO_API_BASE_URL = process.env.NEXT_PUBLIC_DJANGO_API_URL || 'http://127.0.0.1:8000/api';
-
-import { DjangoUser } from '../../types/next-auth';
+const DJANGO_API_BASE_URL = process.env.NEXT_PUBLIC_DJANGO_API_URL || 'http://localhost:8000/api';
 
 export default function AccountPage() {
   const { data: session, status } = useSession();
@@ -35,7 +34,6 @@ export default function AccountPage() {
     // Fetch user details from Django when authenticated session is available
     const fetchUserDetails = async () => {
       // Prioritize fetching from backend if accessToken is available
-      // FIX APPLIED HERE: Access accessToken via session.user
       if (session?.user?.accessToken) {
         try {
           const res = await fetch(`${DJANGO_API_BASE_URL}/auth/user/`, {
@@ -43,7 +41,7 @@ export default function AccountPage() {
             headers: {
               'Content-Type': 'application/json',
               // Use the Django access token from the NextAuth session
-              'Authorization': `Bearer ${session.user.accessToken}`, // <-- Also fixed here
+              'Authorization': `Bearer ${session.user.accessToken}`,
             },
           });
 
@@ -79,6 +77,7 @@ export default function AccountPage() {
     fetchUserDetails();
   }, [session, status, router]); // Re-run effect when session or status changes
 
+  // Render a loading spinner while waiting for session and user data
   if (status === 'loading' || isLoadingUser) {
     return (
       <Flex justify="center" align="center" minH="100vh">
@@ -87,6 +86,7 @@ export default function AccountPage() {
     );
   }
 
+  // Render an error alert if data fetching failed
   if (error) {
     return (
       <Flex justify="center" align="center" minH="100vh" p={4}>
@@ -104,6 +104,7 @@ export default function AccountPage() {
     );
   }
 
+  // Main component rendering the account dashboard
   return (
     <Flex align="center" justify="center" minH="100vh" bg="gray.50" p={4}>
       <Box p={8} maxWidth="600px" borderWidth={1} borderRadius={8} boxShadow="lg" bg="white" width="full">
@@ -122,8 +123,8 @@ export default function AccountPage() {
                 {userDetails?.first_name && (
                   <Text fontSize="md"><Text as="span" fontWeight="semibold">First Name:</Text> {userDetails.first_name}</Text>
                 )}
-                {userDetails?.middle_name && (
-                  <Text fontSize="md"><Text as="span" fontWeight="semibold">Middle Name:</Text> {userDetails.middle_name}</Text>
+                {userDetails?.profile?.middle_name && ( // Access middle name through the profile object
+                  <Text fontSize="md"><Text as="span" fontWeight="semibold">Middle Name:</Text> {userDetails.profile.middle_name}</Text>
                 )}
                 {userDetails?.last_name && (
                   <Text fontSize="md"><Text as="span" fontWeight="semibold">Last Name:</Text> {userDetails.last_name}</Text>
@@ -148,6 +149,11 @@ export default function AccountPage() {
           )}
 
           <VStack spacing={3} mt={6}>
+            <Link href="/account/profile" passHref>
+              <MyButton as="a" width="full" colorScheme="blue">
+                View Profile Details
+              </MyButton>
+            </Link>
             <Link href="/account/profile-update" passHref>
               <MyButton as="a" width="full" colorScheme="blue">
                 Update Profile
@@ -158,16 +164,10 @@ export default function AccountPage() {
                 Change Password
               </MyButton>
             </Link>
-            {/* Add other account management links here */}
-            {/* Example: Order History */}
-            {/* <Link href="/account/orders" passHref>
-              <MyButton as="a" width="full" colorScheme="green">
-                Order History
-              </MyButton>
-            </Link> */}
           </VStack>
         </VStack>
       </Box>
     </Flex>
   );
 }
+

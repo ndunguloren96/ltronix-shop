@@ -1,7 +1,7 @@
 // frontend/my-app/src/components/Header.tsx
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   Box,
   Flex,
@@ -30,7 +30,7 @@ import {
   DrawerHeader,
   DrawerBody,
   VStack,
-  Spinner, // Added Spinner for loading state
+  Spinner,
 } from '@chakra-ui/react';
 import {
   HamburgerIcon,
@@ -42,10 +42,10 @@ import {
 import { useRouter, usePathname } from 'next/navigation';
 import NextLink from 'next/link';
 import { BsCartFill } from 'react-icons/bs';
-import { signOut, useSession } from 'next-auth/react';
 
-// Import your Zustand cart store
+// Import your Zustand stores
 import { useCartStore } from '@/store/useCartStore';
+import { useAuthStore } from '@/store/useAuthStore'; // Use the Zustand auth store
 
 // NavItem interface definition
 interface NavItem {
@@ -86,13 +86,20 @@ const NAV_ITEMS: Array<NavItem> = [
   { label: 'Privacy', href: '/privacy' },
 ];
 
-
 export default function Header() {
   const { isOpen, onToggle, onOpen, onClose } = useDisclosure();
   const router = useRouter();
   const pathname = usePathname();
-  const { data: session, status } = useSession(); // NextAuth.js session status and data
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Get authentication state from the Zustand store
+  const { isAuthenticated, user, loading, logout, checkAuth } = useAuthStore();
+
+  // Use a useEffect to check authentication status when the component mounts
+  useEffect(() => {
+    // This will run the simulated auth check on initial load
+    checkAuth();
+  }, [checkAuth]);
 
   // Chakra UI's 'md' breakpoint is 48em (768px). This hook determines if the screen is wider than that.
   const [isLargerThanMd] = useMediaQuery('(min-width: 48em)');
@@ -119,10 +126,10 @@ export default function Header() {
     <Box
       bg={useColorModeValue('white', 'gray.800')}
       color={useColorModeValue('gray.600', 'white')}
-      position="sticky" // Make header sticky
+      position="sticky"
       top="0"
-      zIndex="sticky" // Ensure header stays on top of other content
-      boxShadow="sm" // Add a subtle shadow
+      zIndex="sticky"
+      boxShadow="sm"
     >
       <Flex
         minH={'60px'}
@@ -136,7 +143,7 @@ export default function Header() {
         {/* Mobile Menu Button (Hamburger) - Visible only on smaller screens */}
         {!isLargerThanMd && (
           <IconButton
-            onClick={onOpen} // Opens the Drawer
+            onClick={onOpen}
             icon={<HamburgerIcon w={5} h={5} />}
             variant={'ghost'}
             aria-label={'Open Navigation'}
@@ -244,15 +251,26 @@ export default function Header() {
           {/* Authentication Buttons (desktop) - Hidden on auth pages and mobile */}
           {!isOnAuthPage && isLargerThanMd && (
             <>
-              {status === 'loading' ? (
-                <Spinner size="sm" /> // Show spinner while session is loading
-              ) : status === 'authenticated' ? (
+              {loading ? (
+                <Spinner size="sm" />
+              ) : isAuthenticated ? (
                 <>
-                  <Button as={ChakraLink} fontSize={'sm'} fontWeight={400} variant={'link'} href="/account" aria-label="Account settings">
-                    Account
+                  <Button
+                    as={ChakraLink}
+                    fontSize={'sm'}
+                    fontWeight={400}
+                    variant={'link'}
+                    href="/account"
+                    aria-label="Account settings"
+                  >
+                    {/* Display a personalized greeting if the user has a first name */}
+                    {user?.firstName ? `Hello, ${user.firstName}` : 'Account'}
                   </Button>
                   <Button
-                    onClick={() => signOut({ callbackUrl: '/auth/login' })}
+                    onClick={() => {
+                      logout();
+                      router.push('/auth/login');
+                    }}
                     colorScheme="red"
                     size="sm"
                     fontWeight={600}
@@ -338,15 +356,26 @@ export default function Header() {
               {/* Authentication Buttons for Mobile - Hidden on auth pages */}
               {!isOnAuthPage && (
                 <>
-                  {status === 'loading' ? (
-                    <Spinner size="sm" /> // Show spinner while session is loading
-                  ) : status === 'authenticated' ? (
+                  {loading ? (
+                    <Spinner size="sm" />
+                  ) : isAuthenticated ? (
                     <>
-                      <Button as={ChakraLink} fontSize="xl" width="full" onClick={onClose} href="/account" aria-label="Account settings (mobile)">
-                        Account
+                      <Button
+                        as={ChakraLink}
+                        fontSize="xl"
+                        width="full"
+                        onClick={onClose}
+                        href="/account"
+                        aria-label="Account settings (mobile)"
+                      >
+                        {user?.firstName ? `Hello, ${user.firstName}` : 'Account'}
                       </Button>
                       <Button
-                        onClick={() => { signOut({ callbackUrl: '/auth/login' }); onClose(); }}
+                        onClick={() => {
+                          logout();
+                          onClose();
+                          router.push('/auth/login');
+                        }}
                         colorScheme="red"
                         width="full"
                         aria-label="Logout (mobile)"
@@ -480,7 +509,7 @@ const MobileNavItem = ({ label, children, href, icon, badgeCount, onClose }: Mob
   const { isOpen, onToggle } = useDisclosure();
 
   return (
-    <Stack spacing={4} onClick={children ? onToggle : undefined}> {/* Only toggle if has children */}
+    <Stack spacing={4} onClick={children ? onToggle : undefined}>
       <ChakraLink
         as={NextLink}
         href={href ?? '#'}
@@ -489,7 +518,7 @@ const MobileNavItem = ({ label, children, href, icon, badgeCount, onClose }: Mob
         justifyContent={'space-between'}
         alignItems={'center'}
         _hover={{ textDecoration: 'none' }}
-        onClick={children ? undefined : onClose} // Close drawer if it's a direct link
+        onClick={children ? undefined : onClose}
         display="flex"
         aria-label={`Navigate to ${label}`}
       >
@@ -540,7 +569,7 @@ const MobileNavItem = ({ label, children, href, icon, badgeCount, onClose }: Mob
                 key={child.label}
                 passHref
                 py={2}
-                onClick={onClose} // Close drawer when sub-item is clicked
+                onClick={onClose}
                 aria-label={`Navigate to ${child.label}`}
               >
                 {child.label}
