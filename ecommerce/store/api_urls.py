@@ -5,10 +5,14 @@ from . import api_views
 
 router = DefaultRouter()
 router.register(r'products', api_views.ProductViewSet, basename='product')
+# Re-register OrderViewSet to handle /orders/
+router.register(r'orders', api_views.OrderViewSet, basename='order')
+# Keep carts if other parts of frontend use it, otherwise remove.
 router.register(r'carts', api_views.CartViewSet, basename='cart')
+
 
 urlpatterns = [
     path('', include(router.urls)),
-    # --- NEW PATH FOR /api/v1/orders/ ---
-    path('orders/', api_views.OrderItemCreateAPIView.as_view(), name='api-add-to-cart'),
+    # This line is now redundant if OrderViewSet handles 'my_cart'
+    # path('orders/my_cart/', api_views.OrderViewSet.as_view({'get': 'my_cart'}), name='my-cart'),
 ]
