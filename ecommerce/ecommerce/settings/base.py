@@ -68,6 +68,7 @@ INSTALLED_APPS = [
     "users", # Your custom users app
     "emails",
     "storages",
+    "sellers.apps.SellersConfig",
 ]
 
 MIDDLEWARE = [

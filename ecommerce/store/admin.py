@@ -11,6 +11,7 @@ class ProductAdmin(admin.ModelAdmin):
     # Display these columns in the list view of products in admin
     list_display = (
         "name",
+        "seller",
         "price",
         "category",
         "stock",
@@ -56,7 +57,7 @@ class ProductAdmin(admin.ModelAdmin):
     image_preview.short_description = "Image Preview"  # Column header in admin
 
     # Optional: Add filters for better navigation in admin
-    list_filter = ("category", "brand", "digital")
+    list_filter = ("category", "brand", "digital", "seller")
 
     # Optional: Add search fields
     search_fields = ("name", "description", "brand", "sku")

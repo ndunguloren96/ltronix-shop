@@ -2,6 +2,7 @@
 from django.conf import settings
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from sellers.models import Seller
 
 
 class Category(models.Model):
@@ -81,6 +82,13 @@ class Product(models.Model):
         help_text=_("Total number of reviews for this product"),
     )
 
+    seller = models.ForeignKey(
+        Seller,
+        on_delete=models.CASCADE, # Or models.PROTECT if products should not be deleted when a seller is
+        related_name='products',
+        verbose_name=_("seller")
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -92,6 +100,7 @@ class Product(models.Model):
             models.Index(fields=["name"]),
             models.Index(fields=["brand"]),
             models.Index(fields=["created_at"]),
+            models.Index(fields=["seller"]),
         ]
 
     def __str__(self):
