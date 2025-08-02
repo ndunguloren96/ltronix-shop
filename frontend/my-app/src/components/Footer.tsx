@@ -140,31 +140,30 @@ export default function Footer() {
           align="center"
           pt={4}
         >
-          {/* Left-aligned content: Copyright and Social Icons */}
-          <HStack spacing={4} direction={{ base: 'column', md: 'row' }} mb={{ base: 4, md: 0 }}>
-            <Text fontSize="sm" textAlign={{ base: 'center', md: 'left' }}>
-              &copy; {currentYear} Ltronix Shop. All rights reserved.
-            </Text>
-            <HStack spacing={2}>
-              {/* Social media icons */}
-              {socialLinks.map((social) => (
-                <ChakraLink
-                  key={social.label}
-                  href={social.href}
-                  isExternal // This prop is essential for opening external links in a new tab
+          {/* Left-aligned content: Copyright */}
+          <Text fontSize="sm" textAlign={{ base: 'center', md: 'left' }} mb={{ base: 4, md: 0 }}>
+            &copy; {currentYear} Ltronix Shop. All rights reserved.
+          </Text>
+
+          {/* Centered content: Social Icons */}
+          <HStack spacing={2} flexGrow={1} justify={{ base: 'center', md: 'center' }}>
+            {socialLinks.map((social) => (
+              <ChakraLink
+                key={social.label}
+                href={social.href}
+                isExternal
+                aria-label={social.label}
+                _hover={{ transform: 'scale(1.1)', transition: 'transform 0.2s' }}
+              >
+                <IconButton
                   aria-label={social.label}
-                  _hover={{ transform: 'scale(1.1)', transition: 'transform 0.2s' }} // Added a new hover effect
-                >
-                  <IconButton
-                    aria-label={social.label}
-                    icon={<social.icon />}
-                    variant="ghost"
-                    color="gray.200"
-                    fontSize="24px" // Larger icon size for better visibility
-                  />
-                </ChakraLink>
-              ))}
-            </HStack>
+                  icon={<social.icon />}
+                  variant="ghost"
+                  color="gray.200"
+                  fontSize="24px"
+                />
+              </ChakraLink>
+            ))}
           </HStack>
 
           {/* Right-aligned content: Privacy and Terms links */}
