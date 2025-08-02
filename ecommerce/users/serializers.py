@@ -4,6 +4,7 @@ from allauth.account.utils import setup_user_email # For allauth email setup
 from django.db import transaction
 from rest_framework import serializers
 from django.contrib.auth import get_user_model # Import get_user_model for EmailChangeSerializer
+from dj_rest_auth.registration.serializers import RegisterSerializer # Import RegisterSerializer
 
 from .models import User, UserProfile # Assuming UserProfile is also in .models
 from sellers.models import Seller # Import the Seller model
@@ -65,9 +66,43 @@ class UserDetailsSerializer(serializers.ModelSerializer):
         """
         return hasattr(obj, 'seller_profile') and obj.seller_profile.is_active
 
-# Your existing CustomRegisterSerializer remains unchanged if you have one.
-# This assumes it extends from allauth's default or dj_rest_auth's default,
-# and primarily handles email and password registration.
+
+# NEWLY ADDED: CustomRegisterSerializer
+class CustomRegisterSerializer(RegisterSerializer):
+    first_name = serializers.CharField(required=False, allow_blank=True, max_length=150)
+    last_name = serializers.CharField(required=False, allow_blank=True, max_length=150)
+    phone_number = serializers.CharField(required=False, allow_blank=True, max_length=20)
+    gender = serializers.CharField(required=False, allow_blank=True, max_length=10)
+    date_of_birth = serializers.DateField(required=False, allow_null=True)
+
+    def get_cleaned_data(self):
+        data = super().get_cleaned_data()
+        data['first_name'] = self.validated_data.get('first_name', '')
+        data['last_name'] = self.validated_data.get('last_name', '')
+        data['phone_number'] = self.validated_data.get('phone_number', '')
+        data['gender'] = self.validated_data.get('gender', '')
+        data['date_of_birth'] = self.validated_data.get('date_of_birth', None)
+        return data
+
+    @transaction.atomic
+    def save(self, request):
+        user = super().save(request)
+        user.first_name = self.cleaned_data.get('first_name')
+        user.last_name = self.cleaned_data.get('last_name')
+        user.phone_number = self.cleaned_data.get('phone_number')
+        user.gender = self.cleaned_data.get('gender')
+        user.date_of_birth = self.cleaned_data.get('date_of_birth')
+        user.save()
+
+        # Create or update UserProfile with middle_name if needed
+        middle_name = self.validated_data.get('middle_name') # Assuming middle_name might be passed
+        if middle_name:
+            UserProfile.objects.update_or_create(user=user, defaults={'middle_name': middle_name})
+        elif not hasattr(user, 'profile'): # Create profile if it doesn't exist and middle_name isn't provided
+            UserProfile.objects.create(user=user)
+
+        return user
+
 
 # Your existing PasswordChangeSerializer remains unchanged.
 class PasswordChangeSerializer(serializers.Serializer):
