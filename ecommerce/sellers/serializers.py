@@ -1,14 +1,14 @@
 # ecommerce/sellers/serializers.py
 from rest_framework import serializers
 from .models import Seller
+from users.serializers import UserDetailsSerializer # Now safe to import directly
 
 class SellerSerializer(serializers.ModelSerializer):
     """
     Serializer for the Seller model.
     """
-    # Use a string literal to avoid a circular import with users.serializers.py.
-    # This defers the loading of the serializer until it's actually needed.
-    user_details = 'users.serializers.UserDetailsSerializer'(source='user', read_only=True)
+    # We can now safely use the UserDetailsSerializer directly as the circular import is broken.
+    user_details = UserDetailsSerializer(source='user', read_only=True)
 
     class Meta:
         model = Seller

@@ -7,9 +7,11 @@ from django.contrib.auth import get_user_model # Import get_user_model for Email
 from dj_rest_auth.registration.serializers import RegisterSerializer # Import RegisterSerializer
 
 from .models import User, UserProfile # Assuming UserProfile is also in .models
-from sellers.models import Seller # Import the Seller model
-# The SellerSerializer is now being imported from sellers.serializers, which must exist.
-from sellers.serializers import SellerSerializer
+
+# Import the Seller model for type hinting and logic
+from sellers.models import Seller
+# NOTE: We no longer import SellerSerializer here directly to break the circular dependency.
+# Instead, we will use a SerializerMethodField for seller_profile.
 
 # Get the custom User model
 User = get_user_model()
@@ -19,8 +21,10 @@ User = get_user_model()
 class UserDetailsSerializer(serializers.ModelSerializer):
     middle_name = serializers.CharField(source='profile.middle_name', required=False, allow_blank=True)
     is_seller = serializers.SerializerMethodField()
-    # Use the SellerSerializer for the nested seller details.
-    seller_profile = SellerSerializer(source='seller_profile', read_only=True)
+    
+    # Use a SerializerMethodField to get the seller profile to avoid a circular import.
+    # The actual serialization will happen in the get_seller_profile method.
+    seller_profile = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -36,10 +40,10 @@ class UserDetailsSerializer(serializers.ModelSerializer):
             "is_staff",
             "is_active",
             "date_joined",
-            "is_seller",       # Add this field
-            "seller_profile",  # Add this field
+            "is_seller",
+            "seller_profile",
         )
-        read_only_fields = ("id", "email", "date_joined", "is_staff", "is_active", "is_seller", "seller_profile") # 'id' should be read-only
+        read_only_fields = ("id", "email", "date_joined", "is_staff", "is_active", "is_seller", "seller_profile")
 
     def update(self, instance, validated_data):
         profile_data = validated_data.pop('profile', {})
@@ -67,6 +71,22 @@ class UserDetailsSerializer(serializers.ModelSerializer):
         Determines if the user has an associated seller profile.
         """
         return hasattr(obj, 'seller_profile') and obj.seller_profile.is_active
+
+    def get_seller_profile(self, obj):
+        """
+        Custom method to serialize the seller profile, if it exists.
+        We will manually import and use the SellerSerializer here.
+        This import is done inside the method to avoid a top-level circular import.
+        """
+        from sellers.serializers import SellerSerializer
+        try:
+            seller_instance = obj.seller_profile
+            # Check if seller_instance is not None before serializing
+            if seller_instance:
+                return SellerSerializer(seller_instance).data
+            return None
+        except Seller.DoesNotExist:
+            return None
 
 
 # NEWLY ADDED: CustomRegisterSerializer
