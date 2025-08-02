@@ -151,14 +151,20 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
         queryClient.invalidateQueries({ queryKey: ['cart'] });
     },
     onSuccess: (data) => {
-      const transformedItems: ProductInCart[] = data.items.map(backendItem => ({
-        id: backendItem.product.id,
-        name: backendItem.product.name,
-        price: parseFloat(backendItem.product.price),
-        quantity: backendItem.quantity,
-        image_file: backendItem.product.image_file,
-      }));
-      setLocalCartItems(transformedItems);
+      // Ensure data.orders exists and has at least one element
+      if (data.orders && data.orders.length > 0) {
+        const transformedItems: ProductInCart[] = data.orders[0].items.map(backendItem => ({
+          id: backendItem.product.id,
+          name: backendItem.product.name,
+          price: parseFloat(backendItem.product.price),
+          quantity: backendItem.quantity,
+          image_file: backendItem.product.image_file,
+        }));
+        setLocalCartItems(transformedItems);
+      } else {
+        // If no orders or items are returned, clear the local cart
+        setLocalCartItems([]);
+      }
 
       toast({
         title: 'Item Added/Updated',

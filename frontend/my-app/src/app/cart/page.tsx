@@ -165,15 +165,21 @@ export default function CartPage() {
       }
     },
     onSuccess: (data) => {
-      setLocalCartItems(
-        data.items.map((backendItem) => ({
-          id: backendItem.product.id,
-          name: backendItem.product.name,
-          price: parseFloat(backendItem.product.price),
-          quantity: backendItem.quantity,
-          image_file: backendItem.product.image_file,
-        }))
-      );
+      // Ensure data.orders exists and has at least one element
+      if (data.orders && data.orders.length > 0) {
+        setLocalCartItems(
+          data.orders[0].items.map((backendItem) => ({
+            id: backendItem.product.id,
+            name: backendItem.product.name,
+            price: parseFloat(backendItem.product.price),
+            quantity: backendItem.quantity,
+            image_file: backendItem.product.image_file,
+          }))
+        );
+      } else {
+        // If no orders or items are returned, clear the local cart
+        setLocalCartItems([]);
+      }
       if (data.session_key && !guestSessionKey && status === 'unauthenticated') {
         setGuestSessionKey(data.session_key);
         console.log("Backend returned new guest session key (from mutation):", data.session_key);
