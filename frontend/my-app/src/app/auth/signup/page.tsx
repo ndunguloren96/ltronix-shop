@@ -107,7 +107,6 @@ export default function SignupPage() {
             } else if (errorData.non_field_errors && Array.isArray(errorData.non_field_errors)) {
                 errorMessage = errorData.non_field_errors[0];
             } else if (typeof errorData === 'object' && errorData !== null) {
-                // Handle errors for the new fields as well
                 const allErrors = Object.values(errorData).flat().filter(Boolean);
                 if (allErrors.length > 0) {
                     errorMessage = allErrors.join(', ');
@@ -194,3 +193,4 @@ export default function SignupPage() {
     </Flex>
   );
 }
+
