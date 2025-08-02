@@ -1,11 +1,11 @@
+// src/types/next-auth.d.ts
 import NextAuth, { DefaultSession, DefaultUser } from "next-auth";
 import { JWT } from "next-auth/jwt";
 
 export interface DjangoUser {
-  pk: string;
+  id: string; // Changed from 'pk' to 'id' for consistency, as per the serializer snippet
   email: string;
   first_name?: string;
-  middle_name?: string;
   last_name?: string;
   phone_number?: string;
   gender?: string;
@@ -13,6 +13,10 @@ export interface DjangoUser {
   is_staff?: boolean;
   is_active?: boolean;
   date_joined?: string;
+  // New profile property to match the backend
+  profile?: {
+    middle_name?: string;
+  };
 }
 
 declare module "next-auth" {
