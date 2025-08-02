@@ -1,4 +1,4 @@
-// /var/www/ltronix-shop/frontend/my-app/src/components/Footer.tsx
+// src/components/Footer.tsx
 'use client'; // This component might include interactive elements or relies on client-side features.
 
 import {
@@ -12,12 +12,45 @@ import {
   Container, // Added Container for main footer content alignment
   SimpleGrid,
   Heading,
+  IconButton, // Import IconButton for social media icons
 } from '@chakra-ui/react';
 import Image from 'next/image'; // Import Next.js Image component
 import NextLink from 'next/link'; // Renamed Next.js Link to NextLink to avoid conflict
+import { FaFacebook, FaTwitter, FaInstagram, FaLinkedin, FaYoutube, FaTiktok } from 'react-icons/fa'; // Import all social media icons
 
-// You can add more icons if needed, e.g., for social media
-// import { FaFacebook, FaTwitter, FaInstagram } from 'react-icons/fa';
+// Define the social media data to make the code cleaner and more scalable.
+const socialLinks = [
+  {
+    label: 'Facebook',
+    href: 'https://www.facebook.com/ltronixshop', // Placeholder link
+    icon: FaFacebook,
+  },
+  {
+    label: 'Twitter',
+    href: 'https://www.twitter.com/ltronixshop', // Placeholder link
+    icon: FaTwitter,
+  },
+  {
+    label: 'Instagram',
+    href: 'https://www.instagram.com/ltronixshop', // Placeholder link
+    icon: FaInstagram,
+  },
+  {
+    label: 'LinkedIn',
+    href: 'https://www.linkedin.com/company/ltronixshop', // Placeholder link
+    icon: FaLinkedin,
+  },
+  {
+    label: 'YouTube',
+    href: 'https://www.youtube.com/@ltronixshop', // Placeholder link
+    icon: FaYoutube,
+  },
+  {
+    label: 'TikTok',
+    href: 'https://www.tiktok.com/@ltronixshop', // Placeholder link
+    icon: FaTiktok,
+  },
+];
 
 // --- CRITICAL FIX: Changed to default export ---
 export default function Footer() {
@@ -110,11 +143,25 @@ export default function Footer() {
             &copy; {currentYear} Ltronix Shop. All rights reserved.
           </Text>
           <HStack spacing={4}>
-            {/* Placeholder for social media icons */}
-            {/* <IconButton aria-label="Facebook" icon={<FaFacebook />} variant="ghost" color="gray.200" _hover={{ color: 'brand.300' }} />
-            <IconButton aria-label="Twitter" icon={<FaTwitter />} variant="ghost" color="gray.200" _hover={{ color: 'brand.300' }} />
-            <IconButton aria-label="Instagram" icon={<FaInstagram />} variant="ghost" color="gray.200" _hover={{ color: 'brand.300' }} /> */}
-            {/* CRITICAL FIX: Use ChakraLink as NextLink and passHref */}
+            {/* Social media icons */}
+            {socialLinks.map((social) => (
+              <ChakraLink
+                key={social.label}
+                href={social.href}
+                isExternal // This prop is essential for opening external links in a new tab
+                aria-label={social.label}
+                _hover={{ color: 'brand.300' }}
+              >
+                <IconButton
+                  aria-label={social.label}
+                  icon={<social.icon />}
+                  variant="ghost"
+                  color="gray.200"
+                  fontSize="24px" // Larger icon size for better visibility
+                />
+              </ChakraLink>
+            ))}
+            {/* Other links */}
             <ChakraLink as={NextLink} href="/privacy-policy" fontSize="sm" _hover={{ color: 'brand.300' }}>Privacy Policy</ChakraLink>
             <ChakraLink as={NextLink} href="/terms-of-service" fontSize="sm" _hover={{ color: 'brand.300' }}>Terms of Service</ChakraLink>
           </HStack>
