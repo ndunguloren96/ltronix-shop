@@ -10,8 +10,6 @@ from .models import User, UserProfile # Assuming UserProfile is also in .models
 
 # Import the Seller model for type hinting and logic
 from sellers.models import Seller
-# NOTE: We no longer import SellerSerializer here directly to break the circular dependency.
-# Instead, we will use a SerializerMethodField for seller_profile.
 
 # Get the custom User model
 User = get_user_model()
@@ -75,7 +73,6 @@ class UserDetailsSerializer(serializers.ModelSerializer):
     def get_seller_profile(self, obj):
         """
         Custom method to serialize the seller profile, if it exists.
-        We will manually import and use the SellerSerializer here.
         This import is done inside the method to avoid a top-level circular import.
         """
         from sellers.serializers import SellerSerializer
@@ -89,39 +86,32 @@ class UserDetailsSerializer(serializers.ModelSerializer):
             return None
 
 
-# NEWLY ADDED: CustomRegisterSerializer
+# A CustomRegisterSerializer for a minimal, email-based signup.
+# We override the RegisterSerializer to handle the 'username' field correctly.
 class CustomRegisterSerializer(RegisterSerializer):
-    first_name = serializers.CharField(required=False, allow_blank=True, max_length=150)
-    last_name = serializers.CharField(required=False, allow_blank=True, max_length=150)
-    phone_number = serializers.CharField(required=False, allow_blank=True, max_length=20)
-    gender = serializers.CharField(required=False, allow_blank=True, max_length=10)
-    date_of_birth = serializers.DateField(required=False, allow_null=True)
-
-    def get_cleaned_data(self):
-        data = super().get_cleaned_data()
-        data['first_name'] = self.validated_data.get('first_name', '')
-        data['last_name'] = self.validated_data.get('last_name', '')
-        data['phone_number'] = self.validated_data.get('phone_number', '')
-        data['gender'] = self.validated_data.get('gender', '')
-        data['date_of_birth'] = self.validated_data.get('date_of_birth', None)
-        return data
+    """
+    A simplified registration serializer that only handles email and passwords.
+    This serializer is necessary to ensure the backend does not require a username
+    and correctly handles the password confirmation.
+    """
+    # Exclude the username field from the serializer completely.
+    # We use a custom field to create the username from the email if needed.
+    # The default RegisterSerializer expects 'email', 'password', and 'password2'.
+    # We will let the frontend handle 'password' as 'password1' and 'password2'
+    # so we don't need to rename the fields here.
+    username = None
+    
+    password2 = serializers.CharField(style={'input_type': 'password'}, write_only=True)
 
     @transaction.atomic
     def save(self, request):
+        # The 'allauth' adapter automatically sets up the username based on email
+        # if the 'ACCOUNT_ADAPTER' setting is configured to a custom adapter
+        # that handles this. We do not need to manually set a username here.
         user = super().save(request)
-        user.first_name = self.cleaned_data.get('first_name')
-        user.last_name = self.cleaned_data.get('last_name')
-        user.phone_number = self.cleaned_data.get('phone_number')
-        user.gender = self.cleaned_data.get('gender')
-        user.date_of_birth = self.cleaned_data.get('date_of_birth')
-        user.save()
-
-        # Create or update UserProfile with middle_name if needed
-        middle_name = self.validated_data.get('middle_name') # Assuming middle_name might be passed
-        if middle_name:
-            UserProfile.objects.update_or_create(user=user, defaults={'middle_name': middle_name})
-        elif not hasattr(user, 'profile'): # Create profile if it doesn't exist and middle_name isn't provided
-            UserProfile.objects.create(user=user)
+        
+        # Create an empty UserProfile for the new user
+        UserProfile.objects.get_or_create(user=user)
 
         return user
 
@@ -164,14 +154,6 @@ class EmailChangeSerializer(serializers.Serializer):
             user.email = new_email
             user.save()
 
-            # If you are using allauth, you might want to manage email addresses via allauth's EmailAddress model.
-            # This ensures proper verification flows if you have them configured.
-            # You might want to invalidate old EmailAddress objects or mark them as not primary/verified.
-            # For simplicity, if allauth handles primary emails, you might do something like:
-            # from allauth.account.models import EmailAddress
-            # EmailAddress.objects.filter(user=user, primary=True).update(primary=False, verified=False)
-            # EmailAddress.objects.create(user=user, email=new_email, primary=True, verified=False)
-            # Or use allauth's setup_user_email which handles primary email changes (it usually creates a new one and handles the old)
             setup_user_email(request, user, [])
 
         return user
