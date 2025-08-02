@@ -9,14 +9,14 @@ from django.core.exceptions import ImproperlyConfigured # Keep this import, migh
 # Suppress dj_rest_auth deprecation warnings
 warnings.filterwarnings(
     "ignore",
-    message=r"app_settings\.(USERNAME|EMAIL)_REQUIRED is deprecated",
-    module="dj_rest_auth.registration.serializers",
+    message=r"app_settings\.(USERNAME|EMAIL)_REQUIRED is deprecated",
+    module="dj_rest_auth.registration.serializers",
 )
 # FIX: Suppress the specific ACCOUNT_AUTHENTICATION_METHOD warning
-warnings.filteralterations(
-    "ignore",
-    message=r"app_settings\.AUTHENTICATION_METHOD is deprecated",
-    module="allauth.account.app_settings",
+warnings.filterwarnings( # Corrected: warnings.filteralterations -> warnings.filterwarnings
+    "ignore",
+    message=r"app_settings\.AUTHENTICATION_METHOD is deprecated",
+    module="allauth.account.app_settings",
 )
 
 
@@ -37,69 +37,69 @@ ALLOWED_HOSTS = env.list('DJANGO_ALLOWED_HOSTS', default=['localhost', '127.0.0.
 
 
 INSTALLED_APPS = [
-    # Django core
-    "django.contrib.admin",
-    "django.contrib.auth",
-    "django.contrib.contenttypes",
-    "django.contrib.sessions",
-    "django.contrib.messages",
-    "django.contrib.staticfiles",
-    "django.contrib.sites",
+    # Django core
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+    "django.contrib.sites",
 
-    # Third-party
-    "corsheaders",
-    "allauth",
-    "allauth.account",
-    "allauth.socialaccount",
-    "allauth.socialaccount.providers.google",
-    "oauth2_provider", # Keep if you're using Django OAuth Toolkit for your own API clients
-    "rest_framework",
-    "rest_framework.authtoken", # Keep if you use Django Token Authentication directly
-    "rest_framework_simplejwt", # Keep for JWTs
-    "dj_rest_auth",
-    "dj_rest_auth.registration",
-    "drf_spectacular",
-    "anymail",
+    # Third-party
+    "corsheaders",
+    "allauth",
+    "allauth.account",
+    "allauth.socialaccount",
+    "allauth.socialaccount.providers.google",
+    "oauth2_provider", # Keep if you're using Django OAuth Toolkit for your own API clients
+    "rest_framework",
+    "rest_framework.authtoken", # Keep if you use Django Token Authentication directly
+    "rest_framework_simplejwt", # Keep for JWTs
+    "dj_rest_auth",
+    "dj_rest_auth.registration",
+    "drf_spectacular",
+    "anymail",
 
-    # Project apps
-    "store.apps.StoreConfig",
-    "payment",
-    "django_daraja",
-    "users", # Your custom users app
-    "emails",
-    "storages",
-    "sellers.apps.SellersConfig",
+    # Project apps
+    "store.apps.StoreConfig",
+    "payment",
+    "django_daraja",
+    "users", # Your custom users app
+    "emails",
+    "storages",
+    "sellers.apps.SellersConfig",
 ]
 
 MIDDLEWARE = [
-    "django.middleware.security.SecurityMiddleware",
-    "whitenoise.middleware.WhiteNoiseMiddleware",
-    "django.contrib.sessions.middleware.SessionMiddleware",
-    "corsheaders.middleware.CorsMiddleware",
-    "django.middleware.common.CommonMiddleware",
-    "django.middleware.csrf.CsrfViewMiddleware",
-    "django.contrib.auth.middleware.AuthenticationMiddleware",
-    "django.contrib.messages.middleware.MessageMiddleware",
-    "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "allauth.account.middleware.AccountMiddleware",
+    "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "allauth.account.middleware.AccountMiddleware",
 ]
 
 ROOT_URLCONF = "ecommerce.urls"
 
 TEMPLATES = [
-    {
-        "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [os.path.join(BASE_DIR, "templates")],
-        "APP_DIRS": True,
-        "OPTIONS": {
-            "context_processors": [
-                "django.template.context_processors.debug",
-                "django.template.context_processors.request",
-                "django.contrib.auth.context_processors.auth",
-                "django.contrib.messages.context_processors.messages",
-            ]
-        },
-    },
+    {
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [os.path.join(BASE_DIR, "templates")],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.debug",
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
+            ]
+        },
+    },
 ]
 
 WSGI_APPLICATION = "ecommerce.wsgi.application"
@@ -110,15 +110,15 @@ DATABASES = {"default": env.db("DATABASE_URL", default="sqlite:///db.sqlite3")}
 # --- Auth & Password validation
 AUTH_USER_MODEL = "users.User"
 AUTH_PASSWORD_VALIDATORS = [
-    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
-    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator", "OPTIONS": {"min_length": 8}},
-    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
-    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
+    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
+    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator", "OPTIONS": {"min_length": 8}},
+    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
+    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
 AUTHENTICATION_BACKENDS = (
-    "django.contrib.auth.backends.ModelBackend",
-    "allauth.account.auth_backends.AuthenticationBackend",
+    "django.contrib.auth.backends.ModelBackend",
+    "allauth.account.auth_backends.AuthenticationBackend",
 )
 
 SITE_ID = 1
@@ -132,8 +132,6 @@ ACCOUNT_EMAIL_VERIFICATION = "none"
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None
 ACCOUNT_SIGNUP_FIELDS = ["email", "password"]
 SOCIALACCOUNT_ADAPTER = 'users.adapters.DebugSocialAccountAdapter'
-
-
 
 
 # Redirect after login/logout (can be overridden by frontend)
@@ -151,7 +149,7 @@ STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles" # Use Path object
 # Allow Django and WhiteNoise to gather static files from your custom static folder
 STATICFILES_DIRS = [
-    BASE_DIR.parent / "static", # Use Path object for project-level static files
+    BASE_DIR.parent / "static", # Use Path object for project-level static files
 ]
 
 # Use WhiteNoise for efficient static file serving
@@ -162,21 +160,21 @@ MEDIA_ROOT = BASE_DIR.parent / "mediafiles" # Use Path object
 
 # --- DRF settings
 REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework.authentication.SessionAuthentication",
-        "rest_framework.authentication.TokenAuthentication", # Keep if you use this explicitly
-        "dj_rest_auth.jwt_auth.JWTCookieAuthentication", # Primary for JWTs from dj-rest-auth
-        "rest_framework_simplejwt.authentication.JWTAuthentication", # For general JWT validation
-        "oauth2_provider.contrib.rest_framework.OAuth2Authentication", # Keep if using Django OAuth Toolkit
-    ),
-    "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.AllowAny",),
-    "DEFAULT_RENDERER_CLASSES": (
-        "rest_framework.renderers.JSONRenderer",
-        "rest_framework.renderers.BrowsableAPIRenderer",
-    ),
-    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
-    "DEFAULT_PAGINATION_CLASS": "ecommerce.pagination.StandardResultsSetPagination",
-    "PAGE_SIZE": 10,
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework.authentication.SessionAuthentication",
+        "rest_framework.authentication.TokenAuthentication", # Keep if you use this explicitly
+        "dj_rest_auth.jwt_auth.JWTCookieAuthentication", # Primary for JWTs from dj-rest-auth
+        "rest_framework_simplejwt.authentication.JWTAuthentication", # For general JWT validation
+        "oauth2_provider.contrib.rest_framework.OAuth2Authentication", # Keep if using Django OAuth Toolkit
+    ),
+    "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.AllowAny",),
+    "DEFAULT_RENDERER_CLASSES": (
+        "rest_framework.renderers.JSONRenderer",
+        "rest_framework.renderers.BrowsableAPIRenderer",
+    ),
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_PAGINATION_CLASS": "ecommerce.pagination.StandardResultsSetPagination",
+    "PAGE_SIZE": 10,
 }
 
 # --- CORS/CSRF
@@ -225,64 +223,64 @@ ACCOUNT_SIGNUP_FIELDS = ["email", "password"] # Simplified to match default regi
 
 # --- dj-rest-auth / JWT
 REST_AUTH = {
-    "USE_JWT": True,
-    "SESSION_LOGIN": True, # Keep this if you want session authentication for browsable API
-    "JWT_AUTH_COOKIE": "my-app-jwt-access",
-    "JWT_AUTH_REFRESH_COOKIE": "my-app-jwt-refresh",
-    # FIX: Set JWT_AUTH_HTTPONLY to False to make tokens available in response body
-    "JWT_AUTH_HTTPONLY": False, # <--- THIS IS THE CRUCIAL CHANGE
-    "USER_DETAILS_SERIALIZER": "users.serializers.UserDetailsSerializer",
-    "REGISTER_SERIALIZER": "users.serializers.CustomRegisterSerializer",
-    "PASSWORD_RESET_USE_SITECONTROL": True,
-    "PASSWORD_RESET_CONFIRM_URL": env(
-        "DJANGO_PASSWORD_RESET_CONFIRM_URL",
-        default="https://ltronix-shop.vercel.app/auth/password-reset-confirm/{uid}/{token}"
-    ),
-    "OLD_PASSWORD_FIELD_ENABLED": True,
-    "GOOGLE_CLIENT_ID": env("GOOGLE_CLIENT_ID", default=""),
-    "GOOGLE_CLIENT_SECRET": env("GOOGLE_CLIENT_SECRET", default=""),
+    "USE_JWT": True,
+    "SESSION_LOGIN": True, # Keep this if you want session authentication for browsable API
+    "JWT_AUTH_COOKIE": "my-app-jwt-access",
+    "JWT_AUTH_REFRESH_COOKIE": "my-app-jwt-refresh",
+    # FIX: Set JWT_AUTH_HTTPONLY to False to make tokens available in response body
+    "JWT_AUTH_HTTPONLY": False, # <--- THIS IS THE CRUCIAL CHANGE
+    "USER_DETAILS_SERIALIZER": "users.serializers.UserDetailsSerializer",
+    "REGISTER_SERIALIZER": "users.serializers.CustomRegisterSerializer",
+    "PASSWORD_RESET_USE_SITECONTROL": True,
+    "PASSWORD_RESET_CONFIRM_URL": env(
+        "DJANGO_PASSWORD_RESET_CONFIRM_URL",
+        default="https://ltronix-shop.vercel.app/auth/password-reset-confirm/{uid}/{token}"
+    ),
+    "OLD_PASSWORD_FIELD_ENABLED": True,
+    "GOOGLE_CLIENT_ID": env("GOOGLE_CLIENT_ID", default=""),
+    "GOOGLE_CLIENT_SECRET": env("GOOGLE_CLIENT_SECRET", default=""),
 }
 
 # --- Simple JWT
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
-    "ROTATE_REFRESH_TOKENS": True,
-    "BLACKLIST_AFTER_ROTATION": True,
-    "AUTH_HEADER_TYPES": ("Bearer",),
-    "SIGNING_KEY": SECRET_KEY,
-    "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
-    "USER_ID_FIELD": "id",
-    "USER_ID_CLAIM": "user_id",
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
+    "AUTH_HEADER_TYPES": ("Bearer",),
+    "SIGNING_KEY": SECRET_KEY,
+    "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
+    "USER_ID_FIELD": "id",
+    "USER_ID_CLAIM": "user_id",
 }
 
 # --- Social Auth (Google via AllAuth)
 SOCIALACCOUNT_PROVIDERS = {
-    "google": {
-        "APP": {
-            "client_id": env("GOOGLE_CLIENT_ID", default=""),
-            "secret": env("GOOGLE_CLIENT_SECRET", default=""),
-            "key": "",
-        },
-        "SCOPE": ["profile", "email"],
-        "AUTH_PARAMS": {
-            "access_type": "offline",
-            # Add the redirect_uri here. This MUST match one of the Authorized redirect URIs
-            # in your Google Cloud Console for your OAuth 2.0 Client ID.
-            # It should point to your Next.js frontend's Google callback URL.
-            "redirect_uri": env("NEXT_PUBLIC_FRONTEND_URL", default="http://localhost:3000") + "/api/auth/callback/google",
-        },
-    }
+    "google": {
+        "APP": {
+            "client_id": env("GOOGLE_CLIENT_ID", default=""),
+            "secret": env("GOOGLE_CLIENT_SECRET", default=""),
+            "key": "",
+        },
+        "SCOPE": ["profile", "email"],
+        "AUTH_PARAMS": {
+            "access_type": "offline",
+            # Add the redirect_uri here. This MUST match one of the Authorized redirect URIs
+            # in your Google Cloud Console for your OAuth 2.0 Client ID.
+            # It should point to your Next.js frontend's Google callback URL.
+            "redirect_uri": env("NEXT_PUBLIC_FRONTEND_URL", default="http://localhost:3000") + "/api/auth/callback/google",
+        },
+    }
 }
 
 OAUTH2_PROVIDER = {
-    "SCOPES": {
-        "read": "Read scope",
-        "write": "Write scope",
-        "openid": "OpenID Connect scope",
-        "profile": "User profile information",
-        "email": "User email address",
-    }
+    "SCOPES": {
+        "read": "Read scope",
+        "write": "Write scope",
+        "openid": "OpenID Connect scope",
+        "profile": "User profile information",
+        "email": "User email address",
+    }
 }
 
 # --- M-Pesa
@@ -296,61 +294,60 @@ MPESA_ENV = env("MPESA_ENV", default="sandbox")
 # --- Sentry
 SENTRY_DSN = env("SENTRY_DSN", default="")
 if SENTRY_DSN:
-    sentry_sdk.init(
-        dsn=SENTRY_DSN,
-        integrations=[DjangoIntegration()],
-        environment=env("DJANGO_ENVIRONMENT", default="development"),
-        release=env("RELEASE_VERSION", default="dev"),
-        send_default_pii=True,
-        traces_sample_rate=0.5,
-    )
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        integrations=[DjangoIntegration()],
+        environment=env("DJANGO_ENVIRONMENT", default="development"),
+        release=env("RELEASE_VERSION", default="dev"),
+        send_default_pii=True,
+        traces_sample_rate=0.5,
+    )
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 LOGGING = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "formatters": {
-        "json": {
-            "format": '{"timestamp": "%(asctime)s", "level": "%(levelname)s", "logger": "%(name)s", "message": "%(message)s", "module": "%(module)s", "funcName": "%(funcName)s", "lineno": "%(lineno)d"}',
-        },
-        "verbose": {
-            "format": "{levelname} {asctime} {module} {process:d} {thread:d} {message}",
-            "style": "{",
-        },
-    },
-    "handlers": {
-        "console": {
-            "level": "INFO",
-            "class": "logging.StreamHandler",
-            "formatter": "json",
-        },
-    },
-    "root": {
-        "handlers": ["console"],
-        "level": "INFO",
-    },
-    "loggers": {
-        "django": {
-            "handlers": ["console"],
-            "level": "INFO",
-            "propagate": False,
-        },
-        "anymail": {
-            "handlers": ["console"],
-            "level": "INFO",
-            "propagate": False,
-        },
-        "sentry_sdk": {
-            "handlers": ["console"],
-            "level": "ERROR",
-            "propagate": False,
-        },
-        "allauth": {
-            "handlers": ["console"],
-            "level": "INFO",
-            "propagate": False,
-        },
-    },
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "json": {
+            "format": '{"timestamp": "%(asctime)s", "level": "%(levelname)s", "logger": "%(name)s", "message": "%(message)s", "module": "%(module)s", "funcName": "%(funcName)s", "lineno": "%(lineno)d"}',
+        },
+        "verbose": {
+            "format": "{levelname} {asctime} {module} {process:d} {thread:d} {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "console": {
+            "level": "INFO",
+            "class": "logging.StreamHandler",
+            "formatter": "json",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "INFO",
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "anymail": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "sentry_sdk": {
+            "handlers": ["console"],
+            "level": "ERROR",
+            "propagate": False,
+        },
+        "allauth": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+    },
 }
-
