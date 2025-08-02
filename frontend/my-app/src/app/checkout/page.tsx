@@ -406,7 +406,7 @@ export default function CheckoutPage() {
                     <Text fontWeight="medium">M-Pesa</Text>
                   </HStack>
                 </Radio>
-                <Radio value="card" isDisabled>
+                <Radio value="card">
                   <HStack>
                     <Image src="/bank_card.png" alt="Bank Card Logo" boxSize="55px" objectFit="contain" />
                     <Text fontWeight="medium">Card (Coming Soon)</Text>
