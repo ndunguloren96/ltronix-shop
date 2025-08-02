@@ -153,7 +153,6 @@ export default function Footer() {
                 href={social.href}
                 isExternal
                 aria-label={social.label}
-                _hover={{ transform: 'scale(1.1)', transition: 'transform 0.2s' }}
               >
                 <IconButton
                   aria-label={social.label}
@@ -161,6 +160,11 @@ export default function Footer() {
                   variant="ghost"
                   color="gray.200"
                   fontSize="24px"
+                  _hover={{
+                    color: "gray.200", // Explicitly set the color to not change on hover
+                    transform: 'scale(1.1)', // Keep the scaling animation
+                    transition: 'transform 0.2s', // Add a smooth transition
+                  }}
                 />
               </ChakraLink>
             ))}
