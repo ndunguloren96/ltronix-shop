@@ -65,7 +65,8 @@ const handler = NextAuth({
 
           if (user && user.access_token) {
             return {
-              id: user.user.pk,
+              // CORRECTED: Use 'id' instead of 'pk'
+              id: user.user.id,
               email: user.user.email,
               name: user.user.first_name,
               accessToken: user.access_token,
@@ -97,7 +98,8 @@ const handler = NextAuth({
             const { access_token, refresh_token, user: apiUser } = response;
             token.accessToken = access_token;
             token.refreshToken = refresh_token;
-            token.id = apiUser.pk;
+            // CORRECTED: Use 'id' instead of 'pk'
+            token.id = apiUser.id;
             token.email = apiUser.email;
             token.name = apiUser.first_name;
             token.djangoUser = apiUser;
