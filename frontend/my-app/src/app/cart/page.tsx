@@ -40,8 +40,7 @@ import {
   BackendOrder,
   ProductInCart,
   BackendOrderItem,
-  BackendTransaction,
-  CartItemBackend, // Ensure CartItemBackend is imported
+  CartItemBackend,
 } from '@/types/order';
 
 import { useCartStore } from '@/store/useCartStore';
@@ -55,28 +54,26 @@ export default function CartPage() {
   const toast = useToast();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { data: _session, status } = useSession(); // _session is unused
+  const { data: _session, status } = useSession();
 
+  // Get cart state and actions from Zustand store
   const localCartItems = useCartStore((state) => state.items);
   const setLocalCartItems = useCartStore((state) => state.setItems);
   const getLocalTotalItems = useCartStore((state) => state.getTotalItems);
   const getLocalTotalPrice = useCartStore((state) => state.getTotalPrice);
   const guestSessionKey = useCartStore((state) => state.guestSessionKey);
+  const isInitialized = useCartStore((state) => state.isInitialized);
   const setGuestSessionKey = useCartStore((state) => state.setGuestSessionKey);
 
-  // This effect ensures a guest session key is always available for unauthenticated users.
-  useEffect(() => {
-    if (typeof window !== 'undefined' && status === 'unauthenticated' && !guestSessionKey) {
-      import('uuid').then(({ v4: uuidv4 }) => {
-        const newKey = uuidv4();
-        setGuestSessionKey(newKey);
-        console.log('Generated new guest session key on cart page:', newKey);
-      });
-    }
-  }, [status, guestSessionKey, setGuestSessionKey]);
-
+  // CRITICAL FIX: The logic to generate a guest key is now removed from here.
+  // It is handled correctly and asynchronously in the Zustand store's onRehydrateStorage.
+  // This prevents race conditions and overwriting existing keys.
+  
   // Determine the session key to use for API calls
   const currentSessionKey = status === 'unauthenticated' ? guestSessionKey : null;
+  const isUserAuthenticated = status === 'authenticated';
+  const isGuestSessionReady = status === 'unauthenticated' && isInitialized && !!guestSessionKey;
+  const shouldFetchCart = isUserAuthenticated || isGuestSessionReady;
 
   const {
     data: backendCart,
@@ -87,18 +84,19 @@ export default function CartPage() {
   } = useQuery<BackendOrder | null, Error>({
     queryKey: ['cart', status, currentSessionKey],
     queryFn: () => {
-      // Only attempt to fetch if session status is known AND (authenticated OR (unauthenticated AND guestSessionKey is set))
-      if (status === 'authenticated') {
+      if (isUserAuthenticated) {
         return fetchUserCart();
       }
-      if (status === 'unauthenticated' && currentSessionKey) {
+      if (isGuestSessionReady) {
         return fetchUserCart(currentSessionKey);
       }
-      return Promise.resolve(null); // Do not fetch if unauthenticated and no guestSessionKey yet
+      return Promise.resolve(null);
     },
-    enabled: status !== 'loading' && (status === 'authenticated' || (status === 'unauthenticated' && !!currentSessionKey)),
-    staleTime: 0, // Always consider cart data stale
-    gcTime: 0, // Garbage collect immediately after use
+    // CRITICAL FIX: The query is now enabled only after Zustand is initialized and
+    // a valid session key (for guest) or authentication status is present.
+    enabled: isInitialized && (isUserAuthenticated || isGuestSessionReady),
+    staleTime: 0,
+    gcTime: 0,
     refetchOnWindowFocus: true,
     refetchOnMount: true,
     refetchOnReconnect: true,
@@ -110,7 +108,8 @@ export default function CartPage() {
    * or any backend update.
    */
   useEffect(() => {
-    if (status !== 'loading') { // Only proceed if session status is resolved
+    // Only proceed if the session status is resolved AND the store has initialized.
+    if (status !== 'loading' && isInitialized) {
       if (backendCart) {
         setLocalCartItems(
           backendCart.items.map((item) => ({
@@ -121,27 +120,20 @@ export default function CartPage() {
             image_file: item.product.image_file,
           }))
         );
-        // If backend returned a session key for an unauthenticated user, update local store
+        // If backend returned a session key for an unauthenticated user, update local store.
         if (backendCart.session_key && !guestSessionKey && status === 'unauthenticated') {
           setGuestSessionKey(backendCart.session_key);
           console.log('Backend returned new guest session key (from useQuery effect):', backendCart.session_key);
         }
-      } else if (status === 'authenticated' || (status === 'unauthenticated' && !!currentSessionKey)) {
-        // If backendCart is null/undefined but we expect a cart (authenticated or guest with key),
-        // it means the backend returned an empty cart or a 404, so clear local state.
+      } else if (isUserAuthenticated || (status === 'unauthenticated' && !!currentSessionKey)) {
+        // If backendCart is null/undefined but we expect a cart, clear local state.
         setLocalCartItems([]);
       }
     }
-  }, [backendCart, status, setLocalCartItems, guestSessionKey, setGuestSessionKey, currentSessionKey]);
+  }, [backendCart, status, setLocalCartItems, guestSessionKey, setGuestSessionKey, currentSessionKey, isInitialized, isUserAuthenticated]);
 
 
-  /**
-   * CRITICAL: Always update Zustand from backend response after mutation.
-   * This prevents UI from showing stale or unmerged cart data after removing, clearing, or updating items.
-   */
   const updateCartMutation = useMutation<BackendOrder, Error, ProductInCart[], UpdateCartContext>({
-    // mutationFn expects ProductInCart[], but createOrUpdateCart expects CartItemBackend[]
-    // So, we map ProductInCart[] to CartItemBackend[] here.
     mutationFn: (items) => createOrUpdateCart(
       items.map(item => ({ product_id: item.id, quantity: item.quantity })),
       currentSessionKey
@@ -149,7 +141,6 @@ export default function CartPage() {
     onMutate: async (newFrontendCartItems: ProductInCart[]) => {
       await queryClient.cancelQueries({ queryKey: ['cart', status, currentSessionKey] });
       const previousCart = queryClient.getQueryData<BackendOrder>(['cart', status, currentSessionKey]);
-      // Optimistic update
       setLocalCartItems(newFrontendCartItems);
       return { previousCart };
     },
@@ -174,7 +165,6 @@ export default function CartPage() {
       }
     },
     onSuccess: (data) => {
-      // Always update Zustand from backend's canonical cart
       setLocalCartItems(
         data.items.map((backendItem) => ({
           id: backendItem.product.id,
@@ -184,7 +174,6 @@ export default function CartPage() {
           image_file: backendItem.product.image_file,
         }))
       );
-      // If the backend returned a session_key, update it in local storage (e.g., first guest item added)
       if (data.session_key && !guestSessionKey && status === 'unauthenticated') {
         setGuestSessionKey(data.session_key);
         console.log("Backend returned new guest session key (from mutation):", data.session_key);
@@ -206,7 +195,6 @@ export default function CartPage() {
     mutationFn: (cartId) => clearCartAPI(cartId, currentSessionKey),
     onMutate: async (cartId) => {
       await queryClient.cancelQueries({ queryKey: ['cart', status, currentSessionKey] });
-      // Optimistic update
       setLocalCartItems([]);
       setGuestSessionKey(null);
       return {};
@@ -220,10 +208,8 @@ export default function CartPage() {
         duration: 5000,
         isClosable: true,
       });
-      // No rollback needed for clear
     },
     onSuccess: (_data) => {
-      // Always update Zustand from backend cleared cart
       setLocalCartItems([]);
       setGuestSessionKey(null);
       toast({
@@ -240,7 +226,6 @@ export default function CartPage() {
     },
   });
 
-  // The checkout logic now redirects to the dedicated checkout page
   const handleProceedToCheckout = () => {
     if (localCartItems.length === 0) {
       toast({
@@ -257,7 +242,6 @@ export default function CartPage() {
   };
 
   const handleRemoveItem = (id: number) => {
-    // FIX: Ensure updatedItems is ProductInCart[] for mutate input
     const updatedItems: ProductInCart[] = localCartItems.filter((item) => item.id !== id);
     updateCartMutation.mutate(updatedItems);
   };
@@ -273,7 +257,6 @@ export default function CartPage() {
           item.id === id ? { ...item, quantity: newQuantity } : item
         );
       }
-      // FIX: Ensure updatedItems is ProductInCart[] for mutate input
       updateCartMutation.mutate(updatedItems);
     }
   };
@@ -295,15 +278,16 @@ export default function CartPage() {
     }
   };
 
-  if (status === 'loading' || isLoading || (status === 'unauthenticated' && !currentSessionKey && !backendCart)) {
-    // Show loading if session is loading, or cart query is loading,
-    // or if unauthenticated and no guest key yet (meaning cart fetch hasn't even started)
+  if (!isInitialized || status === 'loading' || isLoading || (status === 'unauthenticated' && !currentSessionKey)) {
     return (
       <Center minH="80vh">
         <VStack spacing={4}>
           <Spinner size="xl" />
           <Text fontSize="xl">
-            {status === 'loading' ? 'Authenticating...' : 'Loading your cart...'}
+            {isInitialized && status === 'loading'
+              ? 'Authenticating...'
+              : 'Loading your cart...'
+            }
           </Text>
         </VStack>
       </Center>
@@ -489,4 +473,3 @@ export default function CartPage() {
     </Box>
   );
 }
-
