@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from dj_rest_auth.serializers import PasswordChangeSerializer
 
 # Import your custom serializers
-from .serializers import EmailChangeSerializer, CustomRegisterSerializer # Make sure to import CustomRegisterSerializer too
+from .serializers import EmailChangeSerializer, CustomRegisterSerializer, UserDetailsSerializer # Make sure to import CustomRegisterSerializer too
 
 # Import the base RegisterView from dj-rest-auth
 from dj_rest_auth.registration.views import RegisterView # <-- NEW IMPORTANT IMPORT
