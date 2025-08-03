@@ -5,7 +5,7 @@ export interface ProductInCart {
     name: string;
     price: number;
     quantity: number;
-    image_file?: string;
+    image_url?: string;
 }
 
 export interface OrderItemPayload {
@@ -26,7 +26,7 @@ export interface BackendOrderItem {
         id: number;
         name: string;
         price: string; // Price from backend is a string
-        image_file?: string;
+        image_url?: string;
     };
     quantity: number;
     get_total: string;

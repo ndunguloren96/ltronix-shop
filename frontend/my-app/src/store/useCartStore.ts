@@ -8,7 +8,7 @@ interface CartItem {
   name: string;
   price: number;
   quantity: number;
-  image_file?: string;
+  image_url?: string;
 }
 
 interface CartState {
@@ -17,7 +17,7 @@ interface CartState {
   isInitialized: boolean;
 
   // Actions
-  addItem: (item: Omit<CartItem, 'quantity'> & { image_file?: string }) => void;
+  addItem: (item: Omit<CartItem, 'quantity'> & { image_url?: string }) => void;
   removeItem: (id: number) => void;
   updateItemQuantity: (id: number, quantity: number) => void;
   clearCart: () => void;

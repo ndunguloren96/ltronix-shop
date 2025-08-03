@@ -37,7 +37,6 @@ import Fuse from 'fuse.js';
 import { useQuery } from '@tanstack/react-query';
 import { fetchProducts } from '../../api/products';
 
-// FIX: Update Product interface to use image_file as the property name
 interface Product {
   id: number;
   name: string;

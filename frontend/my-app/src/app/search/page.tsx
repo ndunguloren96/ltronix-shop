@@ -111,7 +111,7 @@ export default function SearchResultsPage() {
               id={product.id} // This is now correctly a number
               name={product.name}
               description={product.description}
-              image_file={product.image_file} // Changed from imageUrl to image_file
+              image_url={product.image_url}
               price={product.price.toString()} // Price is a number in Product, convert to string for ProductCard
               stock={product.stock} // Assuming stock is available on the Product type
             />

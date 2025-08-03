@@ -107,7 +107,7 @@ export default function CartPage() {
             name: item.product.name,
             price: parseFloat(item.product.price),
             quantity: item.quantity,
-            image_file: item.product.image_file,
+            image_url: item.product.image_url,
           }))
         );
         if (backendCart.session_key && !guestSessionKey && status === 'unauthenticated') {
@@ -144,7 +144,7 @@ export default function CartPage() {
         setLocalCartItems(
           context.previousCart.orders[0].items.map((bi) => ({
             id: bi.product.id, name: bi.product.name, price: parseFloat(bi.product.price),
-            quantity: bi.quantity, image_file: bi.product.image_file
+            quantity: bi.quantity, image_url: bi.product.image_url
           }))
         );
       } else {
@@ -159,7 +159,7 @@ export default function CartPage() {
             name: backendItem.product.name,
             price: parseFloat(backendItem.product.price),
             quantity: backendItem.quantity,
-            image_file: backendItem.product.image_file,
+            image_url: backendItem.product.image_url,
           }))
         );
       } else {
@@ -352,7 +352,7 @@ export default function CartPage() {
               >
                 <HStack spacing={{ base: 2, md: 4 }} align="center" flexWrap="wrap">
                   <Image
-                    src={item.image_file || "https://placehold.co/100x100?text=No+Image"}
+                    src={item.image_url || "https://placehold.co/100x100?text=No+Image"}
                     alt={item.name}
                     boxSize={{ base: "80px", md: "100px" }}
                     objectFit="cover"

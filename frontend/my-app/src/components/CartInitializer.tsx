@@ -58,7 +58,7 @@ export function CartInitializer() {
                   name: item.product.name,
                   price: parseFloat(item.product.price),
                   quantity: item.quantity,
-                  image_file: item.product.image_file,
+                  image_url: item.product.image_url,
               })));
             } else {
               setItems([]);
@@ -76,7 +76,7 @@ export function CartInitializer() {
                   name: item.product.name,
                   price: parseFloat(item.product.price),
                   quantity: item.quantity,
-                  image_file: item.product.image_file,
+                  image_url: item.product.image_url,
                 })));
                 setGuestSessionKey(null); // Still clear the guest key to avoid re-attempting merge
                 console.log('CartInitializer: Fallback: Fetched user cart after merge failure.');
@@ -101,7 +101,7 @@ export function CartInitializer() {
                 name: item.product.name,
                 price: parseFloat(item.product.price),
                 quantity: item.quantity,
-                image_file: item.product.image_file,
+                image_url: item.product.image_url,
               })));
               setGuestSessionKey(null); // Ensure guest key is null for authenticated users
               console.log('CartInitializer: Fetched authenticated user cart.');

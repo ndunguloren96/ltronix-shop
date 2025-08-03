@@ -453,9 +453,9 @@ export default function CheckoutPage() {
             {localCartItems.map((item) => (
               <HStack key={item.id} justifyContent="space-between" py={2} borderBottom="1px solid" borderColor="gray.100">
                 <HStack spacing={4} flex={1}>
-                  {item.image_file && (
+                  {item.image_url && (
                     <Image
-                      src={item.image_file}
+                      src={item.image_url}
                       alt={item.name}
                       boxSize="80px"
                       objectFit="contain"
