@@ -47,7 +47,7 @@ urlpatterns = [
         # --- CRUCIAL FIX FOR GOOGLE AUTHENTICATION ---
         # Explicitly map the Google social login view.
         # This creates the endpoint /api/v1/auth/google/ that the frontend should hit.
-        path("auth/google/", GoogleLogin.as_view(), name="google_login"), # <--- This is the key change
+        path("auth/google/", GoogleLogin.as_view(), name="google_login"),
 
         # AllAuth URLs (still needed for the initial OAuth flow and redirect from Google)
         path("accounts/", include("allauth.urls")),

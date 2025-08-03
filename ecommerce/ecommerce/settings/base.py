@@ -255,6 +255,7 @@ SIMPLE_JWT = {
 }
 
 # --- Social Auth (Google via AllAuth)
+SOCIALACCOUNT_STORE_TOKENS = True # Ensure social tokens are stored
 SOCIALACCOUNT_PROVIDERS = {
     "google": {
         "APP": {

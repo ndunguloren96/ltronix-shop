@@ -56,3 +56,15 @@ class DebugSocialAccountAdapter(DefaultSocialAccountAdapter):
         except Exception as e:
             logger.error(f"[ADAPTER] An unexpected error occurred in get_app: {e}", exc_info=True)
             raise e
+
+    def sociallogin(self, request, sociallogin):
+        logger.info(f"[ADAPTER] sociallogin called for user: {sociallogin.user.email}")
+        logger.info(f"[ADAPTER] SocialLogin instance: {sociallogin}")
+        if sociallogin.token:
+            logger.info(f"[ADAPTER] SocialToken exists: {sociallogin.token}")
+            logger.info(f"[ADAPTER] SocialToken.token: {sociallogin.token.token}")
+            logger.info(f"[ADAPTER] SocialToken.token_secret: {sociallogin.token.token_secret}")
+            logger.info(f"[ADAPTER] SocialToken.expires_at: {sociallogin.token.expires_at}")
+        else:
+            logger.warning("[ADAPTER] SocialToken is None or empty.")
+        return super().sociallogin(request, sociallogin)
