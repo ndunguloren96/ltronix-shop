@@ -44,7 +44,7 @@ interface Product {
   description: string;
   price: string;
   digital: boolean;
-  image_file?: string; // FIX: Changed to image_file
+  image_url?: string;
   category?: string;
   stock: number;
   brand?: string;
@@ -355,7 +355,7 @@ export default function ProductsClientPage({ isHomePage }: ProductsClientPagePro
                   id={product.id}
                   name={product.name}
                   description={product.description}
-                  image_file={product.image_file} // FIX: Ensure image_file is passed here
+                  image_url={product.image_url}
                   price={product.price}
                   stock={product.stock}
                 />

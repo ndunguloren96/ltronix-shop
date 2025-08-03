@@ -7,10 +7,7 @@ from .models import Cart, Customer, Order, OrderItem, Product
 # --- Read-only Product Serializer (for nested use in OrderItem) ---
 class ProductSerializer(serializers.ModelSerializer):
     seller = serializers.StringRelatedField()
-    # FIX: Reverted to directly exposing 'image_file' field.
-    # Django REST Framework will automatically provide the URL for ImageField
-    # when DEFAULT_FILE_STORAGE is configured for S3.
-    # Removed SerializerMethodField for image_url.
+    image_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
@@ -21,7 +18,7 @@ class ProductSerializer(serializers.ModelSerializer):
             "description",
             "price",
             "digital",
-            "image_file",  # Now directly exposing the ImageField
+            "image_url",
             "brand",
             "sku",
             "rating",
@@ -31,8 +28,16 @@ class ProductSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
-        # FIX: Ensure image_file is read_only for output, but not for input
-        read_only_fields = ["id", "image_file", "created_at", "updated_at"]
+        read_only_fields = ["id", "created_at", "updated_at"]
+
+    def get_image_url(self, obj):
+        if obj.image_file:
+            request = self.context.get("request")
+            if request:
+                return request.build_absolute_uri(obj.image_file.url)
+            # Fallback for when request is not in context
+            return obj.image_file.url
+        return None
 
     # Removed get_image_url method as we are no longer using SerializerMethodField for it.
 

@@ -17,8 +17,7 @@ interface ProductCardProps {
   id: number;
   name: string;
   description: string;
-  // FIX: Ensure prop name is image_file (as per your preference and backend serializer)
-  image_file?: string; 
+  image_url?: string;
   price: string;
   stock: number;
 }
@@ -27,8 +26,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   id,
   name,
   description,
-  // FIX: Destructure image_file
-  image_file, 
+  image_url,
   price,
 }) => {
   const formatPrice = (priceString: string): string => {
@@ -43,9 +41,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     <ChakraLink as={NextLink} href={`/products/${id.toString()}`} passHref _hover={{ textDecoration: 'none' }}>
       <Box maxW="sm" borderWidth="1px" borderRadius="lg" overflow="hidden" boxShadow="md" bg="white" cursor="pointer">
         <Box position="relative" height="200px" width="100%" display="block">
-          {image_file ? ( // FIX: Use image_file here
+          {image_url ? (
             <Image
-              src={image_file} // FIX: Use image_file here
+              src={image_url}
               alt={name}
               layout="fill"
               objectFit="cover"

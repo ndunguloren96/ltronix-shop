@@ -6,7 +6,7 @@ export interface Product {
     price: string;
     description: string;
     digital: boolean;
-    image_file?: string;
+    image_url?: string;
     category?: string;
     stock: number;
     brand?: string;

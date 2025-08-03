@@ -92,7 +92,7 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
             id: item.id, // This `item.id` is already a number from ProductInCart
             name: item.name,
             price: item.price.toFixed(2),
-            image_file: item.image_file,
+            image_url: item.image_url,
           },
           quantity: item.quantity,
           get_total: (item.price * item.quantity).toFixed(2),
@@ -145,7 +145,7 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
       if (context?.previousCart && context.previousCart.orders && context.previousCart.orders.length > 0 && context.previousCart.orders[0].items) {
         setLocalCartItems(context.previousCart.orders[0].items.map(bi => ({
             id: bi.product.id, name: bi.product.name, price: parseFloat(bi.product.price),
-            quantity: bi.quantity, image_file: bi.product.image_file
+            quantity: bi.quantity, image_url: bi.product.image_url
         })));
       } else {
         setLocalCartItems([]);
@@ -166,7 +166,7 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
           name: backendItem.product.name,
           price: parseFloat(backendItem.product.price),
           quantity: backendItem.quantity,
-          image_file: backendItem.product.image_file,
+          image_url: backendItem.product.image_url,
         }));
         setLocalCartItems(transformedItems);
       } else {
@@ -223,7 +223,7 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
       name: product.name,
       price: priceAsNumber,
       quantity: quantity,
-      image_file: product.image_file,
+      image_url: product.image_url,
     };
 
     const currentLocalCartItems = localCartItems;
@@ -248,9 +248,9 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
       <Flex direction={{ base: 'column', md: 'row' }} gap={8}>
         {/* Product Image */}
         <Box flex={{ base: 'none', md: '1' }} maxW={{ base: 'full', md: '50%' }}>
-          {product.image_file ? (
+          {product.image_url ? (
             <Image
-              src={product.image_file}
+              src={product.image_url}
               alt={product.name}
               width={500}
               height={500}
