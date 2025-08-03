@@ -39,7 +39,7 @@ class ProductSerializer(serializers.ModelSerializer):
             return obj.image_file.url
         return None
 
-    # Removed get_image_url method as we are no longer using SerializerMethodField for it.
+    # Removed get_image_file method as we are no longer using SerializerMethodField for it.
 
 
 # --- Writable OrderItem Serializer (for handling input to Order) ---

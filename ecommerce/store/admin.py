@@ -36,19 +36,19 @@ class ProductAdmin(admin.ModelAdmin):
         "sku",
         "rating",
         "reviews_count",
-        "image_file",
-        "image_preview",  # 'image_file' is for upload, 'image_preview' is for display
+        "image_url",
+        "image_preview",  # 'image_url' is for upload, 'image_preview' is for display
     )
 
-    # Make 'image_preview' read-only as it's derived from 'image_file'
+    # Make 'image_preview' read-only as it's derived from 'image_url'
     readonly_fields = ("image_preview",)
 
     # Custom method to display image thumbnail in admin list and detail view
     def image_preview(self, obj):
-        if obj.image_file:  # Check if image_file exists
+        if obj.image_url:  # Check if image_url exists
             return format_html(
                 '<img src="{}" style="max-height: 100px; border-radius: 4px;" />',
-                obj.image_file.url,
+                obj.image_url.url,
             )
         return format_html(
             '<span style="color: #888;">No Image</span>'
