@@ -10,7 +10,7 @@ from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
 from allauth.socialaccount.providers.oauth2.client import OAuth2Client
 
 # Import your custom views from the users app
-from .views import CustomRegisterView, EmailChangeView, AccountDeleteView, UserUpdateAPIView, PasswordChangeView
+from .views import CustomRegisterView, EmailChangeView, AccountDeleteView, UserUpdateAPIView, PasswordChangeView, NextAuthCredentialsLoginView # NEW IMPORT
 
 
 # Custom GoogleLogin view to integrate with dj-rest-auth's SocialLoginView
@@ -26,6 +26,10 @@ class GoogleLogin(SocialLoginView):
 
 # All of the user and authentication URL patterns
 urlpatterns = [
+    # NEW: Dedicated endpoint for NextAuth.js credentials provider
+    # Note: NextAuth.js typically expects this URL at the root of the 'auth' path
+    path('callback/credentials/', NextAuthCredentialsLoginView.as_view(), name='nextauth_credentials_login'),
+
     # dj-rest-auth Core Authentication
     path('login/', LoginView.as_view(), name='rest_login'),
     path('logout/', LogoutView.as_view(), name='rest_logout'),
@@ -38,7 +42,6 @@ urlpatterns = [
 
     # Registration
     path('register/', CustomRegisterView.as_view(), name='rest_register'),
-    # NEW: Add a 'registration/' path for the frontend to hit
     path('registration/', CustomRegisterView.as_view(), name='rest_register_alt'),
     path('register/verify-email/', VerifyEmailView.as_view(), name='rest_verify_email'),
     path('register/resend-email/', ResendEmailVerificationView.as_view(), name='rest_resend_email'),
