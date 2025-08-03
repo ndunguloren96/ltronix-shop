@@ -65,7 +65,7 @@ const handler = NextAuth({
 
           if (user && user.access_token) {
             return {
-              id: Number(user.user.id), // Ensure ID is a number
+              id: String(user.user.id),
               email: user.user.email,
               name: user.user.first_name,
               accessToken: user.access_token,
@@ -97,7 +97,7 @@ const handler = NextAuth({
             const { access_token, refresh_token, user: apiUser } = response;
             token.accessToken = access_token;
             token.refreshToken = refresh_token;
-            token.id = apiUser.id; // Already a number from DjangoUser
+            token.id = String(apiUser.id); // Ensure ID is a string
             token.email = apiUser.email;
             token.name = apiUser.first_name;
             token.djangoUser = apiUser;
@@ -108,7 +108,7 @@ const handler = NextAuth({
         } else {
           token.accessToken = user.accessToken;
           token.refreshToken = user.refreshToken;
-          token.id = Number(user.id); // Ensure ID is a number
+          token.id = String(user.id);
         }
       }
 
@@ -123,7 +123,7 @@ const handler = NextAuth({
       return token;
     },
     async session({ session, token }) {
-      session.user.id = token.id as number; // Ensure ID is a number
+      session.user.id = token.id as string;
       session.user.accessToken = token.accessToken as string;
       session.user.error = token.error as string | undefined;
       session.user.djangoUser = token.djangoUser as DjangoUser; // Use DjangoUser type
