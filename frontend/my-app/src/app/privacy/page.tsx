@@ -1,102 +1,99 @@
-import { Box, Container, Heading, Text, VStack, ListItem, UnorderedList } from '@chakra-ui/react';
-import type { Metadata } from 'next'; // Import Metadata type
-
-// SEO Metadata for the Privacy Policy page
-export const metadata: Metadata = {
-  title: 'Privacy Policy - Ltronix Shop',
-  description: 'Understand how Ltronix Shop collects, uses, and protects your personal data. Your privacy is important to us.',
-  keywords: ['Ltronix', 'privacy policy', 'data protection', 'user privacy', 'terms and conditions', 'e-commerce'],
-  openGraph: {
-    title: 'Ltronix Shop Privacy Policy',
-    description: 'Read our comprehensive privacy policy to learn about our data handling practices.',
-    url: 'https://ltronix.co.ke/privacy', // Placeholder - Replace with your actual domain
-    type: 'website',
-  },
-};
+// frontend/my-app/src/app/privacy/page.tsx
+import { Box, Heading, Text, VStack } from '@chakra-ui/react';
 
 export default function PrivacyPolicyPage() {
-  const lastUpdated = "May 22, 2025"; // Update this date as needed
-
   return (
-    <Container maxW="3xl" py={10}>
-      <Box p={8} borderWidth={1} borderRadius="lg" boxShadow="lg">
+    <Box p={8} maxWidth="800px" margin="auto">
+      <VStack spacing={4} align="stretch">
         <Heading as="h1" size="xl" textAlign="center" mb={6}>
           Privacy Policy
         </Heading>
-        <Text textAlign="center" fontSize="sm" color="gray.500" mb={8}>
-          Last updated: {lastUpdated}
+        <Text fontSize="lg">
+          This Privacy Policy describes how your personal information is collected, used, and shared when you visit or make a purchase from ltronix-shop.vercel.app (the “Site”).
+        </Text>
+        <Heading as="h2" size="lg" mt={4}>
+          Personal Information We Collect
+        </Heading>
+        <Text>
+          When you visit the Site, we automatically collect certain information about your device, including information about your web browser, IP address, time zone, and some of the cookies that are installed on your device. Additionally, as you browse the Site, we collect information about the individual web pages or products that you view, what websites or search terms referred you to the Site, and information about how you interact with the Site. We refer to this automatically-collected information as “Device Information.”
+        </Text>
+        <Text>
+          We collect Device Information using the following technologies:
+          <VStack pl={4} align="start">
+            <Text>- “Cookies” are data files that are placed on your device or computer and often include an anonymous unique identifier. For more information about cookies, and how to disable cookies, visit http://www.allaboutcookies.org.</Text>
+            <Text>- “Log files” track actions occurring on the Site, and collect data including your IP address, browser type, Internet service provider, referring/exit pages, and date/time stamps.</Text>
+            <Text>- “Web beacons,” “tags,” and “pixels” are electronic files used to record information about how you browse the Site.</Text>
+          </VStack>
+        </Text>
+        <Text>
+          Additionally when you make a purchase or attempt to make a purchase through the Site, we collect certain information from you, including your name, billing address, shipping address, payment information (including credit card numbers), email address, and phone number. We refer to this information as “Order Information.”
+        </Text>
+        <Text>
+          When we talk about “Personal Information” in this Privacy Policy, we are talking both about Device Information and Order Information.
         </Text>
 
-        <VStack spacing={6} align="flex-start" fontSize="md">
-          <Text>
-            At Ltronix Shop, we are committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you visit our website ltronix.co.ke, including any other media form, media channel, mobile website, or mobile application related or connected thereto (collectively, the “Site”). Please read this privacy policy carefully. If you do not agree with the terms of this privacy policy, please do not access the site.
-          </Text>
+        <Heading as="h2" size="lg" mt={4}>
+          How We Use Your Personal Information
+        </Heading>
+        <Text>
+          We use the Order Information that we collect generally to fulfill any orders placed through the Site (including processing your payment information, arranging for shipping, and providing you with invoices and/or order confirmations). Additionally, we use this Order Information to:
+          <VStack pl={4} align="start">
+            <Text>- Communicate with you;</Text>
+            <Text>- Screen our orders for potential risk or fraud; and</Text>
+            <Text>- When in line with the preferences you have shared with us, provide you with information or advertising relating to our products or services.</Text>
+          </VStack>
+        </Text>
+        <Text>
+          We use the Device Information that we collect to help us screen for potential risk and fraud (in particular, your IP address), and more generally to improve and optimize our Site (for example, by generating analytics about how our customers browse and interact with the Site, and to assess the success of our marketing and advertising campaigns).
+        </Text>
 
-          <Heading as="h2" size="md">
-            1. Information We Collect
-          </Heading>
-          <Text>
-            We may collect information about you in a variety of ways. The information we may collect on the Site includes:
-          </Text>
-          <UnorderedList pl={4}>
-            <ListItem>
-              <Text fontWeight="bold">Personal Data:</Text> Personally identifiable information, such as your name, shipping address, email address, and telephone number, and demographic information, such as your age, gender, hometown, and interests, that you voluntarily give to us when you register with the Site or when you choose to participate in various activities related to the Site, such as online chat and message boards.
-            </ListItem>
-            <ListItem>
-              <Text fontWeight="bold">Derivative Data:</Text> Information our servers automatically collect when you access the Site, such as your IP address, your browser type, your operating system, your access times, and the pages you have viewed directly before and after accessing the Site.
-            </ListItem>
-            <ListItem>
-              <Text fontWeight="bold">Financial Data:</Text> Financial information, such as data related to your payment method (e.g., valid credit card number, card brand, expiration date) that we may collect when you purchase, order, return, exchange, or request information about our services from the Site.
-            </ListItem>
-          </UnorderedList>
+        <Heading as="h2" size="lg" mt={4}>
+          Sharing Your Personal Information
+        </Heading>
+        <Text>
+          We share your Personal Information with third parties to help us use your Personal Information, as described above. For example, we use Google Analytics to help us understand how our customers use the Site--you can read more about how Google uses your Personal Information here: https://www.google.com/intl/en/policies/privacy/. You can also opt-out of Google Analytics here: https://tools.google.com/dlpage/gaoptout.
+        </Text>
+        <Text>
+          Finally, we may also share your Personal Information to comply with applicable laws and regulations, to respond to a subpoena, search warrant or other lawful request for information we receive, or to otherwise protect our rights.
+        </Text>
 
-          <Heading as="h2" size="md">
-            2. Use of Your Information
-          </Heading>
-          <Text>
-            Having accurate information about you permits us to provide you with a smooth, efficient, and customized experience. Specifically, we may use information collected about you via the Site to:
-          </Text>
-          <UnorderedList pl={4}>
-            <ListItem>Create and manage your account.</ListItem>
-            <ListItem>Process your transactions and send related information.</ListItem>
-            <ListItem>Send you product, service, and new feature information.</ListItem>
-            <ListItem>Respond to your customer service requests.</ListItem>
-            <ListItem>Compile anonymous statistical data and analysis for use internally or with third parties.</ListItem>
-            <ListItem>Prevent fraudulent transactions and monitor against theft.</ListItem>
-          </UnorderedList>
+        <Heading as="h2" size="lg" mt={4}>
+          Your Rights
+        </Heading>
+        <Text>
+          If you are a European resident, you have the right to access personal information we hold about you and to ask that your personal information be corrected, updated, or deleted. If you would like to exercise this right, please contact us through the contact information below.
+        </Text>
+        <Text>
+          Additionally, if you are a European resident we note that we are processing your information in order to fulfill contracts we might have with you (for example if you make an order through the Site), or otherwise to pursue our legitimate business interests listed above. Additionally, please note that your information will be transferred outside of Europe, including to Canada and the United States.
+        </Text>
 
-          <Heading as="h2" size="md">
-            3. Disclosure of Your Information
-          </Heading>
-          <Text>
-            We may share information we have collected about you in certain situations. Your information may be disclosed as follows:
-          </Text>
-          <UnorderedList pl={4}>
-            <ListItem>
-              <Text fontWeight="bold">By Law or to Protect Rights:</Text> If we believe the release of information about you is necessary to respond to legal process, to investigate or remedy potential violations of our policies, or to protect the rights, property, and safety of others, we may share your information as permitted or required by any applicable law, rule, or regulation.
-            </ListItem>
-            <ListItem>
-              <Text fontWeight="bold">Third-Party Service Providers:</Text> We may share your information with third parties that perform services for us or on our behalf, including payment processing, data analysis, email delivery, hosting services, customer service, and marketing assistance.
-            </ListItem>
-          </UnorderedList>
+        <Heading as="h2" size="lg" mt={4}>
+          Data Retention
+        </Heading>
+        <Text>
+          When you place an order through the Site, we will maintain your Order Information for our records unless and until you ask us to erase this information.
+        </Text>
 
-          <Heading as="h2" size="md">
-            4. Security of Your Information
-          </Heading>
-          <Text>
-            We use administrative, technical, and physical security measures to help protect your personal information. While we have taken reasonable steps to secure the personal information you provide to us, please be aware that despite our efforts, no security measures are perfect or impenetrable, and no method of data transmission can be guaranteed against any interception or other type of misuse.
-          </Text>
+        <Heading as="h2" size="lg" mt={4}>
+          Changes
+        </Heading>
+        <Text>
+          We may update this privacy policy from time to time in order to reflect, for example, changes to our practices or for other operational, legal or regulatory reasons.
+        </Text>
 
-          <Heading as="h2" size="md">
-            5. Contact Us
-          </Heading>
-          <Text>
-            If you have questions or comments about this Privacy Policy, please contact us at:
-            <br />
-            <Text as="span" fontWeight="bold">support@ltronix.co.ke</Text> {/* Updated email domain */}
-          </Text>
-        </VStack>
-      </Box>
-    </Container>
+        <Heading as="h2" size="lg" mt={4}>
+          Contact Us
+        </Heading>
+        <Text>
+          For more information about our privacy practices, if you have questions, or if you would like to make a complaint, please contact us by e-mail at [Your Email Address Here] or by mail using the details provided below:
+        </Text>
+        <Text>
+          [Your Company Name]
+          [Your Street Address]
+          [Your City, Postal Code]
+          [Your Country]
+        </Text>
+      </VStack>
+    </Box>
   );
 }

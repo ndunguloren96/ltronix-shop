@@ -48,19 +48,28 @@ const handler = NextAuth({
       name: 'Credentials',
       credentials: {
         email: { label: 'Email', type: 'email' },
+        phone_number: { label: 'Phone Number', type: 'text' },
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
         if (!credentials) {
           return null;
         }
+
+        let loginPayload: { email?: string; phone_number?: string; password?: string };
+
+        if (credentials.email) {
+          loginPayload = { email: credentials.email, password: credentials.password };
+        } else if (credentials.phone_number) {
+          loginPayload = { phone_number: credentials.phone_number, password: credentials.password };
+        } else {
+          return null; // Neither email nor phone number provided
+        }
+
         try {
           const user = await apiClient<AuthResponse>('/auth/login/', {
             method: 'POST',
-            body: JSON.stringify({
-              email: credentials.email,
-              password: credentials.password,
-            }),
+            body: JSON.stringify(loginPayload),
           });
 
           if (user && user.access_token) {

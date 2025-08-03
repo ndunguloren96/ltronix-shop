@@ -87,31 +87,53 @@ class UserDetailsSerializer(serializers.ModelSerializer):
 # A CustomRegisterSerializer for a minimal, email-based signup.
 # We override the RegisterSerializer to handle the 'username' field correctly.
 class CustomRegisterSerializer(RegisterSerializer):
-    """
-    A simplified registration serializer that only handles email and passwords.
-    This serializer is necessary to ensure the backend does not require a username
-    and correctly handles the password confirmation.
-    """
-    # Exclude the username field from the serializer completely.
-    # We use a custom field to create the username from the email if needed.
-    # The default RegisterSerializer expects 'email', 'password', and 'password2'.
-    # We will let the frontend handle 'password' as 'password1' and 'password2'
-    # so we don't need to rename the fields here.
-    username = None
-    
-    password2 = serializers.CharField(style={'input_type': 'password'}, write_only=True)
+    first_name = serializers.CharField(required=True, max_length=150)
+    last_name = serializers.CharField(required=True, max_length=150)
+    phone_number = serializers.CharField(required=False, max_length=20, allow_blank=True)
+    email = serializers.EmailField(required=False, allow_blank=True)
+
+    def validate(self, data):
+        # Ensure either email or phone_number is provided
+        if not data.get('email') and not data.get('phone_number'):
+            raise serializers.ValidationError("Either email or phone number must be provided.")
+        
+        # If email is provided, ensure it's unique
+        if data.get('email') and User.objects.filter(email=data['email']).exists():
+            raise serializers.ValidationError("A user with that email already exists.")
+        
+        # If phone_number is provided, ensure it's unique
+        if data.get('phone_number') and User.objects.filter(phone_number=data['phone_number']).exists():
+            raise serializers.ValidationError("A user with that phone number already exists.")
+
+        # Remove password2 as it's no longer needed
+        if 'password2' in data:
+            del data['password2']
+
+        return data
 
     @transaction.atomic
     def save(self, request):
-        # The 'allauth' adapter automatically sets up the username based on email
-        # if the 'ACCOUNT_ADAPTER' setting is configured to a custom adapter
-        # that handles this. We do not need to manually set a username here.
-        user = super().save(request)
-        
+        adapter = get_adapter()
+        user = adapter.save_user(
+            request,
+            None, # form is not used here, as we are passing data directly
+            commit=False
+        )
+        user.first_name = self.validated_data.get('first_name', '')
+        user.last_name = self.validated_data.get('last_name', '')
+        user.phone_number = self.validated_data.get('phone_number', '')
+        user.email = self.validated_data.get('email', '') # Set email if provided
+
+        # Set password using the validated password from the parent serializer
+        user.set_password(self.validated_data['password'])
+        user.save()
+
         # Create an empty UserProfile for the new user
         UserProfile.objects.get_or_create(user=user)
 
+        setup_user_email(request, user, [])
         return user
+
 
 
 # Your existing PasswordChangeSerializer remains unchanged.

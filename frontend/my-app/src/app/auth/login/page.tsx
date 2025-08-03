@@ -1,49 +1,50 @@
 // /var/www/ltronix-shop/frontend/my-app/src/app/auth/login/page.tsx
 'use client';
 
-import { Box, Heading, Text, VStack, FormControl, FormLabel, Input, FormHelperText, Flex, useToast } from '@chakra-ui/react';
+import { Box, Heading, Text, VStack, FormControl, FormLabel, Input, FormHelperText, Flex, useToast, InputGroup, InputRightElement, Button, Link as ChakraLink } from '@chakra-ui/react';
 import { MyButton } from '../../../components/MyButton';
 import GoogleSignInButton from '../../../components/GoogleSignInButton';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
-import Link from 'next/link';
+import NextLink from 'next/link';
+import { FaEye, FaEyeSlash, FaPhone, FaEnvelope } from 'react-icons/fa';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [authMethod, setAuthMethod] = useState<'phone' | 'email'>('phone'); // Default to phone
   const toast = useToast();
   const router = useRouter();
 
+  const handleTogglePasswordVisibility = () => setShowPassword(!showPassword);
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault(); // Prevent default form submission
+    event.preventDefault();
     setIsLoading(true);
 
     try {
-      // Attempt to sign in using the 'credentials' provider configured in [...nextauth]/route.ts
+      const credentials = authMethod === 'phone' ? { phone_number: phoneNumber, password } : { email, password };
+
       const result = await signIn('credentials', {
-        redirect: false, // Prevents automatic redirection by NextAuth.js; we handle it manually
-        email,
-        password,
+        redirect: false,
+        ...credentials,
       });
 
       if (result?.error) {
-        console.error('Credentials login failed:', result.error); // Log the specific error for debugging
-        let errorMessage = 'Login failed. Please check your email and password.'; // More general initial message
+        console.error('Credentials login failed:', result.error);
+        let errorMessage = 'Login failed. Please check your details.';
 
-        // NextAuth's 'credentials' provider errors are often generic like 'CredentialsSignin'.
-        // If your Django backend is set up to return specific messages via `route.ts` and
-        // NextAuth passes them through, you can enhance this parsing.
         if (result.error === 'CredentialsSignin') {
-            errorMessage = 'Incorrect email or password. Please try again.';
+            errorMessage = 'Incorrect details. Please try again.';
         } else if (result.error.includes('timeout')) {
             errorMessage = 'Network timeout during login. Please check your connection.';
-        } else if (result.error.includes('Invalid credentials')) { // From our custom error in auth.ts
-            errorMessage = 'Invalid email or password. Please try again.';
+        } else if (result.error.includes('Invalid credentials')) {
+            errorMessage = 'Invalid email/phone or password. Please try again.';
         }
-        // Add more specific parsing here if result.error contains more structured info
-        // e.g., if (result.error.includes('UserNotFound')) ...
 
         toast({
           title: 'Login Failed',
@@ -60,7 +61,7 @@ export default function LoginPage() {
           duration: 3000,
           isClosable: true,
         });
-        router.push('/'); // Redirect to the home page or dashboard upon successful login
+        router.push('/');
       }
     } catch (error) {
       console.error('Unexpected login error (network or unhandled exception):', error);
@@ -72,13 +73,12 @@ export default function LoginPage() {
         isClosable: true,
       });
     } finally {
-      setIsLoading(false); // Ensure loading state is reset regardless of success or failure
+      setIsLoading(false);
     }
   };
 
   return (
-    <Flex align="center" justify="center" minH="100vh" bg="gray.50">
-      <Box p={8} maxWidth="500px" borderWidth={1} borderRadius={8} boxShadow="lg" bg="white">
+    <Box p={8} maxWidth="500px" borderWidth={1} borderRadius={8} boxShadow="lg" bg="white">
         <VStack spacing={4} align="stretch">
           <Heading as="h2" size="xl" textAlign="center" mb={6}>
             Welcome Back!
@@ -87,38 +87,83 @@ export default function LoginPage() {
             Sign in to continue your shopping experience.
           </Text>
 
+          <Flex direction="column" gap={3}>
+            <MyButton
+              leftIcon={<FaPhone />}
+              onClick={() => setAuthMethod('phone')}
+              variant={authMethod === 'phone' ? 'solid' : 'outline'}
+              colorScheme="teal"
+            >
+              Continue with Phone
+            </MyButton>
+            <MyButton
+              leftIcon={<FaEnvelope />}
+              onClick={() => setAuthMethod('email')}
+              variant={authMethod === 'email' ? 'solid' : 'outline'}
+              colorScheme="teal"
+            >
+              Continue with Email
+            </MyButton>
+            <GoogleSignInButton onClick={() => signIn('google')} isLoading={isLoading}>
+              Sign In with Google
+            </GoogleSignInButton>
+          </Flex>
+
+          <Text textAlign="center">Or</Text>
+
           <form onSubmit={handleSubmit}>
             <VStack spacing={4}>
-              <FormControl id="email" isRequired>
-                <FormLabel>Email address</FormLabel>
-                <Input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your email"
-                  autoComplete="email"
-                />
-              </FormControl>
+              {authMethod === 'phone' ? (
+                <FormControl id="phone-number" isRequired>
+                  <FormLabel>Phone Number</FormLabel>
+                  <InputGroup>
+                    <Input
+                      type="tel"
+                      placeholder="e.g., 0712345678"
+                      value={phoneNumber}
+                      onChange={e => setPhoneNumber(e.target.value)}
+                    />
+                    <InputRightElement children={<FaPhone color="gray.300" />} />
+                  </InputGroup>
+                </FormControl>
+              ) : (
+                <FormControl id="email" isRequired>
+                  <FormLabel>Email address</FormLabel>
+                  <Input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Enter your email"
+                    autoComplete="email"
+                  />
+                </FormControl>
+              )}
 
               <FormControl id="password" isRequired>
                 <FormLabel>Password</FormLabel>
-                <Input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
-                  autoComplete="current-password"
-                />
+                <InputGroup size="md">
+                  <Input
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter your password"
+                    autoComplete="current-password"
+                  />
+                  <InputRightElement width="4.5rem">
+                    <Button h="1.75rem" size="sm" onClick={handleTogglePasswordVisibility}>
+                      {showPassword ? <FaEyeSlash /> : <FaEye />}
+                    </Button>
+                  </InputRightElement>
+                </InputGroup>
                 <FormHelperText>
-                  <Link href="/auth/forgot-password" passHref>
-                    <Text as="a" color="brand.500" fontWeight="bold">
+                  <NextLink href="/auth/forgot-password" passHref>
+                    <ChakraLink color="brand.500" fontWeight="bold">
                       Forgot password?
-                    </Text>
-                  </Link>
+                    </ChakraLink>
+                  </NextLink>
                 </FormHelperText>
               </FormControl>
 
-              {/* Explicit Sign In Button */}
               <MyButton
                 type="submit"
                 width="full"
@@ -130,26 +175,16 @@ export default function LoginPage() {
             </VStack>
           </form>
 
-          <Text textAlign="center" mt={4} mb={4}>
-            Or
-          </Text>
-
-          {/* Google Sign-In Button */}
-          <GoogleSignInButton onClick={() => signIn('google')} isLoading={isLoading}>
-            Sign In with Google
-          </GoogleSignInButton>
-
           <Text fontSize="sm" textAlign="center" mt={4}>
             Don't have an account?{' '}
-            <Link href="/auth/signup" passHref>
-              <Text as="a" color="brand.500" fontWeight="bold">
+            <NextLink href="/auth/signup" passHref>
+              <ChakraLink color="brand.500" fontWeight="bold">
                 Sign Up
-              </Text>
-            </Link>
+              </ChakraLink>
+            </NextLink>
           </Text>
         </VStack>
       </Box>
-    </Flex>
   );
 }
 

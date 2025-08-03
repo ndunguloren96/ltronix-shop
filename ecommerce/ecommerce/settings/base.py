@@ -124,13 +124,14 @@ AUTHENTICATION_BACKENDS = (
 SITE_ID = 1
 
 # --- AllAuth specific settings ---
+ACCOUNT_ADAPTER = 'users.adapters.CustomAccountAdapter'
 ACCOUNT_LOGIN_METHODS = ["email"]
 ACCOUNT_USERNAME_REQUIRED = False
-ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_EMAIL_REQUIRED = False # Email is no longer strictly required for signup
 ACCOUNT_UNIQUE_EMAIL = True
 ACCOUNT_EMAIL_VERIFICATION = "none"
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None
-ACCOUNT_SIGNUP_FIELDS = ["email", "password"]
+ACCOUNT_SIGNUP_FIELDS = ["first_name", "last_name", "phone_number", "email", "password"]
 SOCIALACCOUNT_ADAPTER = 'users.adapters.DebugSocialAccountAdapter'
 
 

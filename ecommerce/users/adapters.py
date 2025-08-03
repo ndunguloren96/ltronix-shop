@@ -1,12 +1,44 @@
 # users/adapters.py
 import logging
 
+from allauth.account.adapter import DefaultAccountAdapter
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 from allauth.socialaccount.models import SocialApp
-from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist # Import ObjectDoesNotExist
+from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist
+from django.conf import settings
+from django.contrib.auth import get_user_model
 
 logger = logging.getLogger(__name__)
 
+class CustomAccountAdapter(DefaultAccountAdapter):
+    def clean_username(self):
+        # Prevent allauth from trying to create a username
+        return None
+
+    def clean_email(self, email):
+        # Allow email to be optional if phone number is provided
+        if not email and 'phone_number' in self.request.data:
+            return None
+        return super().clean_email(email)
+
+    def populate_username(self, request, user):
+        # Do not populate username from email
+        pass
+
+    def is_open_for_signup(self, request):
+        # Allow signup if either email or phone number is provided
+        if 'email' in request.data or 'phone_number' in request.data:
+            return True
+        return super().is_open_for_signup(request)
+
+    def save_user(self, request, user, form, commit=True):
+        user = super().save_user(request, user, form, commit=False)
+        user.first_name = request.data.get('first_name', '')
+        user.last_name = request.data.get('last_name', '')
+        user.phone_number = request.data.get('phone_number', '')
+        if commit:
+            user.save()
+        return user
 
 class DebugSocialAccountAdapter(DefaultSocialAccountAdapter):
     def get_app(self, request, provider, client_id=None):

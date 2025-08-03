@@ -1,59 +1,55 @@
 // frontend/my-app/src/app/auth/signup/page.tsx
 'use client';
 
-import { Box, Heading, Text, VStack, FormControl, FormLabel, Input, FormHelperText, Flex, useToast } from '@chakra-ui/react';
+import { Box, Heading, Text, VStack, FormControl, FormLabel, Input, FormHelperText, Flex, useToast, InputGroup, InputRightElement, Button, Link as ChakraLink } from '@chakra-ui/react';
 import { MyButton } from '../../../components/MyButton';
 import GoogleSignInButton from '../../../components/GoogleSignInButton';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
-import NextLink from 'next/link'; // Alias Next.js Link for clarity with ChakraLink
+import NextLink from 'next/link';
+import { FaEye, FaEyeSlash, FaPhone, FaEnvelope } from 'react-icons/fa'; // Import icons
 
-// Define your Django backend URL from environment variables
-// It should NOT have a trailing slash for consistent URL construction
 const DJANGO_API_BASE_URL = (process.env.NEXT_PUBLIC_DJANGO_API_URL || 'http://127.0.0.1:8000/api/v1').replace(/\/$/, '');
 
 export default function SignupPage() {
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [authMethod, setAuthMethod] = useState<'phone' | 'email'>('phone'); // Default to phone
   const toast = useToast();
   const router = useRouter();
+
+  const handleTogglePasswordVisibility = () => setShowPassword(!showPassword);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsLoading(true);
 
-    if (password !== confirmPassword) {
-      toast({
-        title: 'Signup Failed',
-        description: 'Passwords do not match.',
-        status: 'error',
-        duration: 5000,
-        isClosable: true,
-      });
-      setIsLoading(false);
-      return;
+    const payload: { [key: string]: string } = {
+      first_name: firstName,
+      last_name: lastName,
+      password: password,
+    };
+
+    if (authMethod === 'phone') {
+      payload.phone_number = phoneNumber;
+    } else {
+      payload.email = email;
     }
 
     try {
-      // Make a direct POST request to your Django backend's signup endpoint
       const signupRes = await fetch(`${DJANGO_API_BASE_URL}/auth/registration/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify({
-          // Based on the Django error:
-          // "username: Ensure this field has no more than 0 characters." implies it should be an empty string.
-          // "password1: This field is required." implies 'password' state should be sent as 'password1'.
-          username: '', // Send an empty string for username to satisfy the backend's specific validation
-          email: email,
-          password1: password, // Change key from 'password' to 'password1'
-          password2: confirmPassword, // 'password2' remains the same
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (signupRes.ok) {
@@ -65,10 +61,9 @@ export default function SignupPage() {
           isClosable: true,
         });
 
-        // Automatically attempt to sign in after successful registration
         const signInResult = await signIn('credentials', {
           redirect: false,
-          email,
+          [authMethod === 'phone' ? 'phone_number' : 'email']: authMethod === 'phone' ? phoneNumber : email,
           password,
         });
 
@@ -80,7 +75,7 @@ export default function SignupPage() {
             duration: 3000,
             isClosable: true,
           });
-          router.push('/'); // Redirect to home page after successful login
+          router.push('/');
         } else {
           console.error('Automatic login after signup failed:', signInResult?.error);
           toast({
@@ -90,26 +85,26 @@ export default function SignupPage() {
             duration: 7000,
             isClosable: true,
           });
-          router.push('/auth/login'); // Redirect to login page if auto-login fails
+          router.push('/auth/login');
         }
       } else {
         const errorData = await signupRes.json();
         console.error('Django signup failed (Status:', signupRes.status, '):', errorData);
         let errorMessage = 'Signup failed. Please check your details.';
 
-        // Specific handling for "email already exists" or other common errors
         if (signupRes.status === 400) {
             if (errorData.email && Array.isArray(errorData.email) && errorData.email.includes('A user with that email already exists.')) {
                 errorMessage = 'An account with this email already exists. Please login instead.';
                 toast({ title: 'Account Exists', description: errorMessage, status: 'info', duration: 7000, isClosable: true });
                 router.push('/auth/login');
                 return;
+            } else if (errorData.phone_number && Array.isArray(errorData.phone_number) && errorData.phone_number.includes('A user with that phone number already exists.')) {
+                errorMessage = 'An account with this phone number already exists. Please login instead.';
+                toast({ title: 'Account Exists', description: errorMessage, status: 'info', duration: 7000, isClosable: true });
+                router.push('/auth/login');
+                return;
             } else if (errorData.password && Array.isArray(errorData.password)) {
                 errorMessage = `Password: ${errorData.password[0]}`;
-            } else if (errorData.password1 && Array.isArray(errorData.password1)) { // Check for password1 errors
-                errorMessage = `Password: ${errorData.password1[0]}`;
-            } else if (errorData.password2 && Array.isArray(errorData.password2)) { // Check for password2 errors
-                errorMessage = `Confirm Password: ${errorData.password2[0]}`;
             } else if (errorData.non_field_errors && Array.isArray(errorData.non_field_errors)) {
                 errorMessage = errorData.non_field_errors[0];
             } else if (typeof errorData === 'object' && errorData !== null) {
@@ -122,7 +117,7 @@ export default function SignupPage() {
             } else if (typeof errorData === 'string') {
                 errorMessage = errorData;
             }
-        } else if (signupRes.status === 405) { // Method Not Allowed - indicates a URL/method mismatch
+        } else if (signupRes.status === 405) {
             errorMessage = 'Signup not allowed. Server endpoint configuration issue.';
         }
 
@@ -154,8 +149,7 @@ export default function SignupPage() {
   };
 
   return (
-    <Flex align="center" justify="center" minH="100vh" bg="gray.50">
-      <Box p={8} maxWidth="500px" borderWidth={1} borderRadius={8} boxShadow="lg" bg="white">
+    <Box p={8} maxWidth="500px" borderWidth={1} borderRadius={8} boxShadow="lg" bg="white">
         <VStack spacing={4} align="stretch">
           <Heading as="h2" size="xl" textAlign="center" mb={6}>
             Join Us!
@@ -163,40 +157,93 @@ export default function SignupPage() {
           <Text fontSize="md" textAlign="center" color="gray.600">
             Create an account to start shopping.
           </Text>
+
+          <Flex direction="column" gap={3}>
+            <MyButton
+              leftIcon={<FaPhone />}
+              onClick={() => setAuthMethod('phone')}
+              variant={authMethod === 'phone' ? 'solid' : 'outline'}
+              colorScheme="teal"
+            >
+              Continue with Phone
+            </MyButton>
+            <MyButton
+              leftIcon={<FaEnvelope />}
+              onClick={() => setAuthMethod('email')}
+              variant={authMethod === 'email' ? 'solid' : 'outline'}
+              colorScheme="teal"
+            >
+              Continue with Email
+            </MyButton>
+            <GoogleSignInButton onClick={handleGoogleSignUp} isLoading={isLoading}>
+              Sign Up with Google
+            </GoogleSignInButton>
+          </Flex>
+
+          <Text textAlign="center">Or</Text>
+
           <form onSubmit={handleSubmit}>
             <VStack spacing={4}>
-              <FormControl id="email" isRequired>
-                <FormLabel>Email</FormLabel>
-                <Input type="email" value={email} onChange={e => setEmail(e.target.value)} />
+              <FormControl id="first-name" isRequired>
+                <FormLabel>First Name</FormLabel>
+                <Input type="text" value={firstName} onChange={e => setFirstName(e.target.value)} />
               </FormControl>
+              <FormControl id="last-name" isRequired>
+                <FormLabel>Last Name</FormLabel>
+                <Input type="text" value={lastName} onChange={e => setLastName(e.target.value)} />
+              </FormControl>
+
+              {authMethod === 'phone' ? (
+                <FormControl id="phone-number" isRequired>
+                  <FormLabel>Phone Number</FormLabel>
+                  <InputGroup>
+                    <Input
+                      type="tel"
+                      placeholder="e.g., 0712345678"
+                      value={phoneNumber}
+                      onChange={e => setPhoneNumber(e.target.value)}
+                    />
+                    <InputRightElement children={<FaPhone color="gray.300" />} />
+                  </InputGroup>
+                </FormControl>
+              ) : (
+                <FormControl id="email" isRequired>
+                  <FormLabel>Email</FormLabel>
+                  <Input type="email" value={email} onChange={e => setEmail(e.target.value)} />
+                </FormControl>
+              )}
+
               <FormControl id="password" isRequired>
                 <FormLabel>Password</FormLabel>
-                <Input type="password" value={password} onChange={e => setPassword(e.target.value)} />
+                <InputGroup size="md">
+                  <Input
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                  />
+                  <InputRightElement width="4.5rem">
+                    <Button h="1.75rem" size="sm" onClick={handleTogglePasswordVisibility}>
+                      {showPassword ? <FaEyeSlash /> : <FaEye />}
+                    </Button>
+                  </InputRightElement>
+                </InputGroup>
                 <FormHelperText>At least 8 characters.</FormHelperText>
               </FormControl>
-              <FormControl id="confirm-password" isRequired>
-                <FormLabel>Confirm Password</FormLabel>
-                <Input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
-              </FormControl>
+
               <MyButton type="submit" isLoading={isLoading} width="full">
                 Sign Up
               </MyButton>
             </VStack>
           </form>
-          <Text textAlign="center">Or</Text>
-          <GoogleSignInButton onClick={handleGoogleSignUp} isLoading={isLoading}>
-            Sign Up with Google
-          </GoogleSignInButton>
+
           <Text textAlign="center">
             Already have an account?{' '}
-            {/* Correct NextLink and Chakra Text as link for consistency */}
             <NextLink href="/auth/login" passHref>
-              <Text as="a" color="brand.500" fontWeight="bold">Sign In</Text>
+              <ChakraLink color="brand.500" fontWeight="bold">Sign In</ChakraLink>
             </NextLink>
           </Text>
         </VStack>
       </Box>
-    </Flex>
   );
 }
 
