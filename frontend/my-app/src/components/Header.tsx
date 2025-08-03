@@ -267,10 +267,8 @@ export default function Header() {
                     {user?.firstName ? `Hello, ${user.firstName}` : 'Account'}
                   </Button>
                   <Button
-                    onClick={() => {
-                      logout();
-                      router.push('/auth/login');
-                    }}
+                    as={ChakraLink}
+                    href="/auth/logout"
                     colorScheme="red"
                     size="sm"
                     fontWeight={600}
@@ -371,11 +369,8 @@ export default function Header() {
                         {user?.firstName ? `Hello, ${user.firstName}` : 'Account'}
                       </Button>
                       <Button
-                        onClick={() => {
-                          logout();
-                          onClose();
-                          router.push('/auth/login');
-                        }}
+                        as={ChakraLink}
+                        href="/auth/logout"
                         colorScheme="red"
                         width="full"
                         aria-label="Logout (mobile)"
