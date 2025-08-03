@@ -14,7 +14,7 @@ from allauth.socialaccount.providers.oauth2.client import OAuth2Client
 from django.contrib.auth import authenticate, get_user_model, login
 
 # Import your custom serializers
-from .serializers import EmailChangeSerializer, CustomRegisterSerializer, UserDetailsSerializer, UserDetailsSerializer # Ensure no duplicates
+from .serializers import EmailChangeSerializer, CustomRegisterSerializer, UserDetailsSerializer, PasswordChangeSerializer
 
 # Import the base RegisterView from dj-rest-auth
 from dj_rest_auth.registration.views import RegisterView
