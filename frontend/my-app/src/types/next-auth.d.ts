@@ -9,7 +9,7 @@ export interface DjangoUser {
   last_name?: string;
   phone_number?: string;
   gender?: string;
-  date_of_birth?: string;
+  date_of_birth?: string | null;
   is_staff?: boolean;
   is_active?: boolean;
   date_joined?: string;
