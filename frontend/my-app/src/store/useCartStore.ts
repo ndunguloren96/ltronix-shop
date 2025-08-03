@@ -81,20 +81,9 @@ export const useCartStore = create<CartState>()(
         items: state.items,
         guestSessionKey: state.guestSessionKey,
       }),
-      // CRITICAL FIX: Use onRehydrateStorage to ensure a guest key exists
-      onRehydrateStorage: () => {
-        return (state) => {
-          // Check if guestSessionKey is null or undefined after rehydration
-          if (!state?.guestSessionKey) {
-            console.log('No guest session key found in storage. Generating a new one...');
-            // Generate a new UUID and set it in the state.
-            const newKey = uuidv4();
-            state?.setGuestSessionKey(newKey);
-          } else {
-            console.log('Existing guest session key found:', state.guestSessionKey);
-          }
-        };
-      },
+      // The guestSessionKey will now be managed by CartInitializer based on auth status.
+      // No need to generate it here during rehydration.
+      // onRehydrateStorage: () => { ... }
     }
   )
 );

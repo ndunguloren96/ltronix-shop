@@ -29,14 +29,21 @@ export function CartInitializer() {
     const syncCartWithAuth = async () => {
       console.log('CartInitializer: Running syncCartWithAuth. Status:', status, 'isInitialized:', isInitialized);
 
-      // Prevent re-running if session is still loading or if already processed this auth state
-      if (status === 'loading' || isInitialized) {
+      // Prevent re-running if session is still loading
+      if (status === 'loading') {
+        return;
+      }
+
+      // If already initialized for the current session type, prevent re-running
+      // This is a simple check, more complex scenarios might need a more robust mechanism
+      if (isInitialized && (
+        (status === 'authenticated' && session?.user?.id) ||
+        (status === 'unauthenticated' && guestSessionKey)
+      )) {
         return;
       }
 
       if (status === 'authenticated') {
-        setIsInitialized(true); // Mark as initialized for authenticated state
-
         // Check if there's a guest cart in local storage that needs merging
         if (guestSessionKey && localCartItems.length > 0) {
           console.log('CartInitializer: Authenticated user with existing guest cart. Attempting to merge...');
@@ -45,31 +52,29 @@ export function CartInitializer() {
               guestSessionKey,
               localCartItems.map(toBackendCartItem)
             );
-            // Update local cart with the merged data from the backend
             if (mergedBackendCart && mergedBackendCart.orders && mergedBackendCart.orders.length > 0 && mergedBackendCart.orders[0].items) {
               setItems(mergedBackendCart.orders[0].items.map((item: any) => ({
-                  id: item.product.id, // Use item.product.id as the product ID
+                  id: item.product.id,
                   name: item.product.name,
-                  price: parseFloat(item.product.price), // Convert price to number
+                  price: parseFloat(item.product.price),
                   quantity: item.quantity,
                   image_file: item.product.image_file,
               })));
             } else {
               setItems([]);
             }
-            setGuestSessionKey(null); // CRITICAL: Clear guest key after successful merge
+            setGuestSessionKey(null); // Clear guest key after successful merge
             console.log('CartInitializer: Guest cart merged successfully, local guest key cleared.');
           } catch (error) {
             console.error('CartInitializer: Error merging guest cart:', error);
-            // Even if merge fails, try to load the user's existing cart from backend
+            // Fallback: try to load the user's existing cart from backend
             try {
               const userBackendCart = await fetchUserCart();
-              // FIX: Add null check for userBackendCart
               if (userBackendCart && userBackendCart.orders && userBackendCart.orders.length > 0 && userBackendCart.orders[0].items) {
                 setItems(userBackendCart.orders[0].items.map((item: any) => ({
-                  id: item.product.id, // Use item.product.id as the product ID
+                  id: item.product.id,
                   name: item.product.name,
-                  price: parseFloat(item.product.price), // Convert price to number
+                  price: parseFloat(item.product.price),
                   quantity: item.quantity,
                   image_file: item.product.image_file,
                 })));
@@ -81,7 +86,7 @@ export function CartInitializer() {
               }
             } catch (fetchError) {
               console.error('CartInitializer: Failed to fetch user cart after merge failure:', fetchError);
-              clearCart(); // Clear local cart if cannot fetch user cart
+              clearCart();
             }
           }
         } else {
@@ -90,12 +95,11 @@ export function CartInitializer() {
           console.log('CartInitializer: Authenticated user, no local guest cart to merge. Fetching user cart...');
           try {
             const userBackendCart = await fetchUserCart();
-            // FIX: Add null check for userBackendCart
             if (userBackendCart && userBackendCart.orders && userBackendCart.orders.length > 0 && userBackendCart.orders[0].items) {
               setItems(userBackendCart.orders[0].items.map((item: any) => ({
-                id: item.product.id, // Use item.product.id as the product ID
+                id: item.product.id,
                 name: item.product.name,
-                price: parseFloat(item.product.price), // Convert price to number
+                price: parseFloat(item.product.price),
                 quantity: item.quantity,
                 image_file: item.product.image_file,
               })));
@@ -103,22 +107,22 @@ export function CartInitializer() {
               console.log('CartInitializer: Fetched authenticated user cart.');
             } else {
               console.log('CartInitializer: No authenticated user cart found, clearing local cart.');
-              clearCart(); // Clear local cart if no cart found on backend
+              clearCart();
             }
           } catch (error) {
             console.error('CartInitializer: Error fetching authenticated user cart:', error);
-            clearCart(); // Clear local cart if fetching fails (e.g., no cart on backend)
+            clearCart();
           }
         }
+        setIsInitialized(true); // Mark as initialized for authenticated state
       } else if (status === 'unauthenticated') {
-        setIsInitialized(true); // Mark as initialized for unauthenticated state
-
         // Ensure a guest session key exists for unauthenticated users
         if (!guestSessionKey) {
           const newKey = uuidv4();
           setGuestSessionKey(newKey);
           console.log('CartInitializer: Unauthenticated user, generated new guest session key:', newKey);
         }
+        setIsInitialized(true); // Mark as initialized for unauthenticated state
         // For unauthenticated users, the cart state in local storage (guest cart) persists automatically.
         // No need to fetch/clear unless you want to explicitly clear items on logout (if they were authenticated items).
         // For now, we assume local items persist for guest.
