@@ -27,10 +27,9 @@ class GoogleLogin(SocialLoginView):
 # All of the user and authentication URL patterns
 urlpatterns = [
     # dj-rest-auth Core Authentication
-    # FIX: Corrected the typo from 'as_as_view' to 'as_view'
     path('login/', LoginView.as_view(), name='rest_login'),
     path('logout/', LogoutView.as_view(), name='rest_logout'),
-    path('user/', UserDetailsView.as_view(), name='rest_user_details'), # Default user details view
+    path('user/', UserDetailsView.as_view(), name='rest_user_details'),
 
     # Password Management
     path('password/reset/', PasswordResetView.as_view(), name='rest_password_reset'),
@@ -39,6 +38,8 @@ urlpatterns = [
 
     # Registration
     path('register/', CustomRegisterView.as_view(), name='rest_register'),
+    # NEW: Add a 'registration/' path for the frontend to hit
+    path('registration/', CustomRegisterView.as_view(), name='rest_register_alt'),
     path('register/verify-email/', VerifyEmailView.as_view(), name='rest_verify_email'),
     path('register/resend-email/', ResendEmailVerificationView.as_view(), name='rest_resend_email'),
 
@@ -51,6 +52,6 @@ urlpatterns = [
     path('google/', GoogleLogin.as_view(), name="google_login"),
 
     # allauth URLs (for the initial OAuth flow)
-    # This must be included so that the redirect from the social provider is handled.
     path("accounts/", include("allauth.urls")),
 ]
+
