@@ -2,10 +2,11 @@
 
 from rest_framework import generics, status, permissions
 from rest_framework.response import Response
-from rest_framework.views import APIView # NEW IMPORT
+from rest_framework.views import APIView
+from django.conf import settings # IMPORT ADDED HERE
 
 # dj_rest_auth and allauth imports
-from dj_rest_auth.views import LoginView as DjRestAuthLoginView, LogoutView, UserDetailsView, PasswordResetView, PasswordResetConfirmView
+from dj_rest_auth.views import LoginView, LogoutView, UserDetailsView, PasswordResetView, PasswordResetConfirmView
 from dj_rest_auth.registration.views import VerifyEmailView, ResendEmailVerificationView, SocialLoginView
 from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
 from allauth.socialaccount.providers.oauth2.client import OAuth2Client
@@ -14,7 +15,12 @@ from allauth.socialaccount.providers.oauth2.client import OAuth2Client
 from django.contrib.auth import authenticate, get_user_model, login
 
 # Import your custom serializers
-from .serializers import EmailChangeSerializer, CustomRegisterSerializer, UserDetailsSerializer, PasswordChangeSerializer
+from .serializers import (
+    EmailChangeSerializer,
+    CustomRegisterSerializer,
+    UserDetailsSerializer,
+    PasswordChangeSerializer
+)
 
 # Import the base RegisterView from dj-rest-auth
 from dj_rest_auth.registration.views import RegisterView
@@ -69,7 +75,7 @@ class GoogleLogin(SocialLoginView):
     client_class = OAuth2Client
 
 
-# NEWLY ADDED: A custom login view for NextAuth.js credentials provider
+# A custom login view for NextAuth.js credentials provider
 class NextAuthCredentialsLoginView(APIView):
     """
     This view is specifically designed to handle the credentials POST request
@@ -103,4 +109,3 @@ class NextAuthCredentialsLoginView(APIView):
                 {'detail': 'Invalid credentials.'},
                 status=status.HTTP_401_UNAUTHORIZED
             )
-
