@@ -45,8 +45,7 @@ class UserDetailsSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         profile_data = validated_data.pop('profile', {})
-        middle_name = profile_data.get('middle_name')
-
+        
         # Update User fields
         instance.first_name = validated_data.get('first_name', instance.first_name)
         instance.last_name = validated_data.get('last_name', instance.last_name)
@@ -56,11 +55,10 @@ class UserDetailsSerializer(serializers.ModelSerializer):
         instance.save()
 
         # Update UserProfile fields (e.g., middle_name)
-        if profile_data:
-            profile, created = UserProfile.objects.get_or_create(user=instance)
-            if middle_name is not None:
-                profile.middle_name = middle_name
-                profile.save()
+        profile, created = UserProfile.objects.get_or_create(user=instance)
+        if 'middle_name' in profile_data:
+            profile.middle_name = profile_data['middle_name']
+            profile.save()
         
         return instance
 

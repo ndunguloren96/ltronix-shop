@@ -65,9 +65,5 @@ REST_AUTH["PASSWORD_RESET_CONFIRM_URL"] = env(
     "DJANGO_PASSWORD_RESET_CONFIRM_URL",
     default="http://localhost:3000/auth/password-reset-confirm/{uid}/{token}",
 )
-SOCIAL_AUTH_GOOGLE_OAUTH2_REDIRECT_URI = env(
-    "SOCIAL_AUTH_GOOGLE_OAUTH2_REDIRECT_URI",
-    default="http://localhost:8000/api/auth/complete/google-oauth2/",
-)
-SOCIAL_AUTH_REDIRECT_IS_HTTPS = env.bool("SOCIAL_AUTH_REDIRECT_IS_HTTPS", default=False)
+
 

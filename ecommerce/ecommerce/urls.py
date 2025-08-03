@@ -56,6 +56,7 @@ urlpatterns = [
         path("auth/password/change/", PasswordChangeView.as_view(), name="rest_password_change"),
         path("auth/email/change/", EmailChangeView.as_view(), name="rest_email_change"),
         path("auth/account/delete/", AccountDeleteView.as_view(), name="rest_account_delete"),
+        path("auth/user/update/", UserUpdateAPIView.as_view(), name="rest_user_update"),
 
         # Schema and Swagger UI
         path("schema/", SpectacularAPIView.as_view(), name="schema"),

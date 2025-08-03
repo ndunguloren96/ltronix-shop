@@ -228,7 +228,7 @@ REST_AUTH = {
     "JWT_AUTH_COOKIE": "my-app-jwt-access",
     "JWT_AUTH_REFRESH_COOKIE": "my-app-jwt-refresh",
     # FIX: Set JWT_AUTH_HTTPONLY to False to make tokens available in response body
-    "JWT_AUTH_HTTPONLY": False, # <--- THIS IS THE CRUCIAL CHANGE
+    "JWT_AUTH_HTTPONLY": False,
     "USER_DETAILS_SERIALIZER": "users.serializers.UserDetailsSerializer",
     "REGISTER_SERIALIZER": "users.serializers.CustomRegisterSerializer",
     "PASSWORD_RESET_USE_SITECONTROL": True,

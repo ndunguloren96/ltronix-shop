@@ -42,6 +42,15 @@ class AccountDeleteView(generics.DestroyAPIView):
     def get_object(self):
         return self.request.user
 
+
+class UserUpdateAPIView(generics.RetrieveUpdateAPIView):
+    serializer_class = UserDetailsSerializer
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def get_object(self):
+        return self.request.user
+
+
 # NEWLY ADDED: CustomRegisterView
 class CustomRegisterView(RegisterView):
     """

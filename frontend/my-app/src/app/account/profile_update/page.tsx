@@ -120,15 +120,25 @@ export default function ProfileUpdatePage() {
     }
 
     try {
-      const updateData = {
-        email,
+      const updateData: Partial<DjangoUser> = {
         first_name: firstName,
-        middle_name: middleName,
         last_name: lastName,
         phone_number: phoneNumber,
         gender: gender,
         date_of_birth: dateOfBirth || null, // Send null if empty string
+        profile: {
+          middle_name: middleName,
+        },
       };
+
+      // Email is handled separately if changed
+      if (email !== (session.user.djangoUser?.email || '')) {
+        // This implies a separate email change flow or endpoint is needed
+        // For now, we'll just log a warning if email is attempted to be changed here
+        console.warn('Email change is not handled by this endpoint. Please use the dedicated email change feature if available.');
+        // Optionally, remove email from updateData if the backend doesn't expect it on this endpoint
+        // delete updateData.email;
+      }
 
       const res = await fetch(`${DJANGO_API_BASE_URL}/auth/user/`, {
         method: 'PUT', // Use PUT or PATCH based on your Django API
