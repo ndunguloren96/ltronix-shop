@@ -8,7 +8,7 @@ from django.urls import include, path, re_path
 from payment.views import mpesa_stk_push_callback
 
 # Import your custom views from the users app
-from users.views import EmailChangeView, AccountDeleteView
+from users.views import EmailChangeView, AccountDeleteView, UserUpdateAPIView
 # from users.views import CustomRegisterView # Only uncomment if you need to explicitly map it here
 
 from dj_rest_auth.views import PasswordChangeView
