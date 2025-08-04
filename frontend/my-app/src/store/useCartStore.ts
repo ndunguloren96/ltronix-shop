@@ -1,7 +1,8 @@
 // src/store/useCartStore.ts
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { v4 as uuidv4 } from 'uuid'; // Re-adding uuidv4 for self-contained key generation
+import { v4 as uuidv4 } from 'uuid';
+import { getCartData } from '@/api/cart'; // Assuming you have a function to fetch cart data
 
 interface CartItem {
   id: number;
@@ -26,6 +27,7 @@ interface CartState {
   setIsInitialized: (initialized: boolean) => void;
   getTotalItems: () => number;
   getTotalPrice: () => number;
+  initializeCart: () => Promise<void>; // NEW: The action to initialize the cart from the API
 }
 
 export const useCartStore = create<CartState>()(
@@ -72,18 +74,31 @@ export const useCartStore = create<CartState>()(
       getTotalItems: () => get().items.reduce((total, item) => total + item.quantity, 0),
 
       getTotalPrice: () => get().items.reduce((total, item) => total + item.price * item.quantity, 0),
+
+      // NEW: Implementation of the initializeCart action
+      initializeCart: async () => {
+        try {
+          const cartData = await getCartData(); // Fetch from your API
+          if (cartData) {
+            set({ items: cartData.items, isInitialized: true });
+          } else {
+            set({ items: [], isInitialized: true });
+          }
+        } catch (error) {
+          console.error("Failed to initialize cart:", error);
+          set({ items: [], isInitialized: true });
+          // Handle error gracefully, maybe show a toast or a message
+        }
+      },
     }),
     {
       name: 'ltronix-cart-storage',
       storage: createJSONStorage(() => localStorage),
-      // Only persist these fields
       partialize: (state) => ({
         items: state.items,
         guestSessionKey: state.guestSessionKey,
       }),
-      // The guestSessionKey will now be managed by CartInitializer based on auth status.
-      // No need to generate it here during rehydration.
-      // onRehydrateStorage: () => { ... }
     }
   )
 );
+
