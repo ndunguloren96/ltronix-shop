@@ -1,182 +1,125 @@
-// /var/www/ltronix-shop/frontend/my-app/src/components/Footer.tsx
-'use client'; // This component might include interactive elements or relies on client-side features.
+// frontend/my-app/src/components/Footer.tsx
+'use client';
 
+import React from 'react';
 import {
   Box,
-  Flex,
-  HStack,
-  VStack,
-  Text,
-  Link as ChakraLink, // Alias Chakra UI's Link to prevent conflicts
-  Divider,
-  Container, // Added Container for main footer content alignment
+  Container,
+  Stack,
   SimpleGrid,
-  Heading,
-  IconButton, // Import IconButton for social media icons
+  Text,
+  Link,
+  VisuallyHidden,
+  chakra,
+  useColorModeValue,
+  Flex,
 } from '@chakra-ui/react';
-import Image from 'next/image'; // Import Next.js Image component
-import NextLink from 'next/link'; // Renamed Next.js Link to NextLink to avoid conflict
-// Import all social media icons, using FaXTwitter for the new X logo
-import { FaFacebook, FaXTwitter, FaInstagram, FaLinkedin, FaYoutube, FaTiktok } from 'react-icons/fa6';
+import { FaTwitter, FaYoutube, FaInstagram } from 'react-icons/fa';
+import NextLink from 'next/link';
 
-// Define the social media data to make the code cleaner and more scalable.
-const socialLinks = [
-  {
-    label: 'Facebook',
-    href: 'https://www.facebook.com/ltronixshop', // Placeholder link
-    icon: FaFacebook,
-  },
-  {
-    label: 'X', // Updated label to match the new icon
-    href: 'https://www.twitter.com/ltronixshop', // Placeholder link
-    icon: FaXTwitter, // Changed to the new X icon
-  },
-  {
-    label: 'Instagram',
-    href: 'https://www.instagram.com/ltronixshop', // Placeholder link
-    icon: FaInstagram,
-  },
-  {
-    label: 'LinkedIn',
-    href: 'https://www.linkedin.com/company/ltronixshop', // Placeholder link
-    icon: FaLinkedin,
-  },
-  {
-    label: 'YouTube',
-    href: 'https://www.youtube.com/@ltronixshop', // Placeholder link
-    icon: FaYoutube,
-  },
-  {
-    label: 'TikTok',
-    href: 'https://www.tiktok.com/@ltronixshop', // Placeholder link
-    icon: FaTiktok,
-  },
-];
+const SocialButton = ({ children, label, href }: { children: React.ReactNode; label: string; href: string }) => {
+  return (
+    <chakra.button
+      bg={useColorModeValue('blackAlpha.100', 'whiteAlpha.100')}
+      rounded={'full'}
+      w={8}
+      h={8}
+      cursor={'pointer'}
+      as={'a'}
+      href={href}
+      display={'inline-flex'}
+      alignItems={'center'}
+      justifyContent={'center'}
+      transition={'background 0.3s ease'}
+      _hover={{
+        bg: useColorModeValue('blackAlpha.200', 'whiteAlpha.200'),
+      }}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={label}
+    >
+      <VisuallyHidden>{label}</VisuallyHidden>
+      {children}
+    </chakra.button>
+  );
+};
 
-// --- CRITICAL FIX: Changed to default export ---
 export default function Footer() {
   const currentYear = new Date().getFullYear();
-
   return (
-    <Box bg="gray.800" color="gray.200" py={{ base: 8, md: 12 }} mt={10}>
-      {/* Brands Carousel Section (New addition) */}
-      <Box w="100%" bg="gray.700" py={4} mb={8} overflowX="auto" boxShadow="inner">
-        <Text fontWeight="bold" fontSize="lg" mb={2} px={{ base: 4, md: 8 }} color="whiteAlpha.800">
-          Trusted Brands
-        </Text>
-        <HStack spacing={{ base: 6, md: 10 }} px={{ base: 4, md: 8 }} minW="max-content" justifyContent="space-between">
-          {/* Placeholder brand images for a horizontally scrollable carousel */}
-          {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-            <Box
-              key={i}
-              minW="100px" // Minimum width for each brand logo container
-              flexShrink={0} // Prevent items from shrinking
-              bg="whiteAlpha.900"
-              p={2}
-              borderRadius="md"
-              boxShadow="sm"
-            >
-              <Image
-                src={`/brands/brand-placeholder-${i}.png`} // Path to your brand images
-                alt={`Brand ${i} Logo`}
-                width={80} // Explicit width for Next.js Image
-                height={80} // Explicit height for Next.js Image
-                style={{ objectFit: 'contain' }} // Use style prop instead of objectFit prop (fixes legacy prop warning)
-                quality={80} // Image quality
-                // style prop filter is already good
-                // style={{ filter: 'grayscale(100%) opacity(70%)' }} // Example: grayscale effect
-              />
-            </Box>
-          ))}
-        </HStack>
-      </Box>
-
-      {/* Main Footer Content */}
-      <Container maxW="container.xl">
-        <SimpleGrid columns={{ base: 1, sm: 2, md: 4 }} spacing={8} pb={8}>
-          <VStack align="flex-start" spacing={3}>
-            <Heading size="md" color="whiteAlpha.900">Ltronix Shop</Heading>
-            <Text fontSize="sm">
-              Your trusted source for the latest electronics, gadgets, and tech innovations.
-              Delivering quality and service across Kenya.
+    <Box
+      bg={useColorModeValue('gray.50', 'gray.900')}
+      color={useColorModeValue('gray.700', 'gray.200')}
+      borderTopWidth={1}
+      borderStyle={'solid'}
+      borderColor={useColorModeValue('gray.200', 'gray.700')}
+    >
+      <Container as={Stack} maxW={'6xl'} py={10}>
+        <SimpleGrid columns={{ base: 1, sm: 2, md: 4 }} spacing={8}>
+          <Stack align={'flex-start'}>
+            <Text fontWeight={'500'} fontSize={'lg'} mb={2}>
+              Ltronix Shop
             </Text>
-            {/* You can add more contact info or a mini-logo here */}
-          </VStack>
+            <Link as={NextLink} href={'/about'}>About Us</Link>
+            <Link as={NextLink} href={'/support/contact'}>Contact Us</Link>
+            <Link as={NextLink} href={'/careers'}>Careers</Link>
+          </Stack>
 
-          <VStack align="flex-start" spacing={3}>
-            <Heading size="md" color="whiteAlpha.900">Customer Service</Heading>
-            {/* CRITICAL FIX: Use ChakraLink as NextLink and passHref */}
-            <ChakraLink as={NextLink} href="/contact-us" fontSize="sm" _hover={{ color: 'brand.300' }}>Contact Us</ChakraLink>
-            <ChakraLink as={NextLink} href="/faqs" fontSize="sm" _hover={{ color: 'brand.300' }}>FAQs</ChakraLink>
-            <ChakraLink as={NextLink} href="/shipping-returns" fontSize="sm" _hover={{ color: 'brand.300' }}>Shipping & Returns</ChakraLink>
-            <ChakraLink as={NextLink} href="/warranty" fontSize="sm" _hover={{ color: 'brand.300' }}>Warranty Info</ChakraLink>
-          </VStack>
+          <Stack align={'flex-start'}>
+            <Text fontWeight={'500'} fontSize={'lg'} mb={2}>
+              Support
+            </Text>
+            <Link as={NextLink} href={'/support/faq'}>FAQ</Link>
+            <Link as={NextLink} href={'/returns'}>Returns & Refunds</Link>
+            <Link as={NextLink} href={'/shipping'}>Shipping Info</Link>
+          </Stack>
 
-          <VStack align="flex-start" spacing={3}>
-            <Heading size="md" color="whiteAlpha.900">Explore</Heading>
-            {/* CRITICAL FIX: Use ChakraLink as NextLink and passHref */}
-            <ChakraLink as={NextLink} href="/products" fontSize="sm" _hover={{ color: 'brand.300' }}>All Products</ChakraLink>
-            <ChakraLink as={NextLink} href="/products/categories" fontSize="sm" _hover={{ color: 'brand.300' }}>Categories</ChakraLink>
-            <ChakraLink as={NextLink} href="/products/hot-deals" fontSize="sm" _hover={{ color: 'brand.300' }}>Hot Deals</ChakraLink>
-            <ChakraLink as={NextLink} href="/blog" fontSize="sm" _hover={{ color: 'brand.300' }}>Blog</ChakraLink>
-          </VStack>
+          <Stack align={'flex-start'}>
+            <Text fontWeight={'500'} fontSize={'lg'} mb={2}>
+              Legal
+            </Text>
+            <Link as={NextLink} href={'/privacy'}>Privacy Policy</Link>
+            <Link as={NextLink} href={'/terms'}>Terms of Service</Link>
+          </Stack>
 
-          <VStack align="flex-start" spacing={3}>
-            <Heading size="md" color="whiteAlpha.900">My Account</Heading>
-            {/* CRITICAL FIX: Use ChakraLink as NextLink and passHref */}
-            <ChakraLink as={NextLink} href="/account" fontSize="sm" _hover={{ color: 'brand.300' }}>Account Dashboard</ChakraLink>
-            <ChakraLink as={NextLink} href="/account/orders" fontSize="sm" _hover={{ color: 'brand.300' }}>My Orders</ChakraLink>
-            <ChakraLink as={NextLink} href="/account/wishlist" fontSize="sm" _hover={{ color: 'brand.300' }}>Wishlist</ChakraLink>
-            <ChakraLink as={NextLink} href="/cart" fontSize="sm" _hover={{ color: 'brand.300' }}>Shopping Cart</ChakraLink>
-          </VStack>
+          <Stack align={'flex-start'}>
+            <Text fontWeight={'500'} fontSize={'lg'} mb={2}>
+              Follow Us
+            </Text>
+            <Stack direction={'row'} spacing={6}>
+              <SocialButton label={'Twitter'} href={'#'}>
+                <FaTwitter />
+              </SocialButton>
+              <SocialButton label={'YouTube'} href={'#'}>
+                <FaYoutube />
+              </SocialButton>
+              <SocialButton label={'Instagram'} href={'#'}>
+                <FaInstagram />
+              </SocialButton>
+            </Stack>
+          </Stack>
         </SimpleGrid>
-
-        <Divider borderColor="gray.600" my={8} />
-
-        {/* Copyright and Social Media Section */}
-        <Flex
-          direction={{ base: 'column', md: 'row' }}
-          justify="space-between"
-          align="center"
-          pt={4}
-        >
-          {/* Left-aligned content: Copyright */}
-          <Text fontSize="sm" textAlign={{ base: 'center', md: 'left' }} mb={{ base: 4, md: 0 }} color="whiteAlpha.900" fontWeight="semibold">
-            &copy; {currentYear} Ltronix Shop. All rights reserved.
-          </Text>
-
-          {/* Centered content: Social Icons */}
-          <HStack spacing={2} flexGrow={1} justify={{ base: 'center', md: 'center' }}>
-            {socialLinks.map((social) => (
-              <ChakraLink
-                key={social.label}
-                href={social.href}
-                isExternal
-                aria-label={social.label}
-              >
-                <IconButton
-                  aria-label={social.label}
-                  icon={<social.icon />}
-                  variant="ghost"
-                  color="gray.200"
-                  fontSize="24px"
-                  _hover={{
-                    color: "gray.200", // Explicitly set the color to not change on hover
-                    transform: 'scale(1.1)', // Keep the scaling animation
-                    transition: 'transform 0.2s', // Add a smooth transition
-                  }}
-                />
-              </ChakraLink>
-            ))}
-          </HStack>
-
-          {/* Right-aligned content: Privacy and Terms links */}
-          <HStack spacing={4}>
-            <ChakraLink as={NextLink} href="/privacy-policy" fontSize="sm" _hover={{ color: 'brand.300' }}>Privacy Policy</ChakraLink>
-            <ChakraLink as={NextLink} href="/terms-of-service" fontSize="sm" _hover={{ color: 'brand.300' }}>Terms of Service</ChakraLink>
-          </HStack>
-        </Flex>
       </Container>
+
+      <Box
+        borderTopWidth={1}
+        borderStyle={'solid'}
+        borderColor={useColorModeValue('gray.200', 'gray.700')}>
+        <Container
+          as={Stack}
+          maxW={'6xl'}
+          py={4}
+          direction={{ base: 'column', md: 'row' }}
+          spacing={4}
+          justify={{ md: 'space-between' }}
+          align={{ md: 'center' }}>
+          <Text>© {currentYear} Ltronix Shop. All rights reserved.</Text>
+          <Flex direction="row" spacing={4}>
+            {/* Payment Method Icons or Text can go here */}
+          </Flex>
+        </Container>
+      </Box>
     </Box>
   );
 }
+
