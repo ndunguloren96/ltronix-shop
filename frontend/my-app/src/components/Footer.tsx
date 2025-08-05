@@ -172,8 +172,8 @@ export default function Footer() {
 
           {/* Right-aligned content: Privacy and Terms links */}
           <HStack spacing={4}>
-            <ChakraLink as={NextLink} href="/privacy-policy" fontSize="sm" _hover={{ color: 'brand.300' }}>Privacy Policy</ChakraLink>
-            <ChakraLink as={NextLink} href="/terms-of-service" fontSize="sm" _hover={{ color: 'brand.300' }}>Terms of Service</ChakraLink>
+            <ChakraLink as={NextLink} href="/privacy" fontSize="sm" _hover={{ color: 'brand.300' }}>Privacy Policy</ChakraLink>
+            <ChakraLink as={NextLink} href="/terms" fontSize="sm" _hover={{ color: 'brand.300' }}>Terms of Service</ChakraLink>
           </HStack>
         </Flex>
       </Container>
