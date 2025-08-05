@@ -215,12 +215,12 @@ export default function SignupPage() {
 
           <Flex direction="column" gap={3} width="full">
             <MyButton
-              leftIcon={<FaEnvelope />}
-              onClick={() => setAuthMethod('email')}
-              variant={authMethod === 'email' ? 'solid' : 'outline'}
+              leftIcon={authMethod === 'phone' ? <FaEnvelope /> : <FaPhone />}
+              onClick={() => setAuthMethod(authMethod === 'phone' ? 'email' : 'phone')}
+              variant="outline"
               colorScheme="teal"
             >
-              Continue with Email
+              {authMethod === 'phone' ? 'Continue with Email' : 'Continue with Phone'}
             </MyButton>
             <GoogleSignInButton onClick={handleGoogleSignUp} isLoading={isLoading}>
               Sign Up with Google
