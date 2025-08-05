@@ -144,11 +144,12 @@ export default function SignupPage() {
   };
 
   return (
+    // Outer Flex container for the entire page, ensuring a uniform white background
     <Flex direction="column" minH="100vh" align="center" justify="center" bg="white">
-      {/* Ltronix Heading moved outside the card and adjusted slightly lower */}
+      {/* Ltronix Heading moved further down (mb=12) to be slightly above the card */}
       <NextLink href="/" passHref>
         <ChakraLink _hover={{ textDecoration: 'none' }}>
-          <Heading as="h1" size="xl" mb={10} color="gray.800">
+          <Heading as="h1" size="xl" mb={12} color="gray.800"> {/* Changed mb from 10 to 12 */}
             Ltronix
           </Heading>
         </ChakraLink>
@@ -159,7 +160,7 @@ export default function SignupPage() {
         p={{ base: 8, md: 12 }}
         width={{ base: '90%', sm: '450px', md: '500px' }}
         maxWidth="95%"
-        bg="white"
+        bg="white" // Ensures the card background is white, matching the page background
         boxShadow="lg"
         borderRadius="xl"
         textAlign="center"
