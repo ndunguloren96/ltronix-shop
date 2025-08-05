@@ -145,8 +145,13 @@ export default function SignupPage() {
   };
 
   return (
-    <Box p={8} maxWidth="500px" borderWidth={1} borderRadius={8} boxShadow="lg" bg="white">
-        <VStack spacing={4} align="stretch">
+    <Flex direction="column" minH="100vh" align="center" justify="center" bg="gray.50">
+      <VStack spacing={8} p={8} width={{ base: '90%', md: '400px' }} >
+        <Heading as="h1" size="lg" textAlign={{ base: 'center', md: 'right' }} width="full">
+          Ltronix
+        </Heading>
+
+        <VStack spacing={4} align="stretch" width="full">
           <Heading as="h2" size="lg" textAlign="center" mb={6}>
             Join Us!
           </Heading>
@@ -232,7 +237,17 @@ export default function SignupPage() {
             </NextLink>
           </Text>
         </VStack>
-      </Box>
+
+        <Flex width="full" justify="center" mt={8}>
+          <NextLink href="/privacy" passHref>
+            <ChakraLink color="gray.500" fontSize="sm" mx={2}>Privacy</ChakraLink>
+          </NextLink>
+          <NextLink href="/terms" passHref>
+            <ChakraLink color="gray.500" fontSize="sm" mx={2}>Terms of Service</ChakraLink>
+          </NextLink>
+        </Flex>
+      </VStack>
+    </Flex>
   );
 }
 

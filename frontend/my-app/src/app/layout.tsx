@@ -20,6 +20,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const showHeader = !pathname.startsWith('/auth');
   const showFooter = !pathname.startsWith('/auth');
 
   return (
@@ -31,7 +32,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <ClientErrorBoundary>
           <AppProviders session={null}>
-            <Header />
+            {showHeader && <Header />}
             <main style={{ flexGrow: 1, minHeight: '80vh' }}>{children}</main>
             {showFooter && <Footer />}
           </AppProviders>
