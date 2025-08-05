@@ -84,7 +84,7 @@ export default function LoginPage() {
             Welcome Back!
           </Heading>
           <Text fontSize="md" textAlign="center" color="gray.600">
-            Sign in to continue your shopping experience.
+            Log in to continue your shopping experience.
           </Text>
 
           <Flex direction="column" gap={3}>
@@ -105,7 +105,7 @@ export default function LoginPage() {
               Continue with Email
             </MyButton>
             <GoogleSignInButton onClick={() => signIn('google')} isLoading={isLoading}>
-              Sign In with Google
+              Log In with Google
             </GoogleSignInButton>
           </Flex>
 
@@ -170,7 +170,7 @@ export default function LoginPage() {
                 isLoading={isLoading}
                 isDisabled={isLoading}
               >
-                Sign In
+                Log In
               </MyButton>
             </VStack>
           </form>

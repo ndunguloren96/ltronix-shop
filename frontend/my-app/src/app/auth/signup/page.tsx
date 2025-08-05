@@ -228,7 +228,7 @@ export default function SignupPage() {
           <Text textAlign="center">
             Already have an account?{' '}
             <NextLink href="/auth/login" passHref>
-              <ChakraLink color="brand.500" fontWeight="bold">Sign In</ChakraLink>
+              <ChakraLink color="brand.500" fontWeight="bold">Log In</ChakraLink>
             </NextLink>
           </Text>
         </VStack>
