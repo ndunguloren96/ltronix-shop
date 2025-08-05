@@ -90,10 +90,10 @@ export default function LoginPage() {
 
         <VStack spacing={4} align="stretch" width="full">
           <Text fontSize="md" textAlign="center" color="gray.600">
-            Log in to continue your shopping experience.
+            Log in to continue your shopping experience
           </Text>
 
-          <Flex direction="column" gap={3}>
+          <Flex direction="column" gap={3} width="full">
             <MyButton
               leftIcon={<FaPhone />}
               onClick={() => setAuthMethod('phone')}
@@ -117,7 +117,7 @@ export default function LoginPage() {
 
           <Text textAlign="center">Or</Text>
 
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} style={{ width: '100%' }}>
             <VStack spacing={4}>
               {authMethod === 'phone' ? (
                 <FormControl id="phone-number" isRequired>

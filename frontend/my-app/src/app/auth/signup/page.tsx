@@ -157,10 +157,10 @@ export default function SignupPage() {
 
         <VStack spacing={4} align="stretch" width="full">
           <Text fontSize="md" textAlign="center" color="gray.600">
-            Create an account to start shopping.
+            Create an account to start shopping
           </Text>
 
-          <Flex direction="column" gap={3}>
+          <Flex direction="column" gap={3} width="full">
             <MyButton
               leftIcon={<FaPhone />}
               onClick={() => setAuthMethod('phone')}
@@ -184,7 +184,7 @@ export default function SignupPage() {
 
           <Text textAlign="center">Or</Text>
 
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} style={{ width: '100%' }}>
             <VStack spacing={4}>
               
 

@@ -25,6 +25,7 @@ export default function GoogleSignInButton({ children, onClick, ...props }: Goog
         bg: 'gray.50', // Light background on hover
         borderColor: 'gray.400', // Darker border on hover
       }}
+      borderRadius="full"
       {...props}
     >
       {children || 'Continue with Google'}
