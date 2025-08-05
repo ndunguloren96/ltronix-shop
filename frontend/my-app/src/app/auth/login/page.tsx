@@ -165,13 +165,7 @@ export default function LoginPage() {
 
           <Flex direction="column" gap={3} width="full">
             <MyButton
-              onClick={() => setAuthMethod('phone')}
-              variant={authMethod === 'phone' ? 'solid' : 'outline'}
-              colorScheme="teal"
-            >
-              Continue with Phone
-            </MyButton>
-            <MyButton
+              leftIcon={<FaEnvelope />}
               onClick={() => setAuthMethod('email')}
               variant={authMethod === 'email' ? 'solid' : 'outline'}
               colorScheme="teal"
