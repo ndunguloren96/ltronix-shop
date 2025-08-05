@@ -97,27 +97,6 @@ export async function fetchUserCart(guestSessionKey?: string | null): Promise<Ba
 }
 
 /**
- * NEW: A dedicated function to get cart data, handling both authenticated and guest users.
- * This is the function that the `useCartStore` will call.
- */
-export async function getCartData(): Promise<BackendCart | null> {
-  const session = await getSession();
-  const guestSessionKey = sessionStorage.getItem('guestSessionKey'); // Assuming guest key is stored in session storage
-
-  if (session) {
-    // Authenticated user: fetch cart without a guest key
-    return fetchUserCart();
-  } else if (guestSessionKey) {
-    // Guest user: fetch cart using the guest key
-    return fetchUserCart(guestSessionKey);
-  } else {
-    // No user and no guest key, return an empty cart
-    return null;
-  }
-}
-
-
-/**
  * Creates or updates a cart on the backend. This function is used for adding/updating items.
  * It intelligently sends the correct authentication header.
  * The backend's `OrderViewSet.create` method handles all these cases (POST to /orders/).

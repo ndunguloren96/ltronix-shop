@@ -2,7 +2,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { v4 as uuidv4 } from 'uuid';
-import { getCartData } from '@/api/cart'; // Now correctly imports the new function
+import { getCartData } from '@/api/cart'; // Assuming you have a function to fetch cart data
 
 interface CartItem {
   id: number;
@@ -27,7 +27,7 @@ interface CartState {
   setIsInitialized: (initialized: boolean) => void;
   getTotalItems: () => number;
   getTotalPrice: () => number;
-  initializeCart: () => Promise<void>;
+  initializeCart: () => Promise<void>; // NEW: The action to initialize the cart from the API
 }
 
 export const useCartStore = create<CartState>()(
@@ -75,10 +75,10 @@ export const useCartStore = create<CartState>()(
 
       getTotalPrice: () => get().items.reduce((total, item) => total + item.price * item.quantity, 0),
 
-      // Now correctly calls the new getCartData function from the API layer
+      // NEW: Implementation of the initializeCart action
       initializeCart: async () => {
         try {
-          const cartData = await getCartData(); // Use the newly created function
+          const cartData = await getCartData(); // Fetch from your API
           if (cartData) {
             set({ items: cartData.items, isInitialized: true });
           } else {
@@ -87,6 +87,7 @@ export const useCartStore = create<CartState>()(
         } catch (error) {
           console.error("Failed to initialize cart:", error);
           set({ items: [], isInitialized: true });
+          // Handle error gracefully, maybe show a toast or a message
         }
       },
     }),
