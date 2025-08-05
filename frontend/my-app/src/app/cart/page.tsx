@@ -1,5 +1,3 @@
-// src/app/cart/page.tsx
-
 'use client';
 
 import {
@@ -41,18 +39,18 @@ import {
 
 // Import types from '@/types/order'
 import {
-  BackendCart, // Now BackendCart is BackendOrder
+  BackendOrder,
   ProductInCart,
   BackendOrderItem,
   CartItemBackend,
-  // BackendCartResponse, // Removed as it's no longer the direct type for backendCart
+  BackendCartResponse,
 } from '@/types/order';
 
 import { useCartStore } from '@/store/useCartStore';
 
 // Define the context interface for useMutation
 interface UpdateCartContext {
-  previousCart?: BackendCart | null; // Changed from BackendCartResponse
+  previousCart?: BackendCartResponse | null;
 }
 
 export default function CartPage() {
@@ -81,7 +79,7 @@ export default function CartPage() {
     isError,
     error,
     isFetching,
-  } = useQuery<BackendCart | null, Error>({ // Changed BackendCartResponse to BackendCart
+  } = useQuery<BackendCartResponse | null, Error>({
     queryKey: ['cart', status, currentSessionKey],
     queryFn: () => {
       if (isUserAuthenticated) {
@@ -102,10 +100,9 @@ export default function CartPage() {
 
   useEffect(() => {
     if (status !== 'loading' && isInitialized) {
-      // Now backendCart is BackendCart (i.e., BackendOrder) directly
-      if (backendCart && backendCart.items) {
+      if (backendCart && backendCart.orders && backendCart.orders.length > 0 && backendCart.orders[0].items) {
         setLocalCartItems(
-          backendCart.items.map((item) => ({
+          backendCart.orders[0].items.map((item) => ({
             id: item.product.id,
             name: item.product.name,
             price: parseFloat(item.product.price),
@@ -123,14 +120,14 @@ export default function CartPage() {
     }
   }, [backendCart, status, setLocalCartItems, guestSessionKey, setGuestSessionKey, currentSessionKey, isInitialized, isUserAuthenticated]);
 
-  const updateCartMutation = useMutation<BackendCart, Error, ProductInCart[], UpdateCartContext>({ // Changed BackendCartResponse to BackendCart
+  const updateCartMutation = useMutation<BackendCartResponse, Error, ProductInCart[], UpdateCartContext>({
     mutationFn: (items) => createOrUpdateCart(
       items.map(item => ({ product_id: item.id, quantity: item.quantity })),
       currentSessionKey
     ),
     onMutate: async (newFrontendCartItems: ProductInCart[]) => {
       await queryClient.cancelQueries({ queryKey: ['cart', status, currentSessionKey] });
-      const previousCart = queryClient.getQueryData<BackendCart>(['cart', status, currentSessionKey]); // Changed BackendCartResponse to BackendCart
+      const previousCart = queryClient.getQueryData<BackendCartResponse>(['cart', status, currentSessionKey]);
       setLocalCartItems(newFrontendCartItems);
       return { previousCart };
     },
@@ -143,10 +140,9 @@ export default function CartPage() {
         duration: 5000,
         isClosable: true,
       });
-      // Now context.previousCart is BackendCart directly
-      if (context?.previousCart && context.previousCart.items) {
+      if (context?.previousCart && context.previousCart.orders && context.previousCart.orders.length > 0 && context.previousCart.orders[0].items) {
         setLocalCartItems(
-          context.previousCart.items.map((bi) => ({ // Directly access items
+          context.previousCart.orders[0].items.map((bi) => ({
             id: bi.product.id, name: bi.product.name, price: parseFloat(bi.product.price),
             quantity: bi.quantity, image_url: bi.product.image_url
           }))
@@ -156,10 +152,9 @@ export default function CartPage() {
       }
     },
     onSuccess: (data) => {
-      // Now data is BackendCart directly
-      if (data.items) {
+      if (data.orders && data.orders.length > 0 && data.orders[0].items) {
         setLocalCartItems(
-          data.items.map((backendItem) => ({
+          data.orders[0].items.map((backendItem) => ({
             id: backendItem.product.id,
             name: backendItem.product.name,
             price: parseFloat(backendItem.product.price),
@@ -472,4 +467,3 @@ export default function CartPage() {
     </Box>
   );
 }
-
