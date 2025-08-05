@@ -1,5 +1,3 @@
-// src/app/auth/login/page.tsx
-
 'use client';
 
 import { Box, Heading, Text, VStack, FormControl, FormLabel, Input, FormHelperText, Flex, useToast, InputGroup, InputRightElement, Button, Link as ChakraLink } from '@chakra-ui/react';
@@ -79,11 +77,11 @@ export default function LoginPage() {
   };
 
   return (
-    <Flex direction="column" minH="100vh" align="center" justify="center" bg="white"> {/* Changed bg from gray.50 to white */}
+    <Flex direction="column" minH="100vh" align="center" justify="center" bg="white"> {/* This 'bg="white"' ensures the entire background is white */}
       {/* Ltronix Heading moved outside the card and adjusted slightly lower */}
       <NextLink href="/" passHref>
         <ChakraLink _hover={{ textDecoration: 'none' }}>
-          <Heading as="h1" size="xl" mb={10} color="gray.800"> {/* Changed mb from 8 to 10 */}
+          <Heading as="h1" size="xl" mb={10} color="gray.800">
             Ltronix
           </Heading>
         </ChakraLink>
@@ -94,7 +92,7 @@ export default function LoginPage() {
         p={{ base: 8, md: 12 }}
         width={{ base: '90%', sm: '450px', md: '500px' }}
         maxWidth="95%"
-        bg="white"
+        bg="white" {/* This 'bg="white"' ensures the card is white */}
         boxShadow="lg"
         borderRadius="xl"
         textAlign="center"
@@ -198,6 +196,21 @@ export default function LoginPage() {
           </Text>
         </VStack>
       </VStack>
+
+      {/* Privacy and Terms of Service links */}
+      <Flex mt={6} align="center" justify="center" gap={2} fontSize="sm" color="gray.600">
+        <NextLink href="https://ltronix-shop.vercel.app/privacy-policy" passHref>
+          <ChakraLink _hover={{ textDecoration: 'underline' }}>
+            Privacy
+          </ChakraLink>
+        </NextLink>
+        <Text>|</Text>
+        <NextLink href="https://ltronix-shop.vercel.app/terms-of-service" passHref>
+          <ChakraLink _hover={{ textDecoration: 'underline' }}>
+            Terms of Service
+          </ChakraLink>
+        </NextLink>
+      </Flex>
     </Flex>
   );
 }

@@ -1,5 +1,3 @@
-// src/app/auth/signup/page.tsx
-
 'use client';
 
 import { Box, Heading, Text, VStack, FormControl, FormLabel, Input, FormHelperText, Flex, useToast, InputGroup, InputRightElement, Button, Link as ChakraLink } from '@chakra-ui/react';
@@ -244,6 +242,21 @@ export default function SignupPage() {
           </Text>
         </VStack>
       </VStack>
+
+      {/* Privacy and Terms of Service links */}
+      <Flex mt={6} align="center" justify="center" gap={2} fontSize="sm" color="gray.600">
+        <NextLink href="https://ltronix-shop.vercel.app/privacy-policy" passHref>
+          <ChakraLink _hover={{ textDecoration: 'underline' }}>
+            Privacy
+          </ChakraLink>
+        </NextLink>
+        <Text>|</Text>
+        <NextLink href="https://ltronix-shop.vercel.app/terms-of-service" passHref>
+          <ChakraLink _hover={{ textDecoration: 'underline' }}>
+            Terms of Service
+          </ChakraLink>
+        </NextLink>
+      </Flex>
     </Flex>
   );
 }
