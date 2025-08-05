@@ -280,8 +280,8 @@ export default function Header() {
                 </>
               ) : (
                 <>
-                  <Button as={ChakraLink} fontSize={'sm'} fontWeight={400} variant={'link'} href="/auth/login" aria-label="Sign In">
-                    Sign In
+                  <Button as={ChakraLink} fontSize={'sm'} fontWeight={400} variant={'link'} href="/auth/login" aria-label="Log In">
+                    Log In
                   </Button>
                   <Button
                     as={ChakraLink}
@@ -380,8 +380,8 @@ export default function Header() {
                     </>
                   ) : (
                     <>
-                      <Button as={ChakraLink} colorScheme="blue" width="full" onClick={onClose} href="/auth/login" aria-label="Sign In (mobile)">
-                        Sign In
+                      <Button as={ChakraLink} colorScheme="blue" width="full" onClick={onClose} href="/auth/login" aria-label="Log In (mobile)">
+                        Log In
                       </Button>
                       <Button as={ChakraLink} colorScheme="blue" width="full" onClick={onClose} href="/auth/signup" aria-label="Sign Up (mobile)">
                         Sign Up

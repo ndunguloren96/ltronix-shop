@@ -147,12 +147,16 @@ export default function SignupPage() {
   return (
     <Flex direction="column" minH="100vh" align="center" justify="center" bg="gray.50">
       <VStack spacing={8} p={8} width={{ base: '90%', md: '400px' }} >
-        <Heading as="h1" size="lg" textAlign={{ base: 'center', md: 'right' }} width="full">
-          Ltronix
-        </Heading>
+        <NextLink href="/" passHref>
+          <ChakraLink _hover={{ textDecoration: 'none' }}>
+            <Heading as="h1" size="lg" textAlign={{ base: 'center', md: 'left' }} width="full">
+              Ltronix
+            </Heading>
+          </ChakraLink>
+        </NextLink>
 
         <VStack spacing={4} align="stretch" width="full">
-          <Heading as="h2" size="lg" textAlign="center" mb={6}>
+          <Heading as="h2" size="md" textAlign="center" mb={6}>
             Join Us!
           </Heading>
           <Text fontSize="md" textAlign="center" color="gray.600">
