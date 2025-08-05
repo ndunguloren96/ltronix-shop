@@ -79,10 +79,10 @@ export default function LoginPage() {
   return (
     // Outer Flex container for the entire page, ensuring a uniform white background
     <Flex direction="column" minH="100vh" align="center" justify="center" bg="white">
-      {/* Ltronix Heading moved further down (mb=12) to be slightly above the card */}
+      {/* Ltronix Heading moved further up by adjusting mb from 12 to 5 */}
       <NextLink href="/" passHref>
         <ChakraLink _hover={{ textDecoration: 'none' }}>
-          <Heading as="h1" size="xl" mb={12} color="gray.800"> {/* Changed mb from 10 to 12 */}
+          <Heading as="h1" size="xl" mb={5} color="gray.800"> {/* Adjusted mb from 12 to 5 */}
             Ltronix
           </Heading>
         </ChakraLink>
@@ -198,8 +198,8 @@ export default function LoginPage() {
         </VStack>
       </VStack>
 
-      {/* Privacy and Terms of Service links */}
-      <Flex mt={6} align="center" justify="center" gap={2} fontSize="sm" color="gray.600">
+      {/* Privacy and Terms of Service links with added margin-bottom */}
+      <Flex mt={6} mb={4} align="center" justify="center" gap={2} fontSize="sm" color="gray.600"> {/* Added mb={4} */}
         <NextLink href="https://ltronix-shop.vercel.app/privacy-policy" passHref>
           <ChakraLink _hover={{ textDecoration: 'underline' }}>
             Privacy
