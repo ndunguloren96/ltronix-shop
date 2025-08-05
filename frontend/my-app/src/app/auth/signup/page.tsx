@@ -144,108 +144,113 @@ export default function SignupPage() {
   };
 
   return (
-    // Outer Flex container for the entire page, ensuring a uniform white background
-    <Flex direction="column" minH="100vh" align="center" justify="center" bg="white">
-      {/* Ltronix Heading moved further up by adjusting mb from 12 to 5 */}
-      <NextLink href="/" passHref>
-        <ChakraLink _hover={{ textDecoration: 'none' }}>
-          <Heading as="h1" size="xl" mb={5} color="gray.800"> {/* Adjusted mb from 10 to 5 */}
-            Ltronix
-          </Heading>
-        </ChakraLink>
-      </NextLink>
+    // Outer Flex container for the entire page, ensuring a uniform white background and overall padding
+    <Flex direction="column" minH="100vh" bg="white" p={{ base: 4, md: 8 }} pb={4}> {/* Added overall padding and padding-bottom */}
+      {/* Ltronix Heading moved to top-left */}
+      <Box alignSelf="flex-start" mb={{ base: 4, md: 6 }}> {/* Adjusted margin-bottom for spacing from card */}
+        <NextLink href="/" passHref>
+          <ChakraLink _hover={{ textDecoration: 'none' }}>
+            <Heading as="h1" size="xl" color="gray.800">
+              Ltronix
+            </Heading>
+          </ChakraLink>
+        </NextLink>
+      </Box>
 
-      <VStack
-        spacing={{ base: 5, md: 7 }}
-        p={{ base: 8, md: 12 }}
-        width={{ base: '90%', sm: '450px', md: '500px' }}
-        maxWidth="95%"
-        bg="white" // Ensures the card background is white, matching the page background
-        boxShadow="lg"
-        borderRadius="xl"
-        textAlign="center"
-      >
-        <VStack spacing={4} align="stretch" width="full">
-          <Text fontSize={{ base: 'lg', md: 'xl' }} textAlign="center" color="gray.700" fontWeight="semibold">
-            Create an account to start shopping
-          </Text>
+      {/* Main content area, centered */}
+      <Flex flex="1" align="center" justify="center" width="full">
+        <VStack
+          spacing={{ base: 5, md: 7 }}
+          p={{ base: 8, md: 12 }}
+          width={{ base: '90%', sm: '450px', md: '500px' }}
+          maxWidth="95%"
+          bg="white" // Ensures the card background is white, matching the page background
+          boxShadow="none" // Removed boxShadow for a smoother, less visible card
+          borderRadius="xl"
+          textAlign="center"
+        >
+          <VStack spacing={4} align="stretch" width="full">
+            <Text fontSize={{ base: 'lg', md: 'xl' }} textAlign="center" color="gray.700" fontWeight="semibold">
+              Create an account to start shopping
+            </Text>
 
-          <form onSubmit={handleSubmit} style={{ width: '100%' }}>
-            <VStack spacing={4}>
-              {authMethod === 'phone' ? (
-                <FormControl id="phone-number" isRequired>
-                  <FormLabel>Phone Number</FormLabel>
-                  <InputGroup>
+            <form onSubmit={handleSubmit} style={{ width: '100%' }}>
+              <VStack spacing={4}>
+                {authMethod === 'phone' ? (
+                  <FormControl id="phone-number" isRequired>
+                    <FormLabel>Phone Number</FormLabel>
+                    <InputGroup>
+                      <Input
+                        type="tel"
+                        placeholder="e.g., 0712345678"
+                        value={phoneNumber}
+                        onChange={e => setPhoneNumber(e.target.value)}
+                      />
+                      <InputRightElement children={<FaPhone color="gray.300" />} />
+                    </InputGroup>
+                  </FormControl>
+                ) : (
+                  <FormControl id="email" isRequired>
+                    <FormLabel>Email</FormLabel>
+                    <Input type="email" value={email} onChange={e => setEmail(e.target.value)} />
+                  </FormControl>
+                )}
+
+                <FormControl id="password" isRequired>
+                  <FormLabel>Password</FormLabel>
+                  <InputGroup size="md">
                     <Input
-                      type="tel"
-                      placeholder="e.g., 0712345678"
-                      value={phoneNumber}
-                      onChange={e => setPhoneNumber(e.target.value)}
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
+                      onChange={e => setPassword(e.target.value)}
                     />
-                    <InputRightElement children={<FaPhone color="gray.300" />} />
+                    <InputRightElement width="4.5rem">
+                      <Button h="1.75rem" size="sm" onClick={handleTogglePasswordVisibility}>
+                        {showPassword ? <FaEyeSlash /> : <FaEye />}
+                      </Button>
+                    </InputRightElement>
                   </InputGroup>
+                  <FormHelperText textAlign="right">At least 8 characters.</FormHelperText>
                 </FormControl>
-              ) : (
-                <FormControl id="email" isRequired>
-                  <FormLabel>Email</FormLabel>
-                  <Input type="email" value={email} onChange={e => setEmail(e.target.value)} />
-                </FormControl>
-              )}
 
-              <FormControl id="password" isRequired>
-                <FormLabel>Password</FormLabel>
-                <InputGroup size="md">
-                  <Input
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                  />
-                  <InputRightElement width="4.5rem">
-                    <Button h="1.75rem" size="sm" onClick={handleTogglePasswordVisibility}>
-                      {showPassword ? <FaEyeSlash /> : <FaEye />}
-                    </Button>
-                  </InputRightElement>
-                </InputGroup>
-                <FormHelperText textAlign="right">At least 8 characters.</FormHelperText>
-              </FormControl>
+                <MyButton type="submit" isLoading={isLoading} width="full">
+                  {authMethod === 'phone' ? 'Continue with Phone' : 'Continue with Email'}
+                </MyButton>
+              </VStack>
+            </form>
 
-              <MyButton type="submit" isLoading={isLoading} width="full">
-                {authMethod === 'phone' ? 'Continue with Phone' : 'Continue with Email'}
+            <Flex align="center" width="full" my={4}>
+              <Box flex="1" height="1px" bg="gray.300" />
+              <Text mx={4} color="gray.500" fontWeight="bold">OR</Text>
+              <Box flex="1" height="1px" bg="gray.300" />
+            </Flex>
+
+            <Flex direction="column" gap={3} width="full">
+              <MyButton
+                leftIcon={authMethod === 'phone' ? <FaEnvelope /> : <FaPhone />}
+                onClick={() => setAuthMethod(authMethod === 'phone' ? 'email' : 'phone')}
+                variant="outline"
+                colorScheme="teal"
+              >
+                {authMethod === 'phone' ? 'Continue with Email' : 'Continue with Phone'}
               </MyButton>
-            </VStack>
-          </form>
+              <GoogleSignInButton onClick={handleGoogleSignUp} isLoading={isLoading}>
+                Sign Up with Google
+              </GoogleSignInButton>
+            </Flex>
 
-          <Flex align="center" width="full" my={4}>
-            <Box flex="1" height="1px" bg="gray.300" />
-            <Text mx={4} color="gray.500" fontWeight="bold">OR</Text>
-            <Box flex="1" height="1px" bg="gray.300" />
-          </Flex>
-
-          <Flex direction="column" gap={3} width="full">
-            <MyButton
-              leftIcon={authMethod === 'phone' ? <FaEnvelope /> : <FaPhone />}
-              onClick={() => setAuthMethod(authMethod === 'phone' ? 'email' : 'phone')}
-              variant="outline"
-              colorScheme="teal"
-            >
-              {authMethod === 'phone' ? 'Continue with Email' : 'Continue with Phone'}
-            </MyButton>
-            <GoogleSignInButton onClick={handleGoogleSignUp} isLoading={isLoading}>
-              Sign Up with Google
-            </GoogleSignInButton>
-          </Flex>
-
-          <Text textAlign="center" mt={4}>
-            Already have an account?{' '}
-            <NextLink href="/auth/login" passHref>
-              <ChakraLink color="brand.500" fontWeight="bold">Log In</ChakraLink>
-            </NextLink>
-          </Text>
+            <Text textAlign="center" mt={4}>
+              Already have an account?{' '}
+              <NextLink href="/auth/login" passHref>
+                <ChakraLink color="brand.500" fontWeight="bold">Log In</ChakraLink>
+              </NextLink>
+            </Text>
+          </VStack>
         </VStack>
-      </VStack>
+      </Flex>
 
-      {/* Privacy and Terms of Service links with added margin-bottom */}
-      <Flex mt={6} mb={4} align="center" justify="center" gap={2} fontSize="sm" color="gray.600"> {/* Added mb={4} */}
+      {/* Privacy and Terms of Service links - untouched as requested */}
+      <Flex mt={6} mb={4} align="center" justify="center" gap={2} fontSize="sm" color="gray.600">
         <NextLink href="https://ltronix-shop.vercel.app/privacy-policy" passHref>
           <ChakraLink _hover={{ textDecoration: 'underline' }}>
             Privacy
