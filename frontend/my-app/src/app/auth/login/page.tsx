@@ -93,30 +93,6 @@ export default function LoginPage() {
             Log in to continue your shopping experience
           </Text>
 
-          <Flex direction="column" gap={3} width="full">
-            <MyButton
-              leftIcon={<FaPhone />}
-              onClick={() => setAuthMethod('phone')}
-              variant={authMethod === 'phone' ? 'solid' : 'outline'}
-              colorScheme="teal"
-            >
-              Continue with Phone
-            </MyButton>
-            <MyButton
-              leftIcon={<FaEnvelope />}
-              onClick={() => setAuthMethod('email')}
-              variant={authMethod === 'email' ? 'solid' : 'outline'}
-              colorScheme="teal"
-            >
-              Continue with Email
-            </MyButton>
-            <GoogleSignInButton onClick={() => signIn('google')} isLoading={isLoading}>
-              Log In with Google
-            </GoogleSignInButton>
-          </Flex>
-
-          <Text textAlign="center">Or</Text>
-
           <form onSubmit={handleSubmit} style={{ width: '100%' }}>
             <VStack spacing={4}>
               {authMethod === 'phone' ? (
@@ -176,10 +152,36 @@ export default function LoginPage() {
                 isLoading={isLoading}
                 isDisabled={isLoading}
               >
-                Log In
+                {authMethod === 'phone' ? 'Continue with Phone' : 'Continue with Email'}
               </MyButton>
             </VStack>
           </form>
+
+          <Flex align="center" width="full" my={4}>
+            <Box flex="1" height="1px" bg="gray.300" />
+            <Text mx={4} color="gray.500" fontWeight="bold">OR</Text>
+            <Box flex="1" height="1px" bg="gray.300" />
+          </Flex>
+
+          <Flex direction="column" gap={3} width="full">
+            <MyButton
+              onClick={() => setAuthMethod('phone')}
+              variant={authMethod === 'phone' ? 'solid' : 'outline'}
+              colorScheme="teal"
+            >
+              Continue with Phone
+            </MyButton>
+            <MyButton
+              onClick={() => setAuthMethod('email')}
+              variant={authMethod === 'email' ? 'solid' : 'outline'}
+              colorScheme="teal"
+            >
+              Continue with Email
+            </MyButton>
+            <GoogleSignInButton onClick={() => signIn('google')} isLoading={isLoading}>
+              Log In with Google
+            </GoogleSignInButton>
+          </Flex>
 
           <Text fontSize="sm" textAlign="center" mt={4}>
             Don't have an account?{' '}
