@@ -2,7 +2,7 @@
 import { getSession } from "next-auth/react";
 import toast from "react-hot-toast";
 // CORRECTED IMPORT: Ensure all necessary types are imported from src/types/order.ts
-import { BackendCart, BackendTransaction, CartItemBackend, BackendCartResponse } from '../types/order';
+import { BackendCart, BackendTransaction, CartItemBackend, BackendCartResponse, BackendOrder } from '../types/order'; // Added BackendOrder here
 
 
 // Ensure this matches your Django API URL from .env
