@@ -191,9 +191,6 @@ export default function LoginPage() {
           </Text>
         </VStack>
 
-        
-      </VStack>
-
         <Flex width="full" justify="center" mt={8}>
           <NextLink href="/privacy" passHref>
             <ChakraLink color="gray.500" fontSize="sm" mx={2}>Privacy</ChakraLink>
