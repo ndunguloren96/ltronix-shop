@@ -13,8 +13,6 @@ import { FaEye, FaEyeSlash, FaPhone, FaEnvelope } from 'react-icons/fa'; // Impo
 const DJANGO_API_BASE_URL = (process.env.NEXT_PUBLIC_DJANGO_API_URL || 'http://127.0.0.1:8000/api/v1').replace(/\/$/, '');
 
 export default function SignupPage() {
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -31,8 +29,6 @@ export default function SignupPage() {
     setIsLoading(true);
 
     const payload: { [key: string]: string } = {
-      first_name: firstName,
-      last_name: lastName,
       password: password,
     };
 
@@ -184,14 +180,7 @@ export default function SignupPage() {
 
           <form onSubmit={handleSubmit}>
             <VStack spacing={4}>
-              <FormControl id="first-name" isRequired>
-                <FormLabel>First Name</FormLabel>
-                <Input type="text" value={firstName} onChange={e => setFirstName(e.target.value)} />
-              </FormControl>
-              <FormControl id="last-name" isRequired>
-                <FormLabel>Last Name</FormLabel>
-                <Input type="text" value={lastName} onChange={e => setLastName(e.target.value)} />
-              </FormControl>
+              
 
               {authMethod === 'phone' ? (
                 <FormControl id="phone-number" isRequired>

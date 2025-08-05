@@ -87,8 +87,8 @@ class UserDetailsSerializer(serializers.ModelSerializer):
 # A CustomRegisterSerializer for a minimal, email-based signup.
 # We override the RegisterSerializer to handle the 'username' field correctly.
 class CustomRegisterSerializer(RegisterSerializer):
-    first_name = serializers.CharField(required=True, max_length=150)
-    last_name = serializers.CharField(required=True, max_length=150)
+    first_name = serializers.CharField(required=False, max_length=150)
+    last_name = serializers.CharField(required=False, max_length=150)
     phone_number = serializers.CharField(required=False, max_length=20, allow_blank=True)
     email = serializers.EmailField(required=False, allow_blank=True)
 
