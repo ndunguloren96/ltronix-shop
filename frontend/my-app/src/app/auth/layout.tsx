@@ -12,16 +12,7 @@ export default function AuthLayout({
       <Flex flex="1" align="center" justify="center">
         {children}
       </Flex>
-      <Box as="footer" py={4} textAlign="center" bg="white" borderTopWidth={1} borderColor="gray.200">
-        <Flex justifyContent="center" gap={4}>
-          <NextLink href="/privacy" passHref>
-            <ChakraLink fontSize="sm" color="gray.600">Privacy Policy</ChakraLink>
-          </NextLink>
-          <NextLink href="/terms" passHref>
-            <ChakraLink fontSize="sm" color="gray.600">Terms of Service</ChakraLink>
-          </NextLink>
-        </Flex>
-      </Box>
+      
     </Flex>
   );
 }

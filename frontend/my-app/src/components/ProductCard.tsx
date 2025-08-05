@@ -39,7 +39,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
   return (
     <ChakraLink as={NextLink} href={`/products/${id.toString()}`} passHref _hover={{ textDecoration: 'none' }}>
-      <Box maxW="sm" borderWidth="1px" borderRadius="lg" overflow="hidden" boxShadow="md" bg="white" cursor="pointer">
+      <Box borderWidth="1px" borderRadius="lg" overflow="hidden" boxShadow="md" bg="white" cursor="pointer" width="100%">
         <Box position="relative" height="200px" width="100%" display="block">
           {image_url ? (
             <Image

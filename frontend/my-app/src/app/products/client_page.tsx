@@ -347,7 +347,7 @@ export default function ProductsClientPage({ isHomePage }: ProductsClientPagePro
         {/* Product Grid */}
         <Box flex="1">
           {productsToDisplay.length > 0 ? (
-            <SimpleGrid columns={{ base: 1, sm: 2, md: 2, lg: 3 }} spacing={8}>
+            <SimpleGrid columns={{ base: 1, sm: 2, md: 3, lg: 4 }} spacing={8}>
               {productsToDisplay.map(product => (
                 <ProductCard
                   key={product.id}

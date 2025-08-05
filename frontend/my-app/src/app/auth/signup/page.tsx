@@ -146,7 +146,16 @@ export default function SignupPage() {
 
   return (
     <Flex direction="column" minH="100vh" align="center" justify="center" bg="gray.50">
-      <VStack spacing={{ base: 4, md: 8 }} p={{ base: 4, md: 8 }} width={{ base: '90%', md: '400px' }} >
+      <VStack
+        spacing={{ base: 4, md: 8 }}
+        p={{ base: 6, md: 10 }}
+        width={{ base: '90%', sm: '400px', md: '450px' }}
+        maxWidth="95%"
+        bg="white"
+        boxShadow="lg"
+        borderRadius="xl"
+        textAlign="center"
+      >
         <NextLink href="/" passHref>
           <ChakraLink _hover={{ textDecoration: 'none' }}>
             <Heading as="h1" size="lg" textAlign={{ base: 'center', md: 'left' }} width="full">
@@ -235,14 +244,7 @@ export default function SignupPage() {
           </Text>
         </VStack>
 
-        <Flex width="full" justify="center" mt={8}>
-          <NextLink href="/privacy" passHref>
-            <ChakraLink color="gray.500" fontSize="sm" mx={2}>Privacy</ChakraLink>
-          </NextLink>
-          <NextLink href="/terms" passHref>
-            <ChakraLink color="gray.500" fontSize="sm" mx={2}>Terms of Service</ChakraLink>
-          </NextLink>
-        </Flex>
+        
       </VStack>
     </Flex>
   );
