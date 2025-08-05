@@ -205,13 +205,13 @@ export default function LoginPage() {
 
       {/* Privacy and Terms of Service links - untouched as requested */}
       <Flex mt={6} mb={4} align="center" justify="center" gap={2} fontSize="sm" color="gray.600">
-        <NextLink href="https://ltronix-shop.vercel.app/privacy-policy" passHref>
+        <NextLink href="https://ltronix-shop.vercel.app/privacy" passHref>
           <ChakraLink _hover={{ textDecoration: 'underline' }}>
             Privacy
           </ChakraLink>
         </NextLink>
         <Text>|</Text>
-        <NextLink href="https://ltronix-shop.vercel.app/terms-of-service" passHref>
+        <NextLink href="https://ltronix-shop.vercel.app/terms" passHref>
           <ChakraLink _hover={{ textDecoration: 'underline' }}>
             Terms of Service
           </ChakraLink>
