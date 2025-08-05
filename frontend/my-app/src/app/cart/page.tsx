@@ -41,18 +41,18 @@ import {
 
 // Import types from '@/types/order'
 import {
-  BackendCart,
+  BackendCart, // Now BackendCart is BackendOrder
   ProductInCart,
   BackendOrderItem,
   CartItemBackend,
-  BackendOrder, // ADDED: Import BackendOrder
+  // BackendCartResponse, // Removed as it's no longer the direct type for backendCart
 } from '@/types/order';
 
 import { useCartStore } from '@/store/useCartStore';
 
 // Define the context interface for useMutation
 interface UpdateCartContext {
-  previousCart?: BackendCart | null;
+  previousCart?: BackendCart | null; // Changed from BackendCartResponse
 }
 
 export default function CartPage() {
@@ -81,7 +81,7 @@ export default function CartPage() {
     isError,
     error,
     isFetching,
-  } = useQuery<BackendCart | null, Error>({
+  } = useQuery<BackendCart | null, Error>({ // Changed BackendCartResponse to BackendCart
     queryKey: ['cart', status, currentSessionKey],
     queryFn: () => {
       if (isUserAuthenticated) {
@@ -102,6 +102,7 @@ export default function CartPage() {
 
   useEffect(() => {
     if (status !== 'loading' && isInitialized) {
+      // Now backendCart is BackendCart (i.e., BackendOrder) directly
       if (backendCart && backendCart.items) {
         setLocalCartItems(
           backendCart.items.map((item) => ({
@@ -122,14 +123,14 @@ export default function CartPage() {
     }
   }, [backendCart, status, setLocalCartItems, guestSessionKey, setGuestSessionKey, currentSessionKey, isInitialized, isUserAuthenticated]);
 
-  const updateCartMutation = useMutation<BackendCart, Error, ProductInCart[], UpdateCartContext>({
+  const updateCartMutation = useMutation<BackendCart, Error, ProductInCart[], UpdateCartContext>({ // Changed BackendCartResponse to BackendCart
     mutationFn: (items) => createOrUpdateCart(
       items.map(item => ({ product_id: item.id, quantity: item.quantity })),
       currentSessionKey
     ),
     onMutate: async (newFrontendCartItems: ProductInCart[]) => {
       await queryClient.cancelQueries({ queryKey: ['cart', status, currentSessionKey] });
-      const previousCart = queryClient.getQueryData<BackendCart>(['cart', status, currentSessionKey]);
+      const previousCart = queryClient.getQueryData<BackendCart>(['cart', status, currentSessionKey]); // Changed BackendCartResponse to BackendCart
       setLocalCartItems(newFrontendCartItems);
       return { previousCart };
     },
@@ -142,9 +143,10 @@ export default function CartPage() {
         duration: 5000,
         isClosable: true,
       });
+      // Now context.previousCart is BackendCart directly
       if (context?.previousCart && context.previousCart.items) {
         setLocalCartItems(
-          context.previousCart.items.map((bi) => ({
+          context.previousCart.items.map((bi) => ({ // Directly access items
             id: bi.product.id, name: bi.product.name, price: parseFloat(bi.product.price),
             quantity: bi.quantity, image_url: bi.product.image_url
           }))
@@ -154,6 +156,7 @@ export default function CartPage() {
       }
     },
     onSuccess: (data) => {
+      // Now data is BackendCart directly
       if (data.items) {
         setLocalCartItems(
           data.items.map((backendItem) => ({
