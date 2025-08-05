@@ -89,9 +89,6 @@ export default function LoginPage() {
         </NextLink>
 
         <VStack spacing={4} align="stretch" width="full">
-          <Heading as="h2" size="md" textAlign="center" mb={6}>
-            Welcome Back!
-          </Heading>
           <Text fontSize="md" textAlign="center" color="gray.600">
             Log in to continue your shopping experience.
           </Text>

@@ -10,7 +10,7 @@ interface MyButtonProps extends ButtonProps {
 
 export const MyButton: React.FC<MyButtonProps> = ({ children, ...props }) => {
   return (
-    <Button {...props} colorScheme="brand">
+    <Button {...props} colorScheme="brand" borderRadius="full">
       {children}
     </Button>
   );
