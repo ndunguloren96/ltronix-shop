@@ -79,7 +79,7 @@ export default function LoginPage() {
 
   return (
     <Flex direction="column" minH="100vh" align="center" justify="center" bg="gray.50">
-      <VStack spacing={8} p={8} width={{ base: '90%', md: '400px' }} >
+      <VStack spacing={{ base: 4, md: 8 }} p={{ base: 4, md: 8 }} width={{ base: '90%', md: '400px' }} >
         <NextLink href="/" passHref>
           <ChakraLink _hover={{ textDecoration: 'none' }}>
             <Heading as="h1" size="lg" textAlign={{ base: 'center', md: 'left' }} width="full">
