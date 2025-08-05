@@ -147,7 +147,7 @@ export default function SignupPage() {
   return (
     <Box p={8} maxWidth="500px" borderWidth={1} borderRadius={8} boxShadow="lg" bg="white">
         <VStack spacing={4} align="stretch">
-          <Heading as="h2" size="xl" textAlign="center" mb={6}>
+          <Heading as="h2" size="lg" textAlign="center" mb={6}>
             Join Us!
           </Heading>
           <Text fontSize="md" textAlign="center" color="gray.600">
