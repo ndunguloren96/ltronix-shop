@@ -12,237 +12,237 @@ import { FaEye, FaEyeSlash, FaPhone, FaEnvelope } from 'react-icons/fa'; // Impo
 const DJANGO_API_BASE_URL = (process.env.NEXT_PUBLIC_DJANGO_API_URL || 'http://127.0.0.1:8000/api/v1').replace(/\/$/, '');
 
 export default function SignupPage() {
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [authMethod, setAuthMethod] = useState<'phone' | 'email'>('phone'); // Default to phone
-  const toast = useToast();
-  const router = useRouter();
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [authMethod, setAuthMethod] = useState<'phone' | 'email'>('phone'); // Default to phone
+  const toast = useToast();
+  const router = useRouter();
 
-  const handleTogglePasswordVisibility = () => setShowPassword(!showPassword);
+  const handleTogglePasswordVisibility = () => setShowPassword(!showPassword);
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setIsLoading(true);
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsLoading(true);
 
-    const payload: { [key: string]: string } = {
-      password: password,
-    };
+    const payload: { [key: string]: string } = {
+      password: password,
+    };
 
-    if (authMethod === 'phone') {
-      payload.phone_number = phoneNumber;
-    } else {
-      payload.email = email;
-    }
+    if (authMethod === 'phone') {
+      payload.phone_number = phoneNumber;
+    } else {
+      payload.email = email;
+    }
 
-    try {
-      const signupRes = await fetch(`${DJANGO_API_BASE_URL}/auth/registration/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify(payload),
-      });
+    try {
+      const signupRes = await fetch(`${DJANGO_API_BASE_URL}/auth/registration/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(payload),
+      });
 
-      if (signupRes.ok) {
-        toast({
-          title: 'Signup Successful',
-          description: 'Your account has been created. Attempting to log you in...',
-          status: 'success',
-          duration: 3000,
-          isClosable: true,
-        });
+      if (signupRes.ok) {
+        toast({
+          title: 'Signup Successful',
+          description: 'Your account has been created. Attempting to log you in...',
+          status: 'success',
+          duration: 3000,
+          isClosable: true,
+        });
 
-        const signInResult = await signIn('credentials', {
-          redirect: false,
-          [authMethod === 'phone' ? 'phone_number' : 'email']: authMethod === 'phone' ? phoneNumber : email,
-          password,
-        });
+        const signInResult = await signIn('credentials', {
+          redirect: false,
+          [authMethod === 'phone' ? 'phone_number' : 'email']: authMethod === 'phone' ? phoneNumber : email,
+          password,
+        });
 
-        if (signInResult?.ok) {
-          toast({
-            title: 'Login Successful',
-            description: 'You have been automatically logged in.',
-            status: 'success',
-            duration: 3000,
-            isClosable: true,
-          });
-          router.push('/');
-        } else {
-          console.error('Automatic login after signup failed:', signInResult?.error);
-          toast({
-            title: 'Login Failed',
-            description: 'Account created, but automatic login failed. Please try logging in manually.',
-            status: 'warning',
-            duration: 7000,
-            isClosable: true,
-          });
-          router.push('/auth/login');
-        }
-      } else {
-        const errorData = await signupRes.json();
-        console.error('Django signup failed (Status:', signupRes.status, '):', errorData);
-        let errorMessage = 'Signup failed. Please check your details.';
+        if (signInResult?.ok) {
+          toast({
+            title: 'Login Successful',
+            description: 'You have been automatically logged in.',
+            status: 'success',
+            duration: 3000,
+            isClosable: true,
+          });
+          router.push('/');
+        } else {
+          console.error('Automatic login after signup failed:', signInResult?.error);
+          toast({
+            title: 'Login Failed',
+            description: 'Account created, but automatic login failed. Please try logging in manually.',
+            status: 'warning',
+            duration: 7000,
+            isClosable: true,
+          });
+          router.push('/auth/login');
+        }
+      } else {
+        const errorData = await signupRes.json();
+        console.error('Django signup failed (Status:', signupRes.status, '):', errorData);
+        let errorMessage = 'Signup failed. Please check your details.';
 
-        if (signupRes.status === 400) {
-            if (errorData.email && Array.isArray(errorData.email) && errorData.email.includes('A user with that email already exists.')) {
-                errorMessage = 'An account with this email already exists. Please login instead.';
-                toast({ title: 'Account Exists', description: errorMessage, status: 'info', duration: 7000, isClosable: true });
-                router.push('/auth/login');
-                return;
-            } else if (errorData.phone_number && Array.isArray(errorData.phone_number) && errorData.phone_number.includes('A user with that phone number already exists.')) {
-                errorMessage = 'An account with this phone number already exists. Please login instead.';
-                toast({ title: 'Account Exists', description: errorMessage, status: 'info', duration: 7000, isClosable: true });
-                router.push('/auth/login');
-                return;
-            } else if (errorData.password && Array.isArray(errorData.password)) {
-                errorMessage = `Password: ${errorData.password[0]}`;
-            } else if (errorData.non_field_errors && Array.isArray(errorData.non_field_errors)) {
-                errorMessage = errorData.non_field_errors[0];
-            } else if (typeof errorData === 'object' && errorData !== null) {
-                const allErrors = Object.values(errorData).flat().filter(Boolean);
-                if (allErrors.length > 0) {
-                    errorMessage = allErrors.join(', ');
-                } else {
-                    errorMessage = 'Signup failed due to invalid data.';
-                }
-            } else if (typeof errorData === 'string') {
-                errorMessage = errorData;
-            }
-        } else if (signupRes.status === 405) {
-            errorMessage = 'Signup not allowed. Server endpoint configuration issue.';
-        }
+        if (signupRes.status === 400) {
+            if (errorData.email && Array.isArray(errorData.email) && errorData.email.includes('A user with that email already exists.')) {
+                errorMessage = 'An account with this email already exists. Please login instead.';
+                toast({ title: 'Account Exists', description: errorMessage, status: 'info', duration: 7000, isClosable: true });
+                router.push('/auth/login');
+                return;
+            } else if (errorData.phone_number && Array.isArray(errorData.phone_number) && errorData.phone_number.includes('A user with that phone number already exists.')) {
+                errorMessage = 'An account with this phone number already exists. Please login instead.';
+                toast({ title: 'Account Exists', description: errorMessage, status: 'info', duration: 7000, isClosable: true });
+                router.push('/auth/login');
+                return;
+            } else if (errorData.password && Array.isArray(errorData.password)) {
+                errorMessage = `Password: ${errorData.password[0]}`;
+            } else if (errorData.non_field_errors && Array.isArray(errorData.non_field_errors)) {
+                errorMessage = errorData.non_field_errors[0];
+            } else if (typeof errorData === 'object' && errorData !== null) {
+                const allErrors = Object.values(errorData).flat().filter(Boolean);
+                if (allErrors.length > 0) {
+                    errorMessage = allErrors.join(', ');
+                } else {
+                    errorMessage = 'Signup failed due to invalid data.';
+                }
+            } else if (typeof errorData === 'string') {
+                errorMessage = errorData;
+            }
+        } else if (signupRes.status === 405) {
+            errorMessage = 'Signup not allowed. Server endpoint configuration issue.';
+        }
 
-        toast({
-          title: 'Signup Failed',
-          description: errorMessage,
-          status: 'error',
-          duration: 7000,
-          isClosable: true,
-        });
-      }
-    } catch (error) {
-      console.error('Unexpected signup error (network or unhandled exception):', error);
-      toast({
-        title: 'Signup Error',
-        description: 'An unexpected error occurred during signup. Please try again.',
-        status: 'error',
-        duration: 5000,
-        isClosable: true,
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+        toast({
+          title: 'Signup Failed',
+          description: errorMessage,
+          status: 'error',
+          duration: 7000,
+          isClosable: true,
+        });
+      }
+    } catch (error) {
+      console.error('Unexpected signup error (network or unhandled exception):', error);
+      toast({
+        title: 'Signup Error',
+        description: 'An unexpected error occurred during signup. Please try again.',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  const handleGoogleSignUp = () => {
-    setIsLoading(true);
-    signIn('google', { callbackUrl: '/' });
-  };
+  const handleGoogleSignUp = () => {
+    setIsLoading(true);
+    signIn('google', { callbackUrl: '/' });
+  };
 
-  return (
-    <Flex direction="column" minH="100vh" align="center" justify="center" bg="gray.50">
-      <VStack
-        spacing={{ base: 4, md: 8 }}
-        p={{ base: 6, md: 10 }}
-        width={{ base: '90%', sm: '400px', md: '450px' }}
-        maxWidth="95%"
-        bg="white"
-        boxShadow="lg"
-        borderRadius="xl"
-        textAlign="center"
-      >
-        <NextLink href="/" passHref>
-          <ChakraLink _hover={{ textDecoration: 'none' }}>
-            <Heading as="h1" size="lg" textAlign={{ base: 'center', md: 'left' }} width="full">
-              Ltronix
-            </Heading>
-          </ChakraLink>
-        </NextLink>
+  return (
+    <Flex direction="column" minH="100vh" align="center" justify="center" bg="gray.50">
+      {/* Ltronix Heading moved outside the card */}
+      <NextLink href="/" passHref>
+        <ChakraLink _hover={{ textDecoration: 'none' }}>
+          <Heading as="h1" size="xl" mb={6} color="gray.800"> {/* Increased size and added margin-bottom */}
+            Ltronix
+          </Heading>
+        </ChakraLink>
+      </NextLink>
 
-        <VStack spacing={4} align="stretch" width="full">
-          <Text fontSize="md" textAlign="center" color="gray.600">
-            Create an account to start shopping
-          </Text>
+      <VStack
+        spacing={{ base: 5, md: 7 }} // Adjusted spacing for better visual flow
+        p={{ base: 8, md: 12 }}     // Increased padding for more breathing room
+        width={{ base: '90%', sm: '450px', md: '500px' }} // Adjusted width for better card size
+        maxWidth="95%"
+        bg="white"
+        boxShadow="lg"
+        borderRadius="xl"
+        textAlign="center"
+      >
+        <VStack spacing={4} align="stretch" width="full">
+          <Text fontSize={{ base: 'lg', md: 'xl' }} textAlign="center" color="gray.700" fontWeight="semibold"> {/* Increased font size and weight */}
+            Create an account to start shopping
+          </Text>
 
-          <form onSubmit={handleSubmit} style={{ width: '100%' }}>
-            <VStack spacing={4}>
-              
+          <form onSubmit={handleSubmit} style={{ width: '100%' }}>
+            <VStack spacing={4}>
+              {authMethod === 'phone' ? (
+                <FormControl id="phone-number" isRequired>
+                  <FormLabel>Phone Number</FormLabel>
+                  <InputGroup>
+                    <Input
+                      type="tel"
+                      placeholder="e.g., 0712345678"
+                      value={phoneNumber}
+                      onChange={e => setPhoneNumber(e.target.value)}
+                    />
+                    <InputRightElement children={<FaPhone color="gray.300" />} />
+                  </InputGroup>
+                </FormControl>
+              ) : (
+                <FormControl id="email" isRequired>
+                  <FormLabel>Email</FormLabel>
+                  <Input type="email" value={email} onChange={e => setEmail(e.target.value)} />
+                </FormControl>
+              )}
 
-              {authMethod === 'phone' ? (
-                <FormControl id="phone-number" isRequired>
-                  <FormLabel>Phone Number</FormLabel>
-                  <InputGroup>
-                    <Input
-                      type="tel"
-                      placeholder="e.g., 0712345678"
-                      value={phoneNumber}
-                      onChange={e => setPhoneNumber(e.target.value)}
-                    />
-                    <InputRightElement children={<FaPhone color="gray.300" />} />
-                  </InputGroup>
-                </FormControl>
-              ) : (
-                <FormControl id="email" isRequired>
-                  <FormLabel>Email</FormLabel>
-                  <Input type="email" value={email} onChange={e => setEmail(e.target.value)} />
-                </FormControl>
-              )}
+              <FormControl id="password" isRequired>
+                <FormLabel>Password</FormLabel>
+                <InputGroup size="md">
+                  <Input
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                  />
+                  <InputRightElement width="4.5rem">
+                    <Button h="1.75rem" size="sm" onClick={handleTogglePasswordVisibility}>
+                      {showPassword ? <FaEyeSlash /> : <FaEye />}
+                    </Button>
+                  </InputRightElement>
+                </InputGroup>
+                <FormHelperText textAlign="right">At least 8 characters.</FormHelperText> {/* Aligned to right for consistency */}
+              </FormControl>
 
-              <FormControl id="password" isRequired>
-                <FormLabel>Password</FormLabel>
-                <InputGroup size="md">
-                  <Input
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                  />
-                  <InputRightElement width="4.5rem">
-                    <Button h="1.75rem" size="sm" onClick={handleTogglePasswordVisibility}>
-                      {showPassword ? <FaEyeSlash /> : <FaEye />}
-                    </Button>
-                  </InputRightElement>
-                </InputGroup>
-                <FormHelperText>At least 8 characters.</FormHelperText>
-              </FormControl>
+              <MyButton type="submit" isLoading={isLoading} width="full">
+                {authMethod === 'phone' ? 'Continue with Phone' : 'Continue with Email'}
+              </MyButton>
+            </VStack>
+          </form>
 
-              <MyButton type="submit" isLoading={isLoading} width="full">
-                {authMethod === 'phone' ? 'Continue with Phone' : 'Continue with Email'}
-              </MyButton>
-            </VStack>
-          </form>
+          <Flex align="center" width="full" my={4}>
+            <Box flex="1" height="1px" bg="gray.300" />
+            <Text mx={4} color="gray.500" fontWeight="bold">OR</Text>
+            <Box flex="1" height="1px" bg="gray.300" />
+          </Flex>
 
-          <Flex align="center" width="full" my={4}>
-            <Box flex="1" height="1px" bg="gray.300" />
-            <Text mx={4} color="gray.500" fontWeight="bold">OR</Text>
-            <Box flex="1" height="1px" bg="gray.300" />
-          </Flex>
+          <Flex direction="column" gap={3} width="full">
+            <MyButton
+              leftIcon={authMethod === 'phone' ? <FaEnvelope /> : <FaPhone />}
+              onClick={() => setAuthMethod(authMethod === 'phone' ? 'email' : 'phone')}
+              variant="outline"
+              colorScheme="teal"
+            >
+              {authMethod === 'phone' ? 'Continue with Email' : 'Continue with Phone'}
+            </MyButton>
+            <GoogleSignInButton onClick={handleGoogleSignUp} isLoading={isLoading}>
+              Sign Up with Google
+            </GoogleSignInButton>
+          </Flex>
 
-          <Flex direction="column" gap={3} width="full">
-            <MyButton
-              leftIcon={authMethod === 'phone' ? <FaEnvelope /> : <FaPhone />}
-              onClick={() => setAuthMethod(authMethod === 'phone' ? 'email' : 'phone')}
-              variant="outline"
-              colorScheme="teal"
-            >
-              {authMethod === 'phone' ? 'Continue with Email' : 'Continue with Phone'}
-            </MyButton>
-            <GoogleSignInButton onClick={handleGoogleSignUp} isLoading={isLoading}>
-              Sign Up with Google
-            </GoogleSignInButton>
-          </Flex>
-
-          <Text textAlign="center">
-            Already have an account?{' '}
-            <NextLink href="/auth/login" passHref>
-              <ChakraLink color="brand.500" fontWeight="bold">Log In</ChakraLink>
-            </NextLink>
-          </Text>
-        </VStack>
-      </VStack>
-    </Flex>
-  );
+          <Text textAlign="center" mt={4}>
+            Already have an account?{' '}
+            <NextLink href="/auth/login" passHref>
+              <ChakraLink color="brand.500" fontWeight="bold">Log In</ChakraLink>
+            </NextLink>
+          </Text>
+        </VStack>
+      </VStack>
+    </Flex>
+  );
 }
+
