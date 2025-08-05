@@ -3,7 +3,7 @@
 
 import { useEffect, useRef } from 'react';
 import { useCartStore } from '@/store/useCartStore';
-import { useSession } from 'next-auth/react';
+import { useAuthStore } from '@/store/useAuthStore'; // Assuming you have useAuthStore
 
 /**
  * CartInitializer Component
@@ -13,25 +13,26 @@ import { useSession } from 'next-auth/react';
  * (e.g., in the layout or providers) to ensure cart data is synced.
  */
 export default function CartInitializer() {
-  // Use destructuring to correctly get the initializeCart action from the store
-  const { initializeCart } = useCartStore();
-  const { data: session, status } = useSession();
+  const initializeCart = useCartStore((state) => state.initializeCart);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const session = useAuthStore((state) => state.user); // Assuming user object contains session info
 
-  // Use a ref to ensure initializeCart is only called once per authentication state
+  // Use a ref to ensure initializeCart is only called once per auth status change
   const initializedRef = useRef(false);
 
   useEffect(() => {
-    // Only fetch cart if a user is authenticated and the initializer has not run for this session
-    if (status === 'authenticated' && session?.user?.id && !initializedRef.current) {
-      console.log("CartInitializer: Authenticated, initializing cart for user:", session.user.id);
+    // Only fetch cart if authenticated and not already initialized for this session state
+    if (isAuthenticated && !initializedRef.current) {
+      console.log("CartInitializer: Authenticated, initializing cart...");
       initializeCart();
-      initializedRef.current = true; // Mark as initialized for the current authenticated session
-    } else if (status === 'unauthenticated' && initializedRef.current) {
-      // If user logs out, reset the ref so the cart can be initialized again on a new login
+      initializedRef.current = true; // Mark as initialized for current authenticated state
+    } else if (!isAuthenticated && initializedRef.current) {
+      // If user logs out after being initialized, reset the ref for future login
       console.log("CartInitializer: User logged out, resetting initializer ref.");
       initializedRef.current = false;
     }
-  }, [initializeCart, session?.user?.id, status]); // Added status and session.user.id to dependencies
+  }, [isAuthenticated, initializeCart, session?.user?.id]); // Added session?.user?.id to dependencies for robustness
 
   return null; // This component does not render anything
 }
+
