@@ -79,11 +79,11 @@ export default function LoginPage() {
   };
 
   return (
-    <Flex direction="column" minH="100vh" align="center" justify="center" bg="gray.50">
+    <Flex direction="column" minH="100vh" align="center" justify="center" bg="white"> {/* Changed bg from gray.50 to white */}
       {/* Ltronix Heading moved outside the card and adjusted slightly lower */}
       <NextLink href="/" passHref>
         <ChakraLink _hover={{ textDecoration: 'none' }}>
-          <Heading as="h1" size="xl" mb={8} color="gray.800"> {/* Changed mb from 6 to 8 */}
+          <Heading as="h1" size="xl" mb={10} color="gray.800"> {/* Changed mb from 8 to 10 */}
             Ltronix
           </Heading>
         </ChakraLink>
