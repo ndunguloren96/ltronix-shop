@@ -114,7 +114,7 @@ export default function Footer() {
           justify={{ md: 'space-between' }}
           align={{ md: 'center' }}>
           <Text>© {currentYear} Ltronix Shop. All rights reserved.</Text>
-          <Flex direction="row" gap={4}> {/* Changed spacing={4} to gap={4} */}
+          <Flex direction="row" spacing={4}>
             {/* Payment Method Icons or Text can go here */}
           </Flex>
         </Container>
