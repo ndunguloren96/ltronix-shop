@@ -50,17 +50,16 @@ export interface BackendCartResponse {
     customer: number | null;
     session_key: string | null;
     message?: string;
-    orders: BackendOrder[]; // This is an array of BackendOrder
+    orders: BackendOrder[];
 }
 
-// FIX: Redefine BackendCart to be an alias of BackendOrder,
-// as the store expects a single cart object with 'items'.
-export type BackendCart = BackendOrder;
+// FIX: Explicitly export BackendCart as an alias of BackendCartResponse
+export type BackendCart = BackendCartResponse;
 
 // FIX: Ensure CartItemBackend is exported here, as it's used in src/api/cart.ts
 export interface CartItemBackend {
-    product_id: number;
-    quantity: number;
+  product_id: number;
+  quantity: number;
 }
 
 // --- Type definition for M-Pesa Transaction ---

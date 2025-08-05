@@ -2,7 +2,8 @@
 import { getSession } from "next-auth/react";
 import toast from "react-hot-toast";
 // CORRECTED IMPORT: Ensure all necessary types are imported from src/types/order.ts
-import { BackendCart, BackendTransaction, CartItemBackend, BackendCartResponse } from '../types/order';
+// This import will now correctly find CartItemBackend after the fix in src/types/order.ts
+import { BackendCart, BackendTransaction, CartItemBackend, OrderItemPayload, OrderPayload, BackendOrderItem, BackendOrder, BackendCartResponse } from '../types/order';
 
 
 // Ensure this matches your Django API URL from .env
@@ -78,37 +79,43 @@ async function fetchWithCartAuth<T>(
  * Fetches the user's current active shopping cart.
  * This should hit the `my_cart` action on the OrderViewSet.
  * It intelligently sends the correct authentication header.
- * Now returns BackendCart (which is BackendOrder) or null.
  */
 export async function fetchUserCart(guestSessionKey?: string | null): Promise<BackendCart | null> {
   console.log("API: Fetching user cart...");
   try {
+    // Use URL constructor for robust path concatenation
     const url = new URL('orders/my_cart/', DJANGO_API_BASE_URL);
-    // The API might return BackendCart (BackendOrder) directly or BackendCartResponse.
-    // We need to handle both possibilities.
+    // Assuming my_cart endpoint returns BackendCart directly or BackendCartResponse
+    // If it returns BackendCartResponse, we need to extract the first order.
     const response = await fetchWithCartAuth<BackendCartResponse | BackendCart | null>(url.toString(), { method: 'GET' }, guestSessionKey);
 
+    // CRITICAL FIX: Handle the response type from fetchUserCart correctly
     if (response && 'orders' in response && Array.isArray(response.orders) && response.orders.length > 0) {
-      // If it's a BackendCartResponse, return the first order (which is a BackendCart/BackendOrder)
+      // If it's a BackendCartResponse, return the first order (which should be the active cart)
       return response.orders[0];
     } else if (response && 'items' in response) {
-      // If it's already a BackendCart (meaning it has an 'items' property directly)
+      // If it's already a BackendCart (meaning it has an 'items' property)
       return response as BackendCart;
     }
     return null; // No active cart found
   } catch (error) {
     console.error("API: Failed to fetch user cart:", error);
+    // If the cart endpoint returns a 404 (or specific message indicating no cart),
+    // you might want to return a default empty cart instead of throwing.
+    // For now, we'll throw and let the calling component handle it.
     throw error;
   }
 }
 
 /**
- * A dedicated function to get cart data, handling both authenticated and guest users.
+ * NEW: A dedicated function to get cart data, handling both authenticated and guest users.
  * This is the function that the `useCartStore` will call.
  * This function now explicitly returns `BackendCart | null`.
  */
 export async function getCartData(): Promise<BackendCart | null> {
   const session = await getSession();
+  // Assuming guestSessionKey is stored in sessionStorage, as inferred from previous code.
+  // If it's stored differently (e.g., in Zustand store), adjust this line.
   const guestSessionKey = typeof window !== 'undefined' ? sessionStorage.getItem('guestSessionKey') : null;
 
   if (session) {
