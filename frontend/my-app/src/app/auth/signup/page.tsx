@@ -242,14 +242,7 @@ export default function SignupPage() {
           </Text>
         </VStack>
 
-        <Flex width="full" justify="center" mt={8}>
-          <NextLink href="/privacy" passHref>
-            <ChakraLink color="gray.500" fontSize="sm" mx={2}>Privacy</ChakraLink>
-          </NextLink>
-          <NextLink href="/terms" passHref>
-            <ChakraLink color="gray.500" fontSize="sm" mx={2}>Terms of Service</ChakraLink>
-          </NextLink>
-        </Flex>
+        
       </VStack>
     </Flex>
   );
