@@ -85,19 +85,8 @@ export async function fetchUserCart(guestSessionKey?: string | null): Promise<Ba
   try {
     // Use URL constructor for robust path concatenation
     const url = new URL('orders/my_cart/', DJANGO_API_BASE_URL);
-    // Assuming my_cart endpoint returns BackendCart directly or BackendCartResponse
-    // If it returns BackendCartResponse, we need to extract the first order.
-    const response = await fetchWithCartAuth<BackendCartResponse | BackendCart | null>(url.toString(), { method: 'GET' }, guestSessionKey);
-
-    // CRITICAL FIX: Handle the response type from fetchUserCart correctly
-    if (response && 'orders' in response && Array.isArray(response.orders) && response.orders.length > 0) {
-      // If it's a BackendCartResponse, return the first order (which should be the active cart)
-      return response.orders[0];
-    } else if (response && 'items' in response) {
-      // If it's already a BackendCart (meaning it has an 'items' property)
-      return response as BackendCart;
-    }
-    return null; // No active cart found
+    const response = await fetchWithCartAuth<BackendCart | null>(url.toString(), { method: 'GET' }, guestSessionKey);
+    return response;
   } catch (error) {
     console.error("API: Failed to fetch user cart:", error);
     // If the cart endpoint returns a 404 (or specific message indicating no cart),
@@ -110,13 +99,10 @@ export async function fetchUserCart(guestSessionKey?: string | null): Promise<Ba
 /**
  * NEW: A dedicated function to get cart data, handling both authenticated and guest users.
  * This is the function that the `useCartStore` will call.
- * This function now explicitly returns `BackendCart | null`.
  */
 export async function getCartData(): Promise<BackendCart | null> {
   const session = await getSession();
-  // Assuming guestSessionKey is stored in sessionStorage, as inferred from previous code.
-  // If it's stored differently (e.g., in Zustand store), adjust this line.
-  const guestSessionKey = typeof window !== 'undefined' ? sessionStorage.getItem('guestSessionKey') : null;
+  const guestSessionKey = sessionStorage.getItem('guestSessionKey'); // Assuming guest key is stored in session storage
 
   if (session) {
     // Authenticated user: fetch cart without a guest key
@@ -125,7 +111,7 @@ export async function getCartData(): Promise<BackendCart | null> {
     // Guest user: fetch cart using the guest key
     return fetchUserCart(guestSessionKey);
   } else {
-    // No user and no guest key, return null (indicating no active cart)
+    // No user and no guest key, return an empty cart
     return null;
   }
 }
