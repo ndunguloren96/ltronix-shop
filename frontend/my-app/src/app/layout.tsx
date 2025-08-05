@@ -4,13 +4,14 @@ import './globals.css';
 import { Inter } from 'next/font/google';
 import { AppProviders } from './providers';
 import Header from '../components/Header';
-import Footer from '../components/Footer'; // Import the new Footer component
+import Footer from '../components/Footer';
+
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+
 import { ClientErrorBoundary } from '../components/ClientErrorBoundary';
 import { ColorModeScript } from '@chakra-ui/react';
 import chakraConfig from '../chakra.config';
-import { usePathname } from 'next/navigation';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -18,20 +19,6 @@ export const metadata = {
   title: 'Ltronix Shop',
   description: 'Your one-stop shop for electronics',
 };
-
-// Define a separate component to handle the conditional rendering on the client side
-function ConditionalLayout({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
-  const isOnAuthPage = pathname.startsWith('/auth');
-
-  return (
-    <>
-      {!isOnAuthPage && <Header />}
-      {children}
-      {!isOnAuthPage && <Footer />}
-    </>
-  );
-}
 
 export default async function RootLayout({
   children,
@@ -42,18 +29,20 @@ export default async function RootLayout({
 
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <head>
+        {/* Chakra UI FOUC Fix: Must be placed before body */}
         <ColorModeScript initialColorMode={chakraConfig.initialColorMode} />
+      </head>
+      <body className={inter.className}>
         <ClientErrorBoundary>
           <AppProviders session={session}>
-            <ConditionalLayout>
-              {children}
-            </ConditionalLayout>
+            <Header />
+            <main style={{ flexGrow: 1, minHeight: '80vh' }}>{children}</main>
+            <Footer />
           </AppProviders>
         </ClientErrorBoundary>
       </body>
     </html>
   );
 }
-
 
