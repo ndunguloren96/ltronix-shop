@@ -166,7 +166,7 @@ export default function PasswordResetConfirmPage() {
           <Text fontSize="sm" textAlign="center" mt={4}>
             <Link href="/auth/login" passHref>
               <Text as="a" color="brand.500" fontWeight="bold">
-                Back to Sign In
+                Back to Log In
               </Text>
             </Link>
           </Text>

@@ -114,7 +114,7 @@ export default function ForgotPasswordPage() {
             Remembered your password?{' '}
             <Link href="/auth/login" passHref>
               <Text as="a" color="brand.500" fontWeight="bold">
-                Sign In
+                Log In
               </Text>
             </Link>
           </Text>
