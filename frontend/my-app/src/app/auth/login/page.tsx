@@ -1,3 +1,5 @@
+// src/app/auth/login/page.tsx
+
 'use client';
 
 import { Box, Heading, Text, VStack, FormControl, FormLabel, Input, FormHelperText, Flex, useToast, InputGroup, InputRightElement, Button, Link as ChakraLink } from '@chakra-ui/react';
@@ -78,19 +80,19 @@ export default function LoginPage() {
 
   return (
     <Flex direction="column" minH="100vh" align="center" justify="center" bg="gray.50">
-      {/* Ltronix Heading moved outside the card */}
+      {/* Ltronix Heading moved outside the card and adjusted slightly lower */}
       <NextLink href="/" passHref>
         <ChakraLink _hover={{ textDecoration: 'none' }}>
-          <Heading as="h1" size="xl" mb={6} color="gray.800"> {/* Increased size and added margin-bottom */}
+          <Heading as="h1" size="xl" mb={8} color="gray.800"> {/* Changed mb from 6 to 8 */}
             Ltronix
           </Heading>
         </ChakraLink>
       </NextLink>
 
       <VStack
-        spacing={{ base: 5, md: 7 }} // Adjusted spacing for better visual flow
-        p={{ base: 8, md: 12 }}     // Increased padding for more breathing room
-        width={{ base: '90%', sm: '450px', md: '500px' }} // Adjusted width for better card size
+        spacing={{ base: 5, md: 7 }}
+        p={{ base: 8, md: 12 }}
+        width={{ base: '90%', sm: '450px', md: '500px' }}
         maxWidth="95%"
         bg="white"
         boxShadow="lg"
@@ -98,7 +100,7 @@ export default function LoginPage() {
         textAlign="center"
       >
         <VStack spacing={4} align="stretch" width="full">
-          <Text fontSize={{ base: 'lg', md: 'xl' }} textAlign="center" color="gray.700" fontWeight="semibold"> {/* Increased font size and weight */}
+          <Text fontSize={{ base: 'lg', md: 'xl' }} textAlign="center" color="gray.700" fontWeight="semibold">
             Log in to continue your shopping experience
           </Text>
 
@@ -146,7 +148,7 @@ export default function LoginPage() {
                     </Button>
                   </InputRightElement>
                 </InputGroup>
-                <FormHelperText textAlign="right"> {/* Aligned to right for better flow */}
+                <FormHelperText textAlign="right">
                   <NextLink href="/auth/forgot-password" passHref>
                     <ChakraLink color="brand.500" fontWeight="bold">
                       Forgot password?
