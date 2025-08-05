@@ -51,9 +51,6 @@ class CustomUserAdmin(BaseUserAdmin): # Inherit from BaseUserAdmin
                 "fields": (
                     "email",
                     "password",
-                    "re_password", # Assuming 're_password' is for password confirmation during creation
-                    "first_name",
-                    "last_name",
                     "phone_number",
                     "gender",
                     "date_of_birth",

@@ -76,7 +76,7 @@ const handler = NextAuth({
             return {
               id: String(user.user.id),
               email: user.user.email,
-              name: user.user.first_name,
+              name: user.user.first_name || user.user.email,
               accessToken: user.access_token,
               refreshToken: user.refresh_token,
             };
@@ -108,7 +108,7 @@ const handler = NextAuth({
             token.refreshToken = refresh_token;
             token.id = String(apiUser.id); // Ensure ID is a string
             token.email = apiUser.email;
-            token.name = apiUser.first_name;
+            token.name = apiUser.first_name || apiUser.email;
             token.djangoUser = apiUser;
           } catch (error) {
             console.error('Error converting Google token', error);

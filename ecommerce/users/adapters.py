@@ -33,8 +33,6 @@ class CustomAccountAdapter(DefaultAccountAdapter):
 
     def save_user(self, request, user, form, commit=True):
         user = super().save_user(request, user, form, commit=False)
-        user.first_name = request.data.get('first_name', '')
-        user.last_name = request.data.get('last_name', '')
         user.phone_number = request.data.get('phone_number', '')
         if commit:
             user.save()
