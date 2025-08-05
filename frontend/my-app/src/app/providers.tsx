@@ -7,9 +7,9 @@ import { Toaster } from 'react-hot-toast';
 import { SessionProvider } from 'next-auth/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
-import { ErrorBoundary } from '../components/ErrorBoundary';
-import theme from '../theme';
-import CartInitializer from '../components/CartInitializer'; // Corrected import: removed curly braces
+import { ErrorBoundary } from '../components/ErrorBoundary'; // Your existing ErrorBoundary
+import theme from '../theme'; // Your Chakra UI theme
+import { CartInitializer } from '../components/CartInitializer'; // NEW IMPORT
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -58,4 +58,3 @@ export function AppProviders({ children, session }: AppProvidersProps) {
     </SessionProvider>
   );
 }
-
