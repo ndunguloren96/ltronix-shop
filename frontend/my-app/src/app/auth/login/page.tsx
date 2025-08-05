@@ -81,7 +81,7 @@ export default function LoginPage() {
       <VStack
         spacing={{ base: 4, md: 8 }}
         p={{ base: 6, md: 10 }}
-        width={{ base: '90%', sm: '600px', md: '675px' }}
+        width={{ base: '90%', sm: '400px', md: '450px' }}
         maxWidth="95%"
         bg="white"
         boxShadow="lg"
