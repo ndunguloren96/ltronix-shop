@@ -10,13 +10,14 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_DJANGO_API_URL || 'http://localhost
  */
 export async function POST(request: Request) {
   try {
-    const { email, password } = await request.json(); // Only expecting email and password for now
+    const payload = await request.json();
+    const { email, phone_number, password } = payload;
     // Note: If your Django backend /signup/ endpoint expects 'name', you'll need to
     // add 'name' to the frontend form and include it in this payload.
 
     // Validate input (basic validation, more robust validation should be on backend)
-    if (!email || !password) {
-      return NextResponse.json({ message: 'Email and password are required' }, { status: 400 });
+    if ((!email && !phone_number) || !password) {
+      return NextResponse.json({ message: 'Email or phone number, and password are required' }, { status: 400 });
     }
 
     // Make the actual call to your Django backend's registration endpoint
@@ -26,7 +27,7 @@ export async function POST(request: Request) {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify(payload),
     });
 
     // Parse the Django backend's response

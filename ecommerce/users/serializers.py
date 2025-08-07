@@ -119,23 +119,15 @@ class CustomRegisterSerializer(RegisterSerializer):
         if data.get('phone_number') and User.objects.filter(phone_number=data['phone_number']).exists():
             raise serializers.ValidationError("A user with that phone number already exists.")
 
-        if 'password2' in data:
-            del data['password2']
-
         return data
 
     @transaction.atomic
     def save(self, request):
-        adapter = get_adapter()
-        user = adapter.new_user(request)
-        self.cleaned_data = self.get_cleaned_data()
-        adapter.save_user(request, user, self)
+        user = super().save(request)
         user.phone_number = self.validated_data.get('phone_number', '')
         user.email = self.validated_data.get('email', '')
-        user.set_password(self.validated_data['password'])
         user.save()
         UserProfile.objects.get_or_create(user=user)
-        setup_user_email(request, user, [])
         return user
 
 
