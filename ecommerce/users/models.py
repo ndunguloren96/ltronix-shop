@@ -54,7 +54,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(_("email address"), unique=True)
     first_name = models.CharField(_("first name"), max_length=150, blank=True)
     last_name = models.CharField(_("last name"), max_length=150, blank=True)
-    phone_number = models.CharField(_("phone number"), max_length=20, blank=True, null=True) # Corrected truncation
+    phone_number = models.CharField(_("phone number"), max_length=20, unique=True, blank=True, null=True)
     GENDER_CHOICES = [
         ('M', 'Male'),
         ('F', 'Female'),
