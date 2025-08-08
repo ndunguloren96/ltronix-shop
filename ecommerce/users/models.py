@@ -14,14 +14,21 @@ class UserManager(BaseUserManager):
     for authentication instead of usernames.
     """
 
-    def create_user(self, email, password=None, **extra_fields):
+    def create_user(self, email=None, phone_number=None, password=None, **extra_fields):
         """
-        Create and save a User with the given email and password.
+        Create and save a User with the given email or phone number and password.
         """
-        if not email:
-            raise ValueError(_("The Email must be set"))
-        email = self.normalize_email(email)
-        user = self.model(email=email, **extra_fields)
+        if not email and not phone_number:
+            raise ValueError(_("Either Email or Phone Number must be set"))
+
+        if email:
+            email = self.normalize_email(email)
+            user = self.model(email=email, **extra_fields)
+        elif phone_number:
+            user = self.model(phone_number=phone_number, **extra_fields)
+        else:
+            raise ValueError(_("Either Email or Phone Number must be provided"))
+
         user.set_password(password)
         user.save(using=self._db)
         return user
@@ -51,7 +58,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     Uses email as the unique identifier for authentication.
     """
 
-    email = models.EmailField(_("email address"), unique=True)
+    email = models.EmailField(_("email address"), unique=True, blank=True, null=True)
     first_name = models.CharField(_("first name"), max_length=150, blank=True)
     last_name = models.CharField(_("last name"), max_length=150, blank=True)
     phone_number = models.CharField(_("phone number"), max_length=20, unique=True, blank=True, null=True)

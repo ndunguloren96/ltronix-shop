@@ -24,10 +24,19 @@ class CustomLoginSerializer(serializers.Serializer):
         user = None
 
         if not email and not phone_number:
-            raise serializers.ValidationError(_('Either email or phone number must be provided.'))
+            raise serializers.ValidationError({'non_field_errors': [_('Either email or phone number must be provided.')]})
 
         if email and phone_number:
-            raise serializers.ValidationError(_('Please provide either an email or a phone number, not both.'))
+            raise serializers.ValidationError({'non_field_errors': [_('Please provide either an email or a phone number, not both.')]})
+
+        if email and '@' not in email:
+            raise serializers.ValidationError({'email': [_('Enter a valid email address.')]})
+
+        if phone_number and '@' in phone_number:
+            raise serializers.ValidationError({'phone_number': [_('This does not look like a valid phone number.')]})
+
+        if phone_number and not phone_number.isdigit():
+            raise serializers.ValidationError({'phone_number': [_('Enter a valid phone number.')]})
 
         if email:
             # Authenticate using email
@@ -75,8 +84,17 @@ class CustomRegisterSerializer(serializers.ModelSerializer):
 
         return data
 
-    @transaction.atomic
     def create(self, validated_data):
+        phone_number = validated_data.get('phone_number')
+        email = validated_data.get('email')
+
+        if not email and not phone_number:
+            raise serializers.ValidationError(_("Either email or phone number must be provided."))
+
+        # Ensure that if a user signs up with a phone number, the email field is set to None
+        if phone_number and not email:
+            validated_data['email'] = None
+
         user = User.objects.create_user(**validated_data)
         UserProfile.objects.create(user=user)
         return user
