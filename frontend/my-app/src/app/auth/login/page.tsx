@@ -30,7 +30,6 @@ export default function LoginPage() {
     const loginEndpoint = 'auth/login/';
 
     try {
-      // Make a direct call to the Django backend for authentication
       const response = await fetch(`${process.env.NEXT_PUBLIC_DJANGO_API_URL}/${loginEndpoint}`, {
         method: 'POST',
         headers: {
@@ -42,13 +41,9 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (response.ok) {
-        // If Django authentication is successful, use NextAuth's `signIn`
-        // to create a session with the credentials we got back.
-        // NOTE: We pass the full `data` object which contains the access/refresh tokens.
-        // NextAuth will handle this and create the session.
         const result = await signIn('credentials', {
           redirect: false,
-          django_login_response: JSON.stringify(data), // Pass the entire response to NextAuth
+          django_login_response: JSON.stringify(data),
         });
 
         if (result?.ok) {
@@ -64,7 +59,6 @@ export default function LoginPage() {
           throw new Error(result?.error || 'Failed to create NextAuth session after Django login.');
         }
       } else {
-        // If Django login fails, handle the error directly
         let errorMessage = 'Login failed. Please check your details.';
         if (data.detail) {
           errorMessage = data.detail;
@@ -75,7 +69,7 @@ export default function LoginPage() {
       }
     } catch (error: any) {
       console.error('Login error:', error);
-      let description = error.message || 'An unexpected error occurred during login. Please try again.';
+      const description = error.message || 'An unexpected error occurred during login. Please try again.';
       toast({
         title: 'Login Failed',
         description: description,
@@ -89,10 +83,8 @@ export default function LoginPage() {
   };
 
   return (
-    // Outer Flex container for the entire page, ensuring a uniform white background and overall padding
-    <Flex direction="column" minH="100vh" bg="white" p={{ base: 4, md: 8 }} pb={4}> {/* Added overall padding and padding-bottom */}
-      {/* Ltronix Heading moved to top-left */}
-      <Box alignSelf="flex-start" mb={{ base: 4, md: 6 }}> {/* Adjusted margin-bottom for spacing from card */}
+    <Flex direction="column" minH="100vh" bg="white" p={{ base: 4, md: 8 }} pb={4}>
+      <Box alignSelf="flex-start" mb={{ base: 4, md: 6 }}>
         <NextLink href="/" passHref>
           <ChakraLink _hover={{ textDecoration: 'none' }}>
             <Heading as="h1" size="xl" color="gray.800">
@@ -102,7 +94,6 @@ export default function LoginPage() {
         </NextLink>
       </Box>
 
-      {/* Main content area, centered */}
       <Flex flex="1" align="center" justify="center" width="full">
         <VStack
           spacing={{ base: 5, md: 7 }}
@@ -110,7 +101,7 @@ export default function LoginPage() {
           width={{ base: '90%', sm: '450px', md: '500px' }}
           maxWidth="95%"
           bg="white"
-          boxShadow="none" // Removed boxShadow for a smoother, less visible card
+          boxShadow="none"
           borderRadius="xl"
           textAlign="center"
         >
@@ -215,7 +206,6 @@ export default function LoginPage() {
         </VStack>
       </Flex>
 
-      {/* Privacy and Terms of Service links - untouched as requested */}
       <Flex mt={6} mb={4} align="center" justify="center" gap={2} fontSize="sm" color="gray.600">
         <NextLink href="/privacy" passHref>
           <ChakraLink _hover={{ textDecoration: 'underline' }}>
