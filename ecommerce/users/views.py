@@ -1,8 +1,7 @@
 # ecommerce/users/views.py
 
-from rest_framework import generics, status, permissions
+from rest_framework import generics, permissions
 from rest_framework.response import Response
-from rest_framework.views import APIView
 from django.conf import settings
 
 from dj_rest_auth.views import LoginView
@@ -20,13 +19,16 @@ from .serializers import (
     CustomLoginSerializer
 )
 
-from dj_rest_auth.registration.views import RegisterView
-
 User = get_user_model()
 
 
 class CustomLoginView(LoginView):
     serializer_class = CustomLoginSerializer
+
+
+class CustomRegisterView(generics.CreateAPIView):
+    serializer_class = CustomRegisterSerializer
+    permission_classes = [permissions.AllowAny]
 
 
 class PasswordChangeView(generics.UpdateAPIView):
@@ -61,10 +63,6 @@ class UserUpdateAPIView(generics.RetrieveUpdateAPIView):
 
     def get_object(self):
         return self.request.user
-
-
-class CustomRegisterView(RegisterView):
-    serializer_class = CustomRegisterSerializer
 
 
 class GoogleLogin(SocialLoginView):

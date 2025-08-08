@@ -1,12 +1,9 @@
 # ecommerce/users/serializers.py
-from allauth.account.adapter import get_adapter
-from allauth.account.utils import setup_user_email
-from django.db import transaction
-from rest_framework import serializers
 from django.contrib.auth import get_user_model, authenticate
-from dj_rest_auth.registration.serializers import RegisterSerializer
-from dj_rest_auth.serializers import LoginSerializer
+from django.db import transaction
 from django.utils.translation import gettext_lazy as _
+from rest_framework import serializers
+from allauth.account.utils import setup_user_email
 
 from .models import User, UserProfile
 from sellers.models import Seller
@@ -14,9 +11,10 @@ from sellers.models import Seller
 User = get_user_model()
 
 
-class CustomLoginSerializer(LoginSerializer):
+class CustomLoginSerializer(serializers.Serializer):
     email = serializers.EmailField(required=False, allow_blank=True)
     phone_number = serializers.CharField(required=False, allow_blank=True)
+    password = serializers.CharField(style={'input_type': 'password'})
 
     def validate(self, attrs):
         email = attrs.get('email')
@@ -26,19 +24,21 @@ class CustomLoginSerializer(LoginSerializer):
         user = None
 
         if not email and not phone_number:
-            raise serializers.ValidationError('Either email or phone number must be provided.')
+            raise serializers.ValidationError(_('Either email or phone number must be provided.'))
 
         if email and phone_number:
-            raise serializers.ValidationError('Please provide either an email or a phone number, not both.')
+            raise serializers.ValidationError(_('Please provide either an email or a phone number, not both.'))
 
         if email:
+            # Authenticate using email
             user = authenticate(request=self.context.get('request'), email=email, password=password)
         elif phone_number:
+            # Find user by phone number, then authenticate using their email
             try:
                 user_obj = User.objects.get(phone_number=phone_number)
                 user = authenticate(request=self.context.get('request'), email=user_obj.email, password=password)
             except User.DoesNotExist:
-                pass
+                pass  # User with this phone number does not exist
 
         if not user:
             msg = _('Unable to log in with provided credentials.')
@@ -46,6 +46,40 @@ class CustomLoginSerializer(LoginSerializer):
 
         attrs['user'] = user
         return attrs
+
+
+class CustomRegisterSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
+    email = serializers.EmailField(required=False, allow_blank=True)
+    phone_number = serializers.CharField(required=False, allow_blank=True)
+
+    class Meta:
+        model = User
+        fields = ('email', 'phone_number', 'password')
+
+    def validate(self, data):
+        email = data.get('email')
+        phone_number = data.get('phone_number')
+
+        if not email and not phone_number:
+            raise serializers.ValidationError(_("Either email or phone number must be provided."))
+
+        if email and phone_number:
+            raise serializers.ValidationError(_("Please provide either an email or a phone number for registration, not both."))
+
+        if email and User.objects.filter(email=email).exists():
+            raise serializers.ValidationError(_("A user with that email already exists."))
+
+        if phone_number and User.objects.filter(phone_number=phone_number).exists():
+            raise serializers.ValidationError(_("A user with that phone number already exists."))
+
+        return data
+
+    @transaction.atomic
+    def create(self, validated_data):
+        user = User.objects.create_user(**validated_data)
+        UserProfile.objects.create(user=user)
+        return user
 
 
 class UserDetailsSerializer(serializers.ModelSerializer):
@@ -100,35 +134,6 @@ class UserDetailsSerializer(serializers.ModelSerializer):
             return None
         except Seller.DoesNotExist:
             return None
-
-
-class CustomRegisterSerializer(RegisterSerializer):
-    phone_number = serializers.CharField(required=False, max_length=20, allow_blank=True)
-    email = serializers.EmailField(required=False, allow_blank=True)
-
-    def validate(self, data):
-        if not data.get('email') and not data.get('phone_number'):
-            raise serializers.ValidationError("Either email or phone number must be provided.")
-        
-        if data.get('email') and data.get('phone_number'):
-            raise serializers.ValidationError("Please provide either an email or a phone number for registration, not both.")
-
-        if data.get('email') and User.objects.filter(email=data['email']).exists():
-            raise serializers.ValidationError("A user with that email already exists.")
-        
-        if data.get('phone_number') and User.objects.filter(phone_number=data['phone_number']).exists():
-            raise serializers.ValidationError("A user with that phone number already exists.")
-
-        return data
-
-    @transaction.atomic
-    def save(self, request):
-        user = super().save(request)
-        user.phone_number = self.validated_data.get('phone_number', '')
-        user.email = self.validated_data.get('email', '')
-        user.save()
-        UserProfile.objects.get_or_create(user=user)
-        return user
 
 
 class PasswordChangeSerializer(serializers.Serializer):
