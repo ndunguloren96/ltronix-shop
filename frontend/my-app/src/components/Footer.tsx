@@ -53,7 +53,11 @@ const socialLinks = [
   },
 ];
 
-// --- CRITICAL FIX: Changed to default export ---
+/**
+ * Footer component.
+ * This component displays the footer of the application, including brand logos, navigation links, social media links, and copyright information.
+ * @returns The footer component.
+ */
 export default function Footer() {
   const currentYear = new Date().getFullYear();
 

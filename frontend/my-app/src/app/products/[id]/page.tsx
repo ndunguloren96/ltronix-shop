@@ -28,6 +28,13 @@ interface ProductDetailPageProps {
   searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
+/**
+ * Product detail page component.
+ * This component fetches and displays the details of a single product.
+ * @param params - The route parameters, containing the product ID.
+ * @param searchParams - The search parameters.
+ * @returns The product detail page component.
+ */
 export default async function ProductDetailPage({ params, searchParams }: ProductDetailPageProps) {
   // Await params to get the actual object
   const resolvedParams = await params;
@@ -81,4 +88,3 @@ export default async function ProductDetailPage({ params, searchParams }: Produc
     </Container>
   );
 }
-

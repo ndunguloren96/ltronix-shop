@@ -32,10 +32,19 @@ import { Product } from '@/types/product'; // Import Product interface from type
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 
+/**
+ * Interface for the ProductDetailClientContent component props.
+ */
 interface ProductDetailClientContentProps {
   product: Product;
 }
 
+/**
+ * Client-side component for the product detail page.
+ * This component handles adding products to the cart and displaying product details.
+ * @param product - The product to be displayed.
+ * @returns The product detail client content component.
+ */
 export default function ProductDetailClientContent({ product }: ProductDetailClientContentProps) {
   const toast = useToast();
   const queryClient = useQueryClient();
@@ -63,7 +72,11 @@ export default function ProductDetailClientContent({ product }: ProductDetailCli
     }
   }, [guestSessionKey, setGuestSessionKey, status, toast]);
 
-
+  /**
+   * Formats a price string to a currency string.
+   * @param priceString - The price string to format.
+   * @returns The formatted price string.
+   */
   const formatPrice = (priceString: string): string => {
     const numericPrice = parseFloat(priceString);
     if (isNaN(numericPrice)) {

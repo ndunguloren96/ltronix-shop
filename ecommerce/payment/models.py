@@ -7,6 +7,7 @@ from store.models import Cart, Order  # Ensure Order is correctly imported
 
 
 class Transaction(models.Model):
+    """Represents an M-Pesa transaction."""
     # Link to the Order model; set null if order can be deleted but transaction remains
     # For Ltronix Shop, a transaction should always be associated with an order.
     cart = models.ForeignKey(

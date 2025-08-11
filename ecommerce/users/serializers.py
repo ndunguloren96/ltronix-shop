@@ -12,11 +12,13 @@ User = get_user_model()
 
 
 class CustomLoginSerializer(serializers.Serializer):
+    """Serializer for custom user login."""
     email = serializers.EmailField(required=False, allow_blank=True)
     phone_number = serializers.CharField(required=False, allow_blank=True)
     password = serializers.CharField(style={'input_type': 'password'})
 
     def validate(self, attrs):
+        """Validates the serializer data."""
         email = attrs.get('email')
         phone_number = attrs.get('phone_number')
         password = attrs.get('password')
@@ -58,6 +60,7 @@ class CustomLoginSerializer(serializers.Serializer):
 
 
 class CustomRegisterSerializer(serializers.ModelSerializer):
+    """Serializer for custom user registration."""
     password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
     email = serializers.EmailField(required=False, allow_blank=True)
     phone_number = serializers.CharField(required=False, allow_blank=True)
@@ -67,6 +70,7 @@ class CustomRegisterSerializer(serializers.ModelSerializer):
         fields = ('email', 'phone_number', 'password')
 
     def validate(self, data):
+        """Validates the serializer data."""
         email = data.get('email')
         phone_number = data.get('phone_number')
 
@@ -85,6 +89,7 @@ class CustomRegisterSerializer(serializers.ModelSerializer):
         return data
 
     def create(self, validated_data):
+        """Creates a new user."""
         phone_number = validated_data.get('phone_number')
         email = validated_data.get('email')
 
@@ -101,6 +106,7 @@ class CustomRegisterSerializer(serializers.ModelSerializer):
 
 
 class UserDetailsSerializer(serializers.ModelSerializer):
+    """Serializer for user details."""
     middle_name = serializers.CharField(source='profile.middle_name', required=False, allow_blank=True)
     is_seller = serializers.SerializerMethodField()
     seller_profile = serializers.SerializerMethodField()
@@ -125,6 +131,7 @@ class UserDetailsSerializer(serializers.ModelSerializer):
         read_only_fields = ("id", "email", "date_joined", "is_staff", "is_active", "is_seller", "seller_profile")
 
     def update(self, instance, validated_data):
+        """Updates the user and their profile."""
         profile_data = validated_data.pop('profile', {})
         instance.first_name = validated_data.get('first_name', instance.first_name)
         instance.last_name = validated_data.get('last_name', instance.last_name)
@@ -141,9 +148,11 @@ class UserDetailsSerializer(serializers.ModelSerializer):
         return instance
 
     def get_is_seller(self, obj):
+        """Checks if the user is a seller."""
         return hasattr(obj, 'seller_profile') and obj.seller_profile.is_active
 
     def get_seller_profile(self, obj):
+        """Returns the seller profile of the user."""
         from sellers.serializers import SellerSerializer
         try:
             seller_instance = obj.seller_profile
@@ -155,21 +164,25 @@ class UserDetailsSerializer(serializers.ModelSerializer):
 
 
 class PasswordChangeSerializer(serializers.Serializer):
+    """Serializer for password change."""
     old_password = serializers.CharField(required=True)
     new_password1 = serializers.CharField(required=True)
     new_password2 = serializers.CharField(required=True)
 
     def validate(self, data):
+        """Validates the serializer data."""
         if data['new_password1'] != data['new_password2']:
             raise serializers.ValidationError({"new_password2": "New passwords must match."})
         return data
 
 
 class EmailChangeSerializer(serializers.Serializer):
+    """Serializer for email change."""
     current_password = serializers.CharField(required=True)
     new_email = serializers.EmailField(required=True)
 
     def validate(self, data):
+        """Validates the serializer data."""
         request = self.context.get('request')
         user = request.user if request else None
 
@@ -182,6 +195,7 @@ class EmailChangeSerializer(serializers.Serializer):
         return data
 
     def save(self, request):
+        """Saves the new email."""
         user = request.user
         new_email = self.validated_data['new_email']
 

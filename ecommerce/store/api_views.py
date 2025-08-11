@@ -45,6 +45,7 @@ class OrderViewSet(
     permission_classes = [AllowAny]
 
     def get_queryset(self):
+        """Dynamically filters the queryset based on the user and session."""
         user = self.request.user
         session_key = self.request.headers.get("X-Session-Key")
 
@@ -252,10 +253,12 @@ class OrderViewSet(
 
 
 class CartViewSet(viewsets.ModelViewSet):
+    """API endpoint for managing carts."""
     serializer_class = CartSerializer
     permission_classes = [AllowAny]
 
     def get_queryset(self):
+        """Dynamically filters the queryset based on the user and session."""
         user = self.request.user
         session_key = self.request.headers.get("X-Session-Key")
 
@@ -268,6 +271,9 @@ class CartViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"], url_path="my_cart")
     def my_cart(self, request):
+        """
+        Retrieves the authenticated user's current active cart or a guest cart.
+        """
         user = request.user
         session_key = self.request.headers.get("X-Session-Key")
 
@@ -289,6 +295,7 @@ class CartViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"], url_path="add_item")
     def add_item(self, request, pk=None):
+        """Adds an item to the cart."""
         cart = self.get_object()
         serializer = WritableOrderItemSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -313,6 +320,7 @@ class CartViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"], url_path="complete_order")
     def complete_order(self, request, pk=None):
+        """Marks all sub-orders within a main cart as complete (checkout)."""
         cart = self.get_object()
         if not request.user.is_authenticated:
             return Response(

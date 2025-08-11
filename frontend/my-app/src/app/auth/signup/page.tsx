@@ -1,6 +1,22 @@
 'use client';
 
-import { Box, Heading, Text, VStack, FormControl, FormLabel, Input, FormHelperText, Flex, useToast, InputGroup, InputRightElement, Button, Link as ChakraLink } from '@chakra-ui/react';
+import {
+  Box,
+  Heading,
+  Text,
+  VStack,
+  FormControl,
+  FormLabel,
+  Input,
+  FormHelperText,
+  Flex,
+  useToast,
+  InputGroup,
+  InputRightElement,
+  Button,
+  Link as ChakraLink,
+  useColorModeValue,
+} from '@chakra-ui/react';
 import { MyButton } from '../../../components/MyButton';
 import GoogleSignInButton from '../../../components/GoogleSignInButton';
 import { useState } from 'react';
@@ -11,6 +27,12 @@ import { FaEye, FaEyeSlash, FaPhone, FaEnvelope } from 'react-icons/fa'; // Impo
 
 const DJANGO_API_BASE_URL = (process.env.NEXT_PUBLIC_DJANGO_API_URL || 'http://127.0.0.1:8000/api/v1').replace(/\/$/, '');
 
+/**
+ * Signup page component.
+ * This component provides a form for users to sign up using their email or phone number and password.
+ * It also includes a button for signing up with Google.
+ * @returns The signup page component.
+ */
 export default function SignupPage() {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [email, setEmail] = useState('');
@@ -266,4 +288,3 @@ export default function SignupPage() {
     </Flex>
   );
 }
-

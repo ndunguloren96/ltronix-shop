@@ -86,6 +86,11 @@ const NAV_ITEMS: Array<NavItem> = [
   { label: 'Privacy', href: '/privacy' },
 ];
 
+/**
+ * Header component.
+ * This component displays the header of the application, including the logo, navigation links, search bar, cart icon, and authentication buttons.
+ * @returns The header component.
+ */
 export default function Header() {
   const { isOpen, onToggle, onOpen, onClose } = useDisclosure();
   const router = useRouter();
@@ -575,4 +580,3 @@ const MobileNavItem = ({ label, children, href, icon, badgeCount, onClose }: Mob
     </Stack>
   );
 };
-

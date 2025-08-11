@@ -25,6 +25,12 @@ import { signIn } from 'next-auth/react';
 import NextLink from 'next/link';
 import { FaEye, FaEyeSlash, FaPhone, FaEnvelope } from 'react-icons/fa';
 
+/**
+ * Login page component.
+ * This component provides a form for users to log in using their email or phone number and password.
+ * It also includes a button for logging in with Google.
+ * @returns The login page component.
+ */
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');

@@ -21,10 +21,12 @@ logger = logging.getLogger(__name__)
 
 
 class MpesaStkPushAPIView(APIView):
+    """API view for initiating an M-Pesa STK push."""
     # Allow unauthenticated users for guest checkout, but also authenticated users
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
+        """Handles the POST request to initiate an M-Pesa STK push."""
         phone_number = request.data.get("phone_number")
         order_id = request.data.get("order_id")
         guest_session_key = request.headers.get("X-Session-Key") # Get session key from headers
@@ -166,9 +168,11 @@ class MpesaStkPushAPIView(APIView):
 
 @method_decorator(csrf_exempt, name="dispatch")
 class MpesaConfirmationAPIView(APIView):
+    """API view for handling the M-Pesa confirmation callback."""
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
+        """Handles the POST request from M-Pesa."""
         logger.info("M-Pesa STK Push Callback received.")
         try:
             callback_data = json.loads(request.body.decode("utf-8"))
@@ -316,10 +320,12 @@ class MpesaConfirmationAPIView(APIView):
 
 
 class MpesaPaymentStatusAPIView(APIView):
+    """API view for checking the status of an M-Pesa transaction."""
     # Allow unauthenticated users to check status by transaction ID or checkout request ID
     permission_classes = [permissions.AllowAny] 
 
     def get(self, request):
+        """Handles the GET request to check the status of an M-Pesa transaction."""
         transaction_id = request.query_params.get("transaction_id")
         checkout_request_id = request.query_params.get("checkout_request_id")
         guest_session_key = request.headers.get("X-Session-Key")
@@ -358,7 +364,8 @@ class MpesaPaymentStatusAPIView(APIView):
 
         except Transaction.DoesNotExist:
             return Response(
-                {"detail": "Transaction not found."}, status=status.HTTP_404_NOT_FOUND
+                {"detail": "Transaction not found."},
+                status=status.HTTP_404_NOT_FOUND
             )
         except Exception as e:
             logger.exception(f"Error checking payment status: {e}")

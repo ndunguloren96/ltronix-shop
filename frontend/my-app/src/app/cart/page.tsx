@@ -53,6 +53,11 @@ interface UpdateCartContext {
   previousCart?: BackendCartResponse | null;
 }
 
+/**
+ * Cart page component.
+ * This component displays the user's shopping cart and allows them to manage its contents.
+ * @returns The cart page component.
+ */
 export default function CartPage() {
   const toast = useToast();
   const router = useRouter();

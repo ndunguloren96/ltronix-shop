@@ -1,14 +1,23 @@
+# ecommerce/settings/development.py
+
 import os
 import re
 
 from .base import *
 
+# --- Debugging ---
+# Enable debug mode for the development environment.
 DEBUG = True
 
+# --- Allowed Hosts ---
+# This list contains the allowed hostnames for the development environment.
 ALLOWED_HOSTS = ["localhost", "127.0.0.1", "[::1]"] + os.environ.get(
     "ALLOWED_HOSTS", ""
 ).split(",")
 
+# --- Database ---
+# This setting configures the database for the development environment.
+# It uses the `DATABASE_URL` environment variable to connect to a PostgreSQL database.
 DATABASES = {
     "default": env.db(
         "DATABASE_URL",
@@ -16,6 +25,8 @@ DATABASES = {
     )
 }
 
+# --- Django Rest Framework ---
+# This section contains settings for the Django Rest Framework in the development environment.
 REST_FRAMEWORK = {
     **REST_FRAMEWORK,
     "DEFAULT_AUTHENTICATION_CLASSES": (
@@ -36,7 +47,8 @@ REST_FRAMEWORK = {
     ),
 }
 
-# CORS settings for development
+# --- CORS/CSRF ---
+# This section contains settings for Cross-Origin Resource Sharing (CORS) and Cross-Site Request Forgery (CSRF) protection in the development environment.
 CORS_ALLOW_ALL_ORIGINS = True  # TEMPORARY: For debugging CORS only.
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_METHODS = [
@@ -58,12 +70,14 @@ CSRF_TRUSTED_ORIGINS = env.list(
 CSRF_COOKIE_SECURE = False
 CSRF_COOKIE_SAMESITE = "Lax"
 
-# Use Anymail/SendGrid in dev to test transactional emails (set to 'console' for local email debugging)
+# --- Email ---
+# This setting configures the email backend for the development environment.
+# It uses Anymail with SendGrid to send transactional emails.
 EMAIL_BACKEND = "anymail.backends.sendgrid.EmailBackend"
 
+# --- Password Reset ---
+# This setting configures the password reset confirmation URL for the development environment.
 REST_AUTH["PASSWORD_RESET_CONFIRM_URL"] = env(
     "DJANGO_PASSWORD_RESET_CONFIRM_URL",
     default="http://localhost:3000/auth/password-reset-confirm/{uid}/{token}",
 )
-
-

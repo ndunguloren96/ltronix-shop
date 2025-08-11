@@ -6,6 +6,7 @@ from sellers.models import Seller
 
 
 class Category(models.Model):
+    """Represents a product category."""
     name = models.CharField(max_length=100, unique=True)
     description = models.TextField(blank=True, null=True)
 
@@ -19,6 +20,7 @@ class Category(models.Model):
 
 
 class Customer(models.Model):
+    """Represents a customer, who may or may not be a registered user."""
     # Link to the custom user model defined in settings.AUTH_USER_MODEL
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.CASCADE
@@ -49,6 +51,7 @@ class Cart(models.Model):
 
 
 class Product(models.Model):
+    """Represents a product in the store."""
     name = models.CharField(_("name"), max_length=200)
     # Changed to DecimalField for currency accuracy
     price = models.DecimalField(_("price"), max_digits=10, decimal_places=2)
@@ -123,6 +126,7 @@ class Product(models.Model):
 
 
 class Order(models.Model):
+    """Represents an order, which can be a shopping cart or a completed order."""
     # This now represents a sub-order for a single seller
     cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name='orders', null=True) # Link to parent cart
     seller = models.ForeignKey(Seller, on_delete=models.PROTECT, related_name='orders', null=True, blank=True) # <-- MODIFIED: Added null=True, blank=True
@@ -155,6 +159,7 @@ class Order(models.Model):
 
     @property
     def shipping(self):
+        """Determines if shipping is required for the order."""
         shipping = False
         orderitems = self.orderitem_set.select_related("product").all()
         for i in orderitems:
@@ -164,19 +169,21 @@ class Order(models.Model):
 
     @property
     def get_cart_total(self):
+        """Calculates the total cost of all items in the cart."""
         orderitems = self.orderitem_set.select_related("product").all()
         total = sum([item.get_total for item in orderitems])
         return total
 
     @property
     def get_cart_items(self):
+        """Calculates the total number of items in the cart."""
         orderitems = self.orderitem_set.all()
         total = sum([item.quantity for item in orderitems])
         return total
 
 
 class OrderItem(models.Model):
-    # Represents an item within an Order (cart item or line item in a completed order)
+    """Represents an item within an Order (cart item or line item in a completed order)."""
     product = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True)
     order = models.ForeignKey(Order, on_delete=models.SET_NULL, null=True)
     quantity = models.IntegerField(default=0, null=True, blank=True)
@@ -192,11 +199,13 @@ class OrderItem(models.Model):
 
     @property
     def get_total(self):
+        """Calculates the total cost of the order item."""
         total = self.product.price * self.quantity
         return total
 
 
 class ShippingAddress(models.Model):
+    """Represents a shipping address for an order."""
     customer = models.ForeignKey(Customer, on_delete=models.SET_NULL, null=True)
     order = models.ForeignKey(Order, on_delete=models.SET_NULL, null=True)
     address = models.CharField(max_length=200, null=False)

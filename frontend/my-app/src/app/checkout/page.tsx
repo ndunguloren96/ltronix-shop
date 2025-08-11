@@ -8,13 +8,18 @@ import {
   VStack,
   HStack,
   Button,
+  Image,
   Divider,
-  Input,
-  InputGroup,
-  InputLeftElement,
+  Flex,
+  Spacer,
+  useToast,
+  NumberInput,
+  NumberInputField,
+  NumberInputStepper,
+  NumberIncrementStepper,
+  NumberDecrementStepper,
   Spinner,
   Center,
-  useToast,
   Alert,
   AlertIcon,
   AlertDescription,
@@ -27,11 +32,6 @@ import {
   ModalBody,
   ModalFooter,
   useDisclosure,
-  Flex,
-  Image,
-  RadioGroup,
-  Stack,
-  Radio,
   Collapse,
   FormLabel,
 } from '@chakra-ui/react';
@@ -65,6 +65,11 @@ const POLLING_TIMEOUT_MS = 120 * 1000;
 const PAYMENT_CHOICE_KEY = 'preferredPaymentMethod';
 const MPESA_PHONE_NUMBER_KEY = 'mpesaPhoneNumber';
 
+/**
+ * Checkout page component.
+ * This component handles the checkout process, including payment method selection and M-Pesa STK push.
+ * @returns The checkout page component.
+ */
 export default function CheckoutPage() {
   const toast = useToast();
   const router = useRouter();

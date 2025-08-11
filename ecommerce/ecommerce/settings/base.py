@@ -24,18 +24,26 @@ import sentry_sdk
 from environ import Env
 from sentry_sdk.integrations.django import DjangoIntegration
 
-# --- Build paths
+# --- Build paths ---
+# This section defines the base directory of the project and initializes the environment variable handler.
+# `BASE_DIR` points to the 'ecommerce' directory, which is the root of the Django project.
+# `env.read_env` reads the environment variables from the `.env` file located in the parent directory.
 BASE_DIR = Path(__file__).resolve().parent.parent
 env = Env()
 env.read_env(os.path.join(BASE_DIR.parent, ".env"))
 
-# --- Core Django settings
+# --- Core Django settings ---
+# `SECRET_KEY` is a crucial security setting. It's loaded from the environment variables.
+# `DEBUG` is set to False by default, but it's overridden by environment-specific settings.
+# `ALLOWED_HOSTS` is a list of allowed hostnames for the application. It's configured to be more robust with deployed domains as defaults.
 SECRET_KEY = env("DJANGO_SECRET_KEY")
 DEBUG = False # Overridden by environment-specific settings
-# FIX: Make ALLOWED_HOSTS more robust with deployed domains as defaults
 ALLOWED_HOSTS = env.list('DJANGO_ALLOWED_HOSTS', default=['localhost', '127.0.0.1', 'ltronix-shop.vercel.app', 'ltronix-shop.onrender.com'])
 
 
+# --- Installed Applications ---
+# This list contains all the Django applications that are installed in the project.
+# It includes Django's core apps, third-party apps, and the project's own apps.
 INSTALLED_APPS = [
     # Django core
     "django.contrib.admin",
@@ -71,6 +79,9 @@ INSTALLED_APPS = [
     "sellers.apps.SellersConfig",
 ]
 
+# --- Middleware ---
+# This list contains all the middleware that is used in the project.
+# Middleware is a framework of hooks into Django’s request/response processing.
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
@@ -84,8 +95,12 @@ MIDDLEWARE = [
     "allauth.account.middleware.AccountMiddleware",
 ]
 
+# --- URL Configuration ---
+# This setting points to the root URL configuration of the project.
 ROOT_URLCONF = "ecommerce.urls"
 
+# --- Template Configuration ---
+# This setting configures the template engine for the project.
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
@@ -102,12 +117,19 @@ TEMPLATES = [
     },
 ]
 
+# --- WSGI Application ---
+# This setting points to the WSGI application that is used to run the project.
 WSGI_APPLICATION = "ecommerce.wsgi.application"
 
-# --- Database (override in environment-specific)
+# --- Database ---
+# This setting configures the database for the project.
+# The database URL is loaded from the environment variables.
+# By default, it uses a SQLite database.
 DATABASES = {"default": env.db("DATABASE_URL", default="sqlite:///db.sqlite3")}
 
-# --- Auth & Password validation
+# --- Auth & Password validation ---
+# `AUTH_USER_MODEL` specifies the custom user model for the project.
+# `AUTH_PASSWORD_VALIDATORS` is a list of validators that are used to check the strength of user passwords.
 AUTH_USER_MODEL = "users.User"
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
@@ -116,14 +138,19 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
+# --- Authentication Backends ---
+# This setting configures the authentication backends for the project.
 AUTHENTICATION_BACKENDS = (
     "django.contrib.auth.backends.ModelBackend",
     "allauth.account.auth_backends.AuthenticationBackend",
 )
 
+# --- Site ID ---
+# This setting is required by the `django.contrib.sites` framework.
 SITE_ID = 1
 
 # --- AllAuth specific settings ---
+# This section contains settings that are specific to the `django-allauth` library.
 ACCOUNT_ADAPTER = 'users.adapters.CustomAccountAdapter'
 ACCOUNT_LOGIN_METHODS = ["email"]
 ACCOUNT_USERNAME_REQUIRED = False
@@ -135,17 +162,20 @@ ACCOUNT_SIGNUP_FIELDS = ["phone_number", "email", "password"]
 SOCIALACCOUNT_ADAPTER = 'users.adapters.DebugSocialAccountAdapter'
 
 
-# Redirect after login/logout (can be overridden by frontend)
+# --- Redirect URLs ---
+# These settings specify the URLs to redirect to after login and logout.
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/"
 
-# --- Internationalization
+# --- Internationalization ---
+# These settings configure the internationalization and localization for the project.
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "Africa/Nairobi"
 USE_I18N = True
 USE_TZ = True
 
-# --- Static & media
+# --- Static & media ---
+# These settings configure how static and media files are handled in the project.
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles" # Use Path object
 # Allow Django and WhiteNoise to gather static files from your custom static folder
@@ -159,7 +189,8 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR.parent / "mediafiles" # Use Path object
 
-# --- DRF settings
+# --- DRF settings ---
+# This section contains settings for the Django Rest Framework.
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework.authentication.SessionAuthentication",
@@ -178,7 +209,8 @@ REST_FRAMEWORK = {
     "PAGE_SIZE": 10,
 }
 
-# --- CORS/CSRF
+# --- CORS/CSRF ---
+# This section contains settings for Cross-Origin Resource Sharing (CORS) and Cross-Site Request Forgery (CSRF) protection.
 from corsheaders.defaults import default_headers
 
 CORS_ALLOW_ALL_ORIGINS = False
@@ -195,7 +227,8 @@ CSRF_COOKIE_SAMESITE = "Lax"
 SESSION_COOKIE_SECURE = env.bool("SESSION_COOKIE_SECURE", default=True)
 SESSION_COOKIE_SAMESITE = "Lax"
 
-# --- Celery
+# --- Celery ---
+# This section contains settings for Celery, which is used for running asynchronous tasks.
 CELERY_BROKER_URL = env("CELERY_BROKER_URL", default="redis://localhost:6379/0")
 CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default="redis://localhost:6379/0")
 CELERY_ACCEPT_CONTENT = ["json"]
@@ -205,7 +238,8 @@ CELERY_TIMEZONE = TIME_ZONE
 CELERY_TASK_ALWAYS_EAGER = False
 CELERY_TASK_EAGER_PROPAGATES = True
 
-# --- Email via Anymail/SendGrid
+# --- Email via Anymail/SendGrid ---
+# This section contains settings for sending emails using Anymail and SendGrid.
 ANYMAIL = {"SENDGRID_API_KEY": env("SENDGRID_API_KEY", default="")}
 EMAIL_BACKEND = env("EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend")
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="noreply@ltronix-shop.com")
@@ -222,7 +256,8 @@ ACCOUNT_USER_MODEL_USERNAME_FIELD = None
 ACCOUNT_USERNAME_REQUIRED = False
 ACCOUNT_SIGNUP_FIELDS = ["email", "password"] # Simplified to match default registration
 
-# --- dj-rest-auth / JWT
+# --- dj-rest-auth / JWT ---
+# This section contains settings for dj-rest-auth and Simple JWT.
 REST_AUTH = {
     "USE_JWT": True,
     "SESSION_LOGIN": True, # Keep this if you want session authentication for browsable API
@@ -242,7 +277,8 @@ REST_AUTH = {
     "GOOGLE_CLIENT_SECRET": env("GOOGLE_CLIENT_SECRET", default=""),
 }
 
-# --- Simple JWT
+# --- Simple JWT ---
+# This section contains settings for the Simple JWT library.
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
@@ -255,7 +291,8 @@ SIMPLE_JWT = {
     "USER_ID_CLAIM": "user_id",
 }
 
-# --- Social Auth (Google via AllAuth)
+# --- Social Auth (Google via AllAuth) ---
+# This section contains settings for social authentication using Google.
 SOCIALACCOUNT_STORE_TOKENS = True # Ensure social tokens are stored
 SOCIALACCOUNT_PROVIDERS = {
     "google": {
@@ -275,6 +312,8 @@ SOCIALACCOUNT_PROVIDERS = {
     }
 }
 
+# --- OAuth 2.0 Provider ---
+# This section contains settings for the Django OAuth Toolkit.
 OAUTH2_PROVIDER = {
     "SCOPES": {
         "read": "Read scope",
@@ -285,7 +324,8 @@ OAUTH2_PROVIDER = {
     }
 }
 
-# --- M-Pesa
+# --- M-Pesa ---
+# This section contains settings for the M-Pesa payment gateway.
 MPESA_CONSUMER_KEY = env("MPESA_CONSUMER_KEY")
 MPESA_CONSUMER_SECRET = env("MPESA_CONSUMER_SECRET")
 MPESA_SHORTCODE = env("MPESA_SHORTCODE")
@@ -293,7 +333,8 @@ MPESA_PASSKEY = env("MPESA_PASSKEY")
 MPESA_CALLBACK_URL = env("MPESA_CALLBACK_URL")
 MPESA_ENV = env("MPESA_ENV", default="sandbox")
 
-# --- Sentry
+# --- Sentry ---
+# This section contains settings for Sentry, which is used for error tracking.
 SENTRY_DSN = env("SENTRY_DSN", default="")
 if SENTRY_DSN:
     sentry_sdk.init(
@@ -305,8 +346,12 @@ if SENTRY_DSN:
         traces_sample_rate=0.5,
     )
 
+# --- Default Auto Field ---
+# This setting specifies the default auto field for models.
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# --- Logging ---
+# This section contains settings for logging in the project.
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,

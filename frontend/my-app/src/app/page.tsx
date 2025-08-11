@@ -6,6 +6,11 @@ import { Box, Heading, Text, VStack, Button, Container }
  from '@chakra-ui/react';
 import Image from 'next/image';
 
+/**
+ * Home page component.
+ * This component renders the main page of the application.
+ * @returns The home page component.
+ */
 export default function HomePage() {
   return (
     <>

@@ -11,7 +11,9 @@ from payment.views import mpesa_stk_push_callback
 # Import Spectacular views directly
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
-# Define a list of your project's API URL patterns
+# --- API URL Patterns ---
+# This list contains all the URL patterns for the API.
+# It includes the URLs for the store, payments, sellers, and authentication.
 api_urlpatterns = [
     path("", include("store.api_urls")),
     path("payments/", include("payment.api_urls")),
@@ -25,7 +27,9 @@ api_urlpatterns = [
     path("schema/swagger-ui/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
 ]
 
-# The main project URL patterns
+# --- Main URL Patterns ---
+# This is the main URL configuration for the project.
+# It includes the admin URLs, the API URLs, and the M-Pesa callback URL.
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/v1/", include(api_urlpatterns)),
@@ -38,7 +42,8 @@ urlpatterns = [
     ),
 ]
 
-# Serve static and media files in development
+# --- Static and Media Files ---
+# This section configures the serving of static and media files in development.
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

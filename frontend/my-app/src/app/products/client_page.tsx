@@ -37,6 +37,9 @@ import Fuse from 'fuse.js';
 import { useQuery } from '@tanstack/react-query';
 import { fetchProducts } from '../../api/products';
 
+/**
+ * Interface for the Product object.
+ */
 interface Product {
   id: number;
   name: string;
@@ -54,12 +57,19 @@ interface Product {
   updated_at: string;
 }
 
-
+/**
+ * Converts a price string to a numeric value.
+ * @param priceString - The price string to convert.
+ * @returns The numeric value of the price.
+ */
 const getNumericPrice = (priceString: string): number => {
   const cleanedPrice = priceString.replace(/[^0-9.]/g, '');
   return parseFloat(cleanedPrice);
 };
 
+/**
+ * Fuse.js options for fuzzy searching.
+ */
 const fuseOptions = {
   keys: ['name', 'category', 'brand', 'description'],
   threshold: 0.3,
@@ -68,10 +78,19 @@ const fuseOptions = {
 
 const PRODUCTS_PER_PAGE = 8;
 
+/**
+ * Interface for the ProductsClientPage component props.
+ */
 interface ProductsClientPageProps {
   isHomePage?: boolean; // Optional prop to indicate if it's rendered on the home page
 }
 
+/**
+ * Client-side component for the products page.
+ * This component handles fetching, filtering, and displaying products.
+ * @param isHomePage - Optional prop to indicate if it's rendered on the home page.
+ * @returns The products client page component.
+ */
 export default function ProductsClientPage({ isHomePage }: ProductsClientPageProps) {
   const { data: products, isLoading, isError, error } = useQuery<Product[], Error>({
     queryKey: ['products'],
@@ -377,4 +396,3 @@ export default function ProductsClientPage({ isHomePage }: ProductsClientPagePro
     </Container>
   );
 }
-

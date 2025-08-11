@@ -6,6 +6,7 @@ from .models import Cart, Customer, Order, OrderItem, Product
 
 # --- Read-only Product Serializer (for nested use in OrderItem) ---
 class ProductSerializer(serializers.ModelSerializer):
+    """Serializer for the Product model."""
     seller = serializers.StringRelatedField()
     image_url = serializers.SerializerMethodField()
 
@@ -31,6 +32,7 @@ class ProductSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "created_at", "updated_at"]
 
     def get_image_url(self, obj):
+        """Returns the absolute URL of the product image."""
         if obj.image_file:
             request = self.context.get("request")
             if request:
@@ -39,13 +41,12 @@ class ProductSerializer(serializers.ModelSerializer):
             return obj.image_file.url
         return None
 
-    # Removed get_image_file method as we are no longer using SerializerMethodField for it.
-
 
 # --- Writable OrderItem Serializer (for handling input to Order) ---
 class WritableOrderItemSerializer(
     serializers.Serializer
 ):
+    """Serializer for creating and updating order items."""
     product_id = serializers.CharField(
         max_length=255
     )
@@ -55,6 +56,7 @@ class WritableOrderItemSerializer(
         fields = ["product_id", "quantity"]
 
     def validate_product_id(self, value):
+        """Validates that the product exists."""
         try:
             Product.objects.get(id=value)
         except Product.DoesNotExist:
@@ -64,11 +66,13 @@ class WritableOrderItemSerializer(
         return value
 
     def validate(self, data):
+        """Validates the serializer data."""
         return data
 
 
 # --- Read-only OrderItem Serializer (for outputting Order details) ---
 class ReadOnlyOrderItemSerializer(serializers.ModelSerializer):
+    """Serializer for reading order items."""
     product = ProductSerializer(read_only=True)
     get_total = serializers.DecimalField(
         max_digits=10, decimal_places=2, read_only=True
@@ -81,6 +85,7 @@ class ReadOnlyOrderItemSerializer(serializers.ModelSerializer):
 
 # --- Order Serializer (primarily for reading/outputting Order data) ---
 class OrderSerializer(serializers.ModelSerializer):
+    """Serializer for the Order model."""
     items = ReadOnlyOrderItemSerializer(
         many=True, read_only=True, source="orderitem_set"
     )
@@ -118,9 +123,9 @@ class OrderSerializer(serializers.ModelSerializer):
 
 
 class CartSerializer(serializers.ModelSerializer):
+    """Serializer for the Cart model."""
     orders = OrderSerializer(many=True, read_only=True)
 
     class Meta:
         model = Cart
         fields = ["id", "customer", "session_key", "orders"]
-

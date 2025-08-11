@@ -1,36 +1,119 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Ltronix Shop Frontend
+
+This is the Next.js frontend for the Ltronix Shop e-commerce platform.
+
+## Table of Contents
+
+- [Project Overview](#project-overview)
+- [Key Features](#key-features)
+- [Tech Stack](#tech-stack)
+- [Project Structure](#project-structure)
+- [Getting Started](#getting-started)
+  - [Prerequisites](#prerequisites)
+  - [Installation](#installation)
+- [Usage](#usage)
+- [Deployment](#deployment)
+- [CI/CD](#cicd)
+- [Troubleshooting](#troubleshooting)
+- [Contributing](#contributing)
+- [License](#license)
+
+## Project Overview
+
+The Ltronix Shop frontend is a modern, responsive, and user-friendly e-commerce interface built with Next.js and Chakra UI. It consumes the RESTful API provided by the Django backend.
+
+## Key Features
+
+-   **User Authentication:** Secure user registration and login with local email/password and social providers (Google).
+-   **Product Catalog:** Browse and search for products with detailed descriptions and images.
+-   **Shopping Cart:** Add products to a shopping cart and manage its contents.
+-   **Checkout:** A streamlined checkout process with support for M-Pesa payments.
+-   **Order Management:** View order history and track order status.
+-   **Admin Dashboard:** A comprehensive admin panel for managing products, orders, and users.
+-   **Responsive Design:** A mobile-friendly interface that works on all devices.
+
+## Tech Stack
+
+-   **Framework:** [Next.js](https://nextjs.org/), [React](https://reactjs.org/)
+-   **UI:** [Chakra UI](https://chakra-ui.com/)
+-   **State Management:** [Zustand](https://zustand-demo.pmnd.rs/), [React Query](https://tanstack.com/query/v4)
+-   **HTTP:** [Axios](https://axios-http.com/)
+-   **Authentication:** [NextAuth.js](https://next-auth.js.org/)
+-   **Deployment:** [Vercel](https://vercel.com/)
+
+## Project Structure
+
+```
+frontend/my-app/
+├── public/       # Static assets for the frontend
+└── src/          # Frontend source code
+    ├── api/          # API client for interacting with the backend
+    ├── app/          # Next.js app directory
+    ├── components/   # Reusable UI components
+    ├── hooks/        # Custom React hooks
+    ├── lib/          # Library functions
+    ├── providers/    # React context providers
+    ├── store/        # Zustand stores
+    └── types/        # TypeScript type definitions
+```
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+-   [Node.js](https://nodejs.org/en/download/) and [npm](https://www.npmjs.com/get-npm)
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Installation
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1.  **Clone the repository:**
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+    ```bash
+    git clone https://github.com/ndunguloren96/ltronix-shop.git
+    cd ltronix-shop/frontend/my-app
+    ```
 
-## Learn More
+2.  **Set up environment variables:**
 
-To learn more about Next.js, take a look at the following resources:
+    -   In the `frontend/my-app` directory, copy `.env.example` to `.env.local` and fill in the required values.
+        ```bash
+        cp .env.example .env.local
+        ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+3.  **Install dependencies:**
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+    ```bash
+    npm install
+    ```
 
-## Deploy on Vercel
+4.  **Run the development server:**
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+    ```bash
+    npm run dev
+    ```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Usage
+
+-   **Frontend:** `http://localhost:3000`
+
+## Deployment
+
+The frontend is designed for deployment to Vercel.
+
+## CI/CD
+
+The project uses GitHub Actions for continuous integration and continuous deployment.
+
+-   **Frontend:** The frontend workflow (`.github/workflows/frontend.yml`) lints, tests, builds, and deploys the frontend to Vercel.
+
+## Troubleshooting
+
+-   **`npm run dev` fails:** Ensure that Node.js and npm are properly installed. Also, check that you have created the `.env.local` file with the correct values.
+-   **Frontend can't connect to the backend:** Verify that the `NEXT_PUBLIC_DJANGO_API_URL` in `.env.local` is set to the correct URL of your backend API.
+
+## Contributing
+
+Contributions are welcome! Please open an issue or submit a pull request.
+
+## License
+
+This project is licensed under the [MIT](./LICENSE) License.

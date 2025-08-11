@@ -130,6 +130,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
 
 class UserProfile(models.Model):
+    """Represents a user's profile, which contains additional information about the user."""
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     middle_name = models.CharField(_("middle name"), max_length=150, blank=True)
 

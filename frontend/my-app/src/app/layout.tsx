@@ -14,6 +14,12 @@ import chakraConfig from '../chakra.config';
 
 const inter = Inter({ subsets: ['latin'] });
 
+/**
+ * Root layout for the application.
+ * This component wraps all pages and provides a consistent layout.
+ * @param children - The content to be rendered within the layout.
+ * @returns The root layout component.
+ */
 export default function RootLayout({
   children,
 }: {
@@ -41,4 +47,3 @@ export default function RootLayout({
     </html>
   );
 }
-

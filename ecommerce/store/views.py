@@ -1,3 +1,4 @@
+# ecommerce/store/views.py
 import datetime
 import json
 import logging
@@ -14,6 +15,7 @@ logger = logging.getLogger("store")
 
 
 def store(request):
+    """Renders the store page with all products and cart data."""
     data = cartData(request)
 
     cartItems = data["cartItems"]
@@ -26,6 +28,7 @@ def store(request):
 
 
 def cart(request):
+    """Renders the cart page with cart data."""
     data = cartData(request)
 
     cartItems = data["cartItems"]
@@ -37,6 +40,7 @@ def cart(request):
 
 
 def checkout(request):
+    """Renders the checkout page with cart data."""
     data = cartData(request)
 
     cartItems = data["cartItems"]
@@ -48,6 +52,7 @@ def checkout(request):
 
 
 def updateItem(request):
+    """Updates the quantity of a cart item or removes it from the cart."""
     data = json.loads(request.body)
     productId = data["productId"]
     action = data["action"]
@@ -74,6 +79,7 @@ def updateItem(request):
 
 
 def processOrder(request):
+    """Processes the order and creates a shipping address if required."""
     transaction_id = datetime.datetime.now().timestamp()
     data = json.loads(request.body)
 
