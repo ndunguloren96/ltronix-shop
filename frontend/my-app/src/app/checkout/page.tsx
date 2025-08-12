@@ -24,8 +24,8 @@ import {
   AlertIcon,
   AlertDescription,
   AlertTitle,
-  Radio
-  RadioGroup
+  Radio,
+  RadioGroup,
   Link as ChakraLink,
   Modal,
   ModalOverlay,
