@@ -1,6 +1,21 @@
 'use client';
 
+/**
+ * @fileoverview This file contains the main CheckoutPage component.
+ * It handles the entire checkout process, from displaying cart items and selecting a payment method
+ * to initiating and confirming M-Pesa STK Push payments.
+ * The component uses a hybrid approach, leveraging a local Zustand store for immediate UI updates
+ * and TanStack Query for data fetching, mutations, and backend synchronization.
+ * It's designed to be resilient, handling various states like loading, error, and payment polling.
+ */
+
+// Core React and Next.js imports
 import React, { useState, useEffect, useCallback } from 'react';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+
+// UI component imports from Chakra UI and Heroicons
 import {
   Box,
   Heading,
@@ -8,24 +23,17 @@ import {
   VStack,
   HStack,
   Button,
-  Image,
   Divider,
-  Flex,
-  Spacer,
-  useToast,
-  NumberInput,
-  NumberInputField,
-  NumberInputStepper,
-  NumberIncrementStepper,
-  NumberDecrementStepper,
+  Input,
+  InputGroup,
+  InputLeftElement,
   Spinner,
   Center,
+  useToast,
   Alert,
   AlertIcon,
   AlertDescription,
   AlertTitle,
-  Radio,
-  RadioGroup,
   Link as ChakraLink,
   Modal,
   ModalOverlay,
@@ -34,13 +42,14 @@ import {
   ModalBody,
   ModalFooter,
   useDisclosure,
+  Flex,
+  Image,
+  RadioGroup,
+  Stack,
+  Radio,
   Collapse,
   FormLabel,
 } from '@chakra-ui/react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import {
   PhoneIcon,
   CreditCardIcon,
@@ -49,48 +58,50 @@ import {
   BanknotesIcon,
 } from '@heroicons/react/24/outline';
 
+// Data fetching and state management imports
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   fetchUserCart,
   initiateStkPushAPI,
   fetchTransactionStatusAPI,
 } from '@/api/cart';
-
-import {
-  BackendCart,
-  BackendTransaction,
-} from '@/types/order';
-
+import { BackendCart, BackendTransaction } from '@/types/order';
 import { useCartStore } from '@/store/useCartStore';
 
-const POLLING_INTERVAL_MS = 3000;
-const POLLING_TIMEOUT_MS = 120 * 1000;
-const PAYMENT_CHOICE_KEY = 'preferredPaymentMethod';
-const MPESA_PHONE_NUMBER_KEY = 'mpesaPhoneNumber';
+// Constants for payment polling and local storage keys
+const POLLING_INTERVAL_MS = 3000; // Interval for checking payment status
+const POLLING_TIMEOUT_MS = 120 * 1000; // Total time to wait for payment confirmation
+const PAYMENT_CHOICE_KEY = 'preferredPaymentMethod'; // Local storage key for preferred payment method
+const MPESA_PHONE_NUMBER_KEY = 'mpesaPhoneNumber'; // Local storage key for M-Pesa phone number
 
 /**
- * Checkout page component.
- * This component handles the checkout process, including payment method selection and M-Pesa STK push.
- * @returns The checkout page component.
+ * Main component for the checkout page.
+ * @returns {JSX.Element} The checkout page UI.
  */
 export default function CheckoutPage() {
+  // Chakra UI hooks for UI management
   const toast = useToast();
+  const { isOpen, onOpen, onClose } = useDisclosure();
+
+  // Next.js and TanStack Query hooks
   const router = useRouter();
   const queryClient = useQueryClient();
   const { data: session, status: authStatus } = useSession();
-  const { isOpen, onOpen, onClose } = useDisclosure();
 
-  // --- START OF MODIFICATION ---
-  // We're now directly accessing the local cart state from the Zustand store
+  // Zustand state management for the local cart
   const localCartItems = useCartStore((state) => state.items);
   const guestSessionKey = useCartStore((state) => state.guestSessionKey);
   const clearLocalCart = useCartStore((state) => state.clearCart);
 
+  // Component state management
   const [mpesaPhoneNumber, setMpesaPhoneNumber] = useState('');
   const [currentTransactionId, setCurrentTransactionId] = useState<number | null>(null);
   const [pollingAttempts, setPollingAttempts] = useState(0);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | null>(null);
 
-  // Effect to load saved payment method and phone number
+  /**
+   * Effect to load saved payment method and phone number from local storage on initial render.
+   */
   useEffect(() => {
     const savedMethod = localStorage.getItem(PAYMENT_CHOICE_KEY);
     if (savedMethod) {
@@ -102,18 +113,23 @@ export default function CheckoutPage() {
     }
   }, []);
 
-  // Effect to reset polling attempts when a new transaction is initiated
+  /**
+   * Effect to reset polling attempts whenever a new transaction is initiated.
+   */
   useEffect(() => {
     if (currentTransactionId !== null) {
       setPollingAttempts(0);
     }
   }, [currentTransactionId]);
 
-  // Determine if the component is ready to fetch cart data.
+  // A boolean to determine if the component is ready to fetch cart data.
   const isReadyToFetch = authStatus !== 'loading' && (authStatus === 'authenticated' || (authStatus === 'unauthenticated' && !!guestSessionKey));
 
-  // Fetch the current cart data from the backend. This is primarily for getting the cart ID for payment.
-  // The UI is now driven by the local Zustand store for instantaneous updates.
+  /**
+   * TanStack Query hook to fetch the user's cart from the backend.
+   * This is crucial for retrieving the backend cart ID required for payment processing.
+   * The query is only enabled when the user's authentication status is known and a guest key is present if unauthenticated.
+   */
   const {
     data: cart,
     isLoading: isLoadingCart,
@@ -123,13 +139,10 @@ export default function CheckoutPage() {
   } = useQuery<BackendCart | null, Error>({
     queryKey: ['cart', authStatus, guestSessionKey],
     queryFn: async () => {
-      console.log('Fetching cart with:', { authStatus, guestSessionKey });
-      
-      // If the local cart is empty, there's no need to fetch from the backend for payment validation.
+      // If the local cart is empty, there's no need to fetch from the backend.
       if (localCartItems.length === 0) {
         return null;
       }
-
       if (authStatus === 'authenticated') {
         return fetchUserCart();
       }
@@ -140,16 +153,20 @@ export default function CheckoutPage() {
     },
     enabled: isReadyToFetch,
     staleTime: 0,
-    refetchOnWindowFocus: true, // Re-enabled to help with backend sync if user tabs away and comes back.
+    refetchOnWindowFocus: true,
   });
 
-  // Mutation for initiating STK Push
+  /**
+   * TanStack Query mutation hook for initiating the M-Pesa STK Push.
+   * On success, it sets the transaction ID, opens the payment modal, and shows a toast notification.
+   * On error, it displays an error toast.
+   */
   const initiateStkPushMutation = useMutation<BackendTransaction, Error, { orderId: number; phoneNumber: string }>({
     mutationFn: (payload) => initiateStkPushAPI(payload, guestSessionKey),
     onSuccess: (data) => {
       setCurrentTransactionId(data.id);
       onOpen(); // Open the payment modal
-      localStorage.setItem(MPESA_PHONE_NUMBER_KEY, mpesaPhoneNumber); // Remember phone number
+      localStorage.setItem(MPESA_PHONE_NUMBER_KEY, mpesaPhoneNumber); // Remember phone number for future use
       toast({
         title: 'STK Push Initiated',
         description: 'Please enter your M-Pesa PIN on your phone to complete the payment.',
@@ -160,7 +177,7 @@ export default function CheckoutPage() {
       });
     },
     onError: (error) => {
-      console.error("STK Push Initiation Error:", error);
+      console.error('STK Push Initiation Error:', error);
       toast({
         title: 'Payment Failed',
         description: error.message || 'Failed to initiate M-Pesa STK Push. Please try again.',
@@ -171,7 +188,11 @@ export default function CheckoutPage() {
     },
   });
 
-  // Query for polling transaction status
+  /**
+   * TanStack Query hook for polling the transaction status from the backend.
+   * This query is enabled only when a transaction has been initiated and the modal is open.
+   * It retries on failure with an increasing polling attempt count and handles a timeout.
+   */
   const transactionStatusQueryOptions = {
     queryKey: ['transactionStatus', currentTransactionId],
     queryFn: async () => {
@@ -184,7 +205,7 @@ export default function CheckoutPage() {
     refetchInterval: POLLING_INTERVAL_MS,
     retry: (_failureCount: number, error: Error) => {
       if (pollingAttempts * POLLING_INTERVAL_MS >= POLLING_TIMEOUT_MS) {
-        console.warn("Polling timed out for transaction:", currentTransactionId);
+        console.warn('Polling timed out for transaction:', currentTransactionId);
         toast({
           title: 'Payment Timeout',
           description: 'Payment did not complete within the expected time. Please check your M-Pesa messages or try again.',
@@ -198,7 +219,7 @@ export default function CheckoutPage() {
         onClose();
         return false;
       }
-      setPollingAttempts(prev => prev + 1);
+      setPollingAttempts((prev) => prev + 1);
       return true;
     },
     onSuccess: (data: BackendTransaction | null) => {
@@ -224,12 +245,17 @@ export default function CheckoutPage() {
       }
     },
     onError: (error: Error) => {
-      console.error("Polling Transaction Status Error:", error);
-    }
+      console.error('Polling Transaction Status Error:', error);
+    },
   };
 
-  const { data: transactionStatus, isLoading: isLoadingTransactionStatus } = useQuery(transactionStatusQueryOptions);
+  const { isLoading: isLoadingTransactionStatus } = useQuery(transactionStatusQueryOptions);
+  const transactionStatus = queryClient.getQueryData(['transactionStatus', currentTransactionId]) as BackendTransaction | null;
 
+  /**
+   * Callback function to handle M-Pesa phone number input.
+   * It sanitizes the input by removing spaces and non-digits, and automatically removes the leading '0'.
+   */
   const handleMpesaPhoneNumberChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value.replace(/\s/g, '');
     value = value.replace(/\D/g, '');
@@ -240,6 +266,11 @@ export default function CheckoutPage() {
     setMpesaPhoneNumber(value);
   }, []);
 
+  /**
+   * Main function to handle the payment initiation.
+   * It performs client-side validation on the selected payment method and phone number.
+   * If validation passes, it calls the STK Push mutation.
+   */
   const handleInitiatePayment = async () => {
     if (!selectedPaymentMethod) {
       toast({
@@ -265,7 +296,6 @@ export default function CheckoutPage() {
       }
 
       // We now check both the local cart and the backend cart
-      // The local cart is the source of truth for the UI
       if (localCartItems.length === 0) {
         toast({
           title: 'Cart is Empty',
@@ -290,7 +320,7 @@ export default function CheckoutPage() {
       }
 
       let formattedPhoneNumber = mpesaPhoneNumber;
-
+      // Prepend '254' if the number starts with '7' or '1' and is 9 digits long
       if (!formattedPhoneNumber.startsWith('254') && (formattedPhoneNumber.startsWith('7') || formattedPhoneNumber.startsWith('1')) && formattedPhoneNumber.length === 9) {
         formattedPhoneNumber = '254' + formattedPhoneNumber;
       }
@@ -315,6 +345,10 @@ export default function CheckoutPage() {
     }
   };
 
+  /**
+   * Handles the closing of the payment status modal.
+   * It prevents the user from closing the modal if a transaction is still in progress.
+   */
   const handleModalClose = () => {
     if (!isLoadingTransactionStatus && (!transactionStatus || ['COMPLETED', 'FAILED', 'CANCELLED', 'TIMEOUT'].includes(transactionStatus.status))) {
       onClose();
@@ -330,11 +364,13 @@ export default function CheckoutPage() {
     }
   };
 
-  // Calculate totals from the local cart for the UI
+  // Calculate totals from the local cart for the UI. The local cart is the source of truth for the UI display.
   const totalItems = localCartItems.reduce((total, item) => total + item.quantity, 0);
   const totalAmount = localCartItems.reduce((total, item) => total + item.price * item.quantity, 0).toFixed(2);
 
-  // Check for the local cart first, before showing loading/error states for the backend cart.
+  // --- Render logic based on component state ---
+
+  // Display a message if the cart is empty
   if (localCartItems.length === 0) {
     return (
       <VStack spacing={4} textAlign="center" py={10} minH="80vh" justifyContent="center">
@@ -348,7 +384,7 @@ export default function CheckoutPage() {
     );
   }
 
-  // Then show loading for the backend cart, which is needed for payment
+  // Display a loading spinner while fetching the backend cart for payment validation
   if (isReadyToFetch && isLoadingCart) {
     return (
       <Center minH="80vh">
@@ -362,7 +398,7 @@ export default function CheckoutPage() {
     );
   }
 
-  // Show an error if the backend cart couldn't be loaded, even if the local cart has items.
+  // Display an error message if the backend cart couldn't be loaded
   if (isErrorCart) {
     return (
       <Center minH="80vh">
@@ -384,6 +420,7 @@ export default function CheckoutPage() {
     );
   }
 
+  // Main checkout page UI
   return (
     <Box p={8} maxWidth="container.xl" mx="auto" minH="80vh">
       <Heading as="h1" size="xl" textAlign="center" mb={8} color="brand.700">
@@ -528,11 +565,11 @@ export default function CheckoutPage() {
             isLoading={initiateStkPushMutation.isPending || isFetchingBackendCart}
             isDisabled={
               initiateStkPushMutation.isPending ||
-              isFetchingBackendCart || // Disable if the backend cart is still being fetched
+              isFetchingBackendCart ||
               !selectedPaymentMethod ||
               (selectedPaymentMethod === 'mpesa' && !mpesaPhoneNumber) ||
-              localCartItems.length === 0 || // Now check the local cart for emptines
-              !cart?.id // Disable if backend cart ID is not yet available
+              localCartItems.length === 0 ||
+              !cart?.id
             }
           >
             {initiateStkPushMutation.isPending || isFetchingBackendCart
