@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 // Define your Django backend URL from environment variables
-const DJANGO_API_BASE_URL = process.env.NEXT_PUBLIC_DJANGO_API_URL || 'http://127.0.0.1:8000/api'; // Default to local Django API if not set
+const DJANGO_API_BASE_URL = (process.env.NEXT_PUBLIC_DJANGO_API_URL || 'http://127.0.0.1:8000/api/v1').replace(/\/$/, '');
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');

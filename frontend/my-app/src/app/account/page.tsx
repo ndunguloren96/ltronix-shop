@@ -10,7 +10,7 @@ import Link from 'next/link';
 import { DjangoUser } from '../../types/next-auth';
 
 // Define your Django backend URL from environment variables
-const DJANGO_API_BASE_URL = process.env.NEXT_PUBLIC_DJANGO_API_URL || 'http://localhost:8000/api';
+const DJANGO_API_BASE_URL = (process.env.NEXT_PUBLIC_DJANGO_API_URL || 'http://localhost:8000/api/v1').replace(/\/$/, '');
 
 export default function AccountPage() {
   const { data: session, status } = useSession();
