@@ -1,6 +1,7 @@
 // src/types/next-auth.d.ts
 import NextAuth, { DefaultSession, DefaultUser } from "next-auth";
 import { JWT } from "next-auth/jwt";
+import "next-auth"; // Added this line
 
 export interface DjangoUser {
   id: string;
