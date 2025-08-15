@@ -3,6 +3,8 @@ import { type AuthOptions } from "next-auth";
 import { type SessionStrategy } from "next-auth";
 import { getServerSession } from "next-auth/next";
 
+import 'next-auth/jwt'; // Added this line
+
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 
