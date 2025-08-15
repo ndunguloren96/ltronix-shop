@@ -137,7 +137,7 @@ export default function ProfileUpdatePage() {
         // For now, we'll just log a warning if email is attempted to be changed here
         console.warn('Email change is not handled by this endpoint. Please use the dedicated email change feature if available.');
         // Optionally, remove email from updateData if the backend doesn't expect it on this endpoint
-        // delete updateData.email;
+        delete updateData.email;
       }
 
       const res = await fetch(`${DJANGO_API_BASE_URL}/auth/user/`, {
@@ -237,10 +237,14 @@ export default function ProfileUpdatePage() {
                 <Input
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  readOnly // Make email read-only
+                  isDisabled // Make email disabled
                   placeholder="Enter your email"
                   autoComplete="email"
                 />
+                <Text fontSize="sm" color="gray.500" mt={1}>
+                  Email cannot be changed here. Please use the dedicated email change feature.
+                </Text>
               </FormControl>
 
               <FormControl id="first-name">
