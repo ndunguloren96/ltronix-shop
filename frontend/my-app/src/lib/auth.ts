@@ -151,7 +151,7 @@ export const authOptions: AuthOptions = {
           if (response.ok) {
             // Update token with new access and refresh tokens
             token.accessToken = refreshedTokens.access;
-            token.refreshToken = refreshedTokens.refresh ?? token.refreshToken; // Refresh token might not change
+            token.refreshToken = refreshedTokens.refresh ?? refreshedTokens.refreshToken; // Refresh token might not change
             // Calculate new expiry time (e.g., 5 minutes from now)
             token.accessTokenExpires = Date.now() + (5 * 60 * 1000); // Assuming 5 minutes validity for new access token
 
@@ -192,7 +192,7 @@ export const authOptions: AuthOptions = {
         session.user.id = token.id;
       }
       if (token.error === "RefreshAccessTokenError") {
-        session.error = "RefreshAccessTokenError";
+        (session as any).error = "RefreshAccessTokenError"; // Cast session to any
       }
       console.log("Session Callback: Session updated. User ID:", session.user.id, "Authenticated:", !!session.user.accessToken);
       return session;
