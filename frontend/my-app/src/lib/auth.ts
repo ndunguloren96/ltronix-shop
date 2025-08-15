@@ -16,139 +16,197 @@ const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET;
 const DJANGO_API_BASE_URL = (process.env.NEXT_PUBLIC_DJANGO_API_URL || 'http://localhost:8000/api/v1').replace(/\/$/, '');
 
 export const authOptions: AuthOptions = {
-  providers: [
-    CredentialsProvider({
-      name: "credentials",
-      credentials: {
-        // The frontend sends a 'django_login_response' with the successful login data
-        django_login_response: { label: "Django Login Response", type: "text" },
-      },
-      async authorize(credentials) {
-        if (!credentials?.django_login_response) {
-          console.error("Credentials authorize: Missing Django login response.");
-          return null;
-        }
+  providers: [
+    CredentialsProvider({
+      name: "credentials",
+      credentials: {
+        // The frontend sends a 'django_login_response' with the successful login data
+        django_login_response: { label: "Django Login Response", type: "text" },
+      },
+      async authorize(credentials) {
+        if (!credentials?.django_login_response) {
+          console.error("Credentials authorize: Missing Django login response.");
+          return null;
+        }
 
-        try {
-          // Parse the JSON data sent from the frontend
-          const data = JSON.parse(credentials.django_login_response);
+        try {
+          // Parse the JSON data sent from the frontend
+          const data = JSON.parse(credentials.django_login_response);
 
-          // Check for required fields from the Django API response
-          if (data.user && data.access) {
-            // Return a NextAuth User object, populating it with data from Django
-            return {
-              id: data.user.id.toString(),
-              email: data.user.email,
-              name: data.user.first_name || data.user.email,
-              accessToken: data.access,
-              refreshToken: data.refresh,
-              djangoUser: data.user as DjangoUser,
-            };
-          }
-          console.warn("Credentials authorize: User or access token missing from Django response.");
-          return null;
-        } catch (error: any) {
-          console.error("Credentials authorize failed to parse JSON:", error.message || error);
-          return null;
-        }
-      },
-    }),
-    ...(GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET
-      ? [
-          GoogleProvider({
-            clientId: GOOGLE_CLIENT_ID,
-            clientSecret: GOOGLE_CLIENT_SECRET,
-            authorization: {
-              params: {
-                prompt: "consent",
-                access_type: "offline",
-                response_type: "code",
-              },
-            },
-          }),
-        ]
-      : []),
-  ],
-  session: {
-    strategy: "jwt" as SessionStrategy,
-    maxAge: 30 * 24 * 60 * 60,
-    updateAge: 24 * 60 * 60,
-  },
-  callbacks: {
-    async jwt({ token, user, account }) {
-      if (account && user) {
-        let accessToken: string | undefined;
-        let refreshToken: string | undefined;
-        let djangoUser: DjangoUser | undefined;
-        let userId: string | undefined;
+          // Check for required fields from the Django API response
+          if (data.user && data.access) {
+            // Return a NextAuth User object, populating it with data from Django
+            return {
+              id: data.user.id.toString(),
+              email: data.user.email,
+              name: data.user.first_name || data.user.email,
+              accessToken: data.access,
+              refreshToken: data.refresh,
+              djangoUser: data.user as DjangoUser,
+            };
+          }
+          console.warn("Credentials authorize: User or access token missing from Django response.");
+          return null;
+        } catch (error: any) {
+          console.error("Credentials authorize failed to parse JSON:", error.message || error);
+          return null;
+        }
+      },
+    }),
+    ...(GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET
+      ? [
+          GoogleProvider({
+            clientId: GOOGLE_CLIENT_ID,
+            clientSecret: GOOGLE_CLIENT_SECRET,
+            authorization: {
+              params: {
+                prompt: "consent",
+                access_type: "offline",
+                response_type: "code",
+              },
+            },
+          }),
+        ]
+      : []),
+  ],
+  session: {
+    strategy: "jwt" as SessionStrategy,
+    maxAge: 30 * 24 * 60 * 60,
+    updateAge: 24 * 60 * 60,
+  },
+  callbacks: {
+    async jwt({ token, user, account }) {
+      // Initial sign in
+      if (account && user) {
+        let accessToken: string | undefined;
+        let refreshToken: string | undefined;
+        let djangoUser: DjangoUser | undefined;
+        let userId: string | undefined;
 
-        if (account.provider === "credentials") {
-          const credentialsUser = user as { id: string; email: string; name?: string; accessToken: string; refreshToken?: string; djangoUser: DjangoUser; };
-          accessToken = credentialsUser.accessToken;
-          refreshToken = credentialsUser.refreshToken;
-          djangoUser = credentialsUser.djangoUser;
-          userId = credentialsUser.id;
-          console.log("JWT Callback (Credentials): User signed in. ID:", userId, "Email:", credentialsUser.email);
-        } else if (account.provider === "google") {
-          console.log("JWT Callback (Google): Attempting Django social auth...");
-          try {
-            const djangoSocialAuthRes = await fetch(`${DJANGO_API_BASE_URL}/auth/google/`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ access_token: account.access_token }),
-            });
-            const data = await djangoSocialAuthRes.json();
-            console.log("Django Google Social Auth Raw Response Data:", data);
+        if (account.provider === "credentials") {
+          const credentialsUser = user as { id: string; email: string; name?: string; accessToken: string; refreshToken?: string; djangoUser: DjangoUser; };
+          accessToken = credentialsUser.accessToken;
+          refreshToken = credentialsUser.refreshToken;
+          djangoUser = credentialsUser.djangoUser;
+          userId = credentialsUser.id;
+          // Set initial expiry for access token (e.g., 5 minutes from now)
+          // In a real app, you'd get this from the Django login response
+          token.accessTokenExpires = Date.now() + (5 * 60 * 1000);
+          console.log("JWT Callback (Credentials): User signed in. ID:", userId, "Email:", credentialsUser.email);
+        } else if (account.provider === "google") {
+          console.log("JWT Callback (Google): Attempting Django social auth...");
+          try {
+            const djangoSocialAuthRes = await fetch(`${DJANGO_API_BASE_URL}/auth/google/`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ access_token: account.access_token }),
+            });
+            const data = await djangoSocialAuthRes.json();
+            console.log("Django Google Social Auth Raw Response Data:", data);
 
-            if (djangoSocialAuthRes.ok) {
-              accessToken = data.access;
-              refreshToken = data.refresh;
-              djangoUser = data.user;
-              userId = data.user.id.toString();
-              console.log("JWT Callback (Google): Django social auth successful. User ID:", userId, "Email:", djangoUser?.email);
-            } else {
-              console.error("Django social auth failed (status:", djangoSocialAuthRes.status, "):", data);
-            }
-          } catch (error) {
-            console.error("Error during Django social auth:", error);
-          }
-        }
+            if (djangoSocialAuthRes.ok) {
+              accessToken = data.access;
+              refreshToken = data.refresh;
+              djangoUser = data.user;
+              userId = data.user.id.toString();
+              // Set initial expiry for access token (e.g., 5 minutes from now)
+              token.accessTokenExpires = Date.now() + (5 * 60 * 1000);
+              console.log("JWT Callback (Google): Django social auth successful. User ID:", userId, "Email:", djangoUser?.email);
+            } else {
+              console.error("Django social auth failed (status:", djangoSocialAuthRes.status, "):", data);
+            }
+          } catch (error) {
+            console.error("Error during Django social auth:", error);
+          }
+        }
 
-        if (accessToken) token.accessToken = accessToken;
-        if (refreshToken) token.refreshToken = refreshToken;
-        if (djangoUser) token.djangoUser = djangoUser;
-        if (userId) token.id = userId;
-      }
-      return token;
-    },
-    async session({ session, token }) {
-      if (token.accessToken) {
-        session.user.accessToken = token.accessToken;
-      }
-      if (token.refreshToken) {
-        session.user.refreshToken = token.refreshToken;
-      }
-      if (token.djangoUser) {
-        session.user.djangoUser = token.djangoUser;
-      }
-      if (token.id) {
-        session.user.id = token.id;
-      }
-      console.log("Session Callback: Session updated. User ID:", session.user.id, "Authenticated:", !!session.user.accessToken);
-      return session;
-    },
-  },
-  pages: {
-    signIn: "/auth/login",
-  },
-  secret: NEXTAUTH_SECRET,
-  debug: process.env.NODE_ENV === "development",
+        if (accessToken) token.accessToken = accessToken;
+        if (refreshToken) token.refreshToken = refreshToken;
+        if (djangoUser) token.djangoUser = djangoUser;
+        if (userId) token.id = userId;
+        return token; // Return token after initial setup
+      }
+
+      // Return previous token if the access token has not expired yet
+      if (token.accessTokenExpires && Date.now() < token.accessTokenExpires) {
+        return token;
+      }
+
+      // Access token has expired, try to refresh it
+      if (token.refreshToken) {
+        try {
+          console.log("JWT Callback: Access token expired. Attempting to refresh...");
+          const response = await fetch(`${DJANGO_API_BASE_URL}/auth/token/refresh/`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ refresh: token.refreshToken }),
+          });
+
+          const refreshedTokens = await response.json();
+
+          if (response.ok) {
+            // Update token with new access and refresh tokens
+            token.accessToken = refreshedTokens.access;
+            token.refreshToken = refreshedTokens.refresh ?? token.refreshToken; // Refresh token might not change
+            // Calculate new expiry time (e.g., 5 minutes from now)
+            token.accessTokenExpires = Date.now() + (5 * 60 * 1000); // Assuming 5 minutes validity for new access token
+
+            console.log("JWT Callback: Token refreshed successfully.");
+            return token;
+          } else {
+            console.error("JWT Callback: Failed to refresh token:", refreshedTokens);
+            // If refresh fails, clear tokens to force re-login
+            token.accessToken = undefined;
+            token.refreshToken = undefined;
+            token.error = "RefreshAccessTokenError"; // Custom error for session callback
+            return token;
+          }
+        } catch (error) {
+          console.error("JWT Callback: Error refreshing token:", error);
+          token.accessToken = undefined;
+          token.refreshToken = undefined;
+          token.error = "RefreshAccessTokenError";
+          return token;
+        }
+      }
+
+      // If no refresh token or refresh failed, return existing token (which might be expired)
+      // or null/empty to force re-login
+      return token;
+    },
+    async session({ session, token }) {
+      if (token.accessToken) {
+        session.user.accessToken = token.accessToken;
+      }
+      if (token.refreshToken) {
+        session.user.refreshToken = token.refreshToken;
+      }
+      if (token.djangoUser) {
+        session.user.djangoUser = token.djangoUser;
+      }
+      if (token.id) {
+        session.user.id = token.id;
+      }
+      if (token.error === "RefreshAccessTokenError") {
+        session.error = "RefreshAccessTokenError";
+      }
+      console.log("Session Callback: Session updated. User ID:", session.user.id, "Authenticated:", !!session.user.accessToken);
+      return session;
+    },
+  },
+  pages: {
+    signIn: "/auth/login",
+  },
+  secret: NEXTAUTH_SECRET,
+  debug: process.env.NODE_ENV === "development",
 };
 
 export const getAuthHeader = async (): Promise<string | null> => {
-  const session = await getServerSession(authOptions);
-  if (session?.user?.accessToken) {
-    return `Bearer ${session.user.accessToken}`;
-  }
-  return null;
+  const session = await getServerSession(authOptions);
+  if (session?.user?.accessToken) {
+    return `Bearer ${session.user.accessToken}`;
+  }
+  return null;
 };
