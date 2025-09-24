@@ -48,7 +48,7 @@ s3transfer==0.13.0
 
 # Production server & imaging
 gunicorn==22.0.0
-pillow==11.2.1
+pillow==11.3.0
 
 # Data formats
 PyYAML==6.0.1
