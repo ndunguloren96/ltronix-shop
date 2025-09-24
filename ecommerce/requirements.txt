@@ -46,7 +46,7 @@ s3transfer==0.13.0
 
 # For serving the Django app
 gunicorn==23.0.0
-pillow==11.2.1
+pillow==11.3.0
 
 # Error monitoring
 sentry-sdk==2.32.0
