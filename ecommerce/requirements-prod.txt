@@ -47,7 +47,7 @@ boto3==1.39.0
 s3transfer==0.13.0
 
 # Production server & imaging
-gunicorn==22.0.0
+gunicorn==23.0.0
 pillow==11.2.1
 
 # Data formats
