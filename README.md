@@ -2,7 +2,7 @@
 
 Ltronix Shop is a full-stack e-commerce platform built with a modern architecture, featuring a decoupled frontend and backend, automated CI/CD pipelines, and infrastructure as code.
 
-![Ltronix Shop](./screenshots/product_listing_ChakraUI.png)
+![Ltronix Shop](./screenshots/b_f_integration/initial_backend_frontend_integration.png)
 
 ## Table of Contents
 
